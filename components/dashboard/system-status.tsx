@@ -2,7 +2,7 @@ import { Thermometer, Gauge, CloudRain, MonitorSmartphone, Cpu, Wind, Lightbulb,
 import { Panel } from "./panel"
 import type { WeatherData } from "@/types/weather"
 
-export function SystemStatus({ data }: { data: WeatherData }) {
+export function SystemStatus({ data, className }: { data: WeatherData; className?: string }) {
   const getStatus = (status: 'operativo' | 'error' | 'desconectado') => {
     if (data.conexionESP32 === 'desconectado') return "Desconectado"
     return status === 'operativo' ? "Operativo" : status === 'error' ? "Error" : "Desconectado"
@@ -26,7 +26,7 @@ export function SystemStatus({ data }: { data: WeatherData }) {
   ]
 
   return (
-    <Panel className="h-full">
+    <Panel className={className || "h-full"}>
       <h2 className="mb-1.5 text-sm font-semibold tracking-wide text-foreground">ESTADO DEL SISTEMA</h2>
       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1">
         {rows.map((row) => {

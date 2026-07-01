@@ -43,8 +43,8 @@ export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
   const domainPadding = activeMetric === "pressure" ? 2 : 5;
 
   return (
-    <Panel className="h-full flex flex-col justify-between overflow-hidden relative p-5">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-2 z-10 relative">
+    <Panel className="h-full flex flex-col justify-between overflow-hidden relative p-3">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-1 z-10 relative">
         <div className="flex items-start gap-4">
           <div className="mt-1 flex items-center justify-center size-9 rounded-full bg-background border border-border">
             <Activity className="size-5 text-muted-foreground" />
@@ -60,7 +60,7 @@ export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
           </div>
         </div>
 
-        <div className="flex p-1 rounded-full bg-background border border-border shrink-0 self-start">
+        <div className="flex p-0.5 rounded-full bg-background border border-border shrink-0 self-start">
           {(Object.keys(METRICS) as MetricKey[]).map((key) => {
             const isActive = activeMetric === key
             return (
@@ -81,7 +81,7 @@ export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
       </div>
 
       <div className="flex-1 mt-1 -mx-4 -mb-4 z-10 relative">
-        <ResponsiveContainer width="100%" height={130}>
+        <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={history} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
             <defs>
               <linearGradient id={`gradient-${activeMetric}`} x1="0" y1="0" x2="0" y2="1">

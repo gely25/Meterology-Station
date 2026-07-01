@@ -70,8 +70,8 @@ export function PressureCard({ data }: { data: WeatherData }) {
       </div>
 
       <div className="flex items-end justify-center relative z-10">
-        <span className="font-digital text-6xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{value.toFixed(1)}</span>
-        <span className="mb-1.5 ml-2 text-xl font-bold text-pressure drop-shadow-[0_0_8px_var(--color-pressure)]">hPa</span>
+        <span className="font-digital text-5xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{value.toFixed(1)}</span>
+        <span className="mb-1.5 ml-2 text-lg font-bold text-pressure drop-shadow-[0_0_8px_var(--color-pressure)]">hPa</span>
       </div>
       <div className="mt-1 flex items-center justify-between gap-3 relative z-10">
         <div className="relative h-20 w-24">
@@ -154,9 +154,9 @@ export function AirQualityCard({ data }: { data: WeatherData }) {
         </svg>
       </div>
 
-      <div className="flex items-end justify-center py-1 relative z-10">
-        <span className="font-digital text-7xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
-        <span className="mb-2 ml-2 text-2xl font-bold text-muted-foreground">ppm</span>
+      <div className="flex items-end justify-center py-0 relative z-10">
+        <span className="font-digital text-6xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
+        <span className="mb-2 ml-2 text-xl font-bold text-muted-foreground">ppm</span>
       </div>
       <p className="mb-2 text-center text-[12px] font-bold tracking-widest relative z-10" style={{color: statusColor}}>
         {status}
@@ -167,34 +167,5 @@ export function AirQualityCard({ data }: { data: WeatherData }) {
 }
 
 
-import { useState, useEffect } from 'react'
 
-export function LocalTimeCard() {
-  const [time, setTime] = useState<Date | null>(null)
-  
-  useEffect(() => {
-    setTime(new Date())
-    const timer = setInterval(() => setTime(new Date()), 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  if (!time) return <Panel className="flex-1" />
-
-  const timeString = time.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  const dateString = time.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-
-  return (
-    <Panel className="flex-1 flex flex-col justify-center">
-      <PanelHeader icon={<Clock className="size-4 text-sky-400" />} title="Hora local" subtitle="Tiempo real" accent="var(--color-foreground)" />
-      <div className="flex flex-col items-center justify-center mt-1.5">
-        <div className="font-digital text-[2.5rem] tracking-widest text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] leading-none">
-          {timeString}
-        </div>
-        <p className="mt-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground capitalize">
-          {dateString}
-        </p>
-      </div>
-    </Panel>
-  )
-}
 

@@ -16,7 +16,7 @@ export function Panel({
     <section
       className={cn(
         "relative rounded-2xl border border-border bg-card/90 backdrop-blur-sm transition-shadow duration-300",
-        "p-2.5 md:p-3",
+        "p-1.5 md:p-2",
         variant === "default" && "shadow-[0_2px_0_0_rgba(255,255,255,0.06)_inset,0_8px_24px_-8px_rgba(0,0,0,0.12)]",
         variant === "hero"    && "shadow-[0_2px_0_0_rgba(255,255,255,0.06)_inset,0_16px_40px_-12px_rgba(0,0,0,0.18)]",
         className,
@@ -42,8 +42,8 @@ export function PanelHeader({
   right?: ReactNode
 }) {
   return (
-    <header className="mb-3 flex items-start justify-between gap-2">
-      <div className="flex items-center gap-3">
+    <header className="mb-1.5 flex items-start justify-between gap-2">
+      <div className="flex items-center gap-2">
         {icon}
         <div>
           <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">{title}</h2>

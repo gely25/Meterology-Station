@@ -49,8 +49,8 @@ export function TemperatureCard({ data, className }: { data: WeatherData; classN
   const max = Math.max(...history.map(h => h.temperature))
   return (
     <Panel className={cn("flex flex-col justify-between overflow-hidden relative", className)}>
-      <div className="flex items-center gap-3 z-10 relative">
-        <div className="shrink-0 flex items-center justify-center -my-4" style={{ width: 80, height: 100 }}>
+      <div className="flex items-center gap-2 z-10 relative">
+        <div className="shrink-0 flex items-center justify-center -my-4" style={{ width: 60, height: 75 }}>
           <img
             src="/svg/temperatura.svg"
             alt="Temperatura"
@@ -59,10 +59,10 @@ export function TemperatureCard({ data, className }: { data: WeatherData; classN
         </div>
         <div className="flex flex-col">
           <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">TEMPERATURA</h2>
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">AHT10</p>
-          <div className="flex items-end mb-2">
-            <span className="font-digital text-7xl leading-none text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{value.toFixed(1)}</span>
-            <span className="mb-1 ml-2 text-2xl font-bold text-temp drop-shadow-[0_0_8px_var(--color-temp)]">°C</span>
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">AHT10</p>
+          <div className="flex items-end mb-1">
+            <span className="font-digital text-6xl leading-none text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{value.toFixed(1)}</span>
+            <span className="mb-0.5 ml-1 text-xl font-bold text-temp drop-shadow-[0_0_8px_var(--color-temp)]">°C</span>
           </div>
           <div className="flex items-center gap-4 text-[11px] font-medium">
             <span className="flex items-center gap-1 text-muted-foreground">
@@ -111,7 +111,7 @@ export function HumidityCard({ data }: { data: WeatherData }) {
       </div>
 
       {/* Gauge + value centered at arc pivot */}
-      <div className="relative mx-auto mt-1 h-28 w-full px-4 z-10">
+      <div className="relative mx-auto h-24 w-full px-4 z-10">
         <svg viewBox="0 0 200 110" className="h-full w-full">
           <path d="M16 100 A84 84 0 0 1 184 100" fill="none" stroke="oklch(0.15 0.02 260)" strokeWidth="16" strokeLinecap="round" />
           {Array.from({ length: 21 }).map((_, i) => {
@@ -132,8 +132,8 @@ export function HumidityCard({ data }: { data: WeatherData }) {
           <circle cx="100" cy="100" r="5" fill="oklch(0.97 0 0)" />
         </svg>
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-center pb-1">
-          <span className="font-digital text-6xl leading-none text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
-          <span className="mb-1 ml-2 text-xl font-bold text-humidity drop-shadow-[0_0_8px_var(--color-humidity)]">%</span>
+          <span className="font-digital text-5xl leading-none text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
+          <span className="mb-1 ml-1 text-lg font-bold text-humidity drop-shadow-[0_0_8px_var(--color-humidity)]">%</span>
         </div>
       </div>
 
@@ -171,8 +171,8 @@ export function RainCard({ data }: { data: WeatherData }) {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
         <img src={rainSvg} alt="" width={220} height={220} className="object-contain" />
       </div>
-      <div className="flex items-center justify-center py-2 relative z-10">
-        <span className="font-bold text-4xl tracking-widest text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] uppercase">
+      <div className="flex items-center justify-center py-1 relative z-10">
+        <span className="font-bold text-2xl tracking-widest text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] uppercase">
           {estadoLluvia}
         </span>
       </div>
@@ -245,16 +245,13 @@ export function ConditionCard({ data }: { data: WeatherData }) {
       {/* Header */}
       <div className="w-full mb-2 z-10 relative">
         <h2 className="text-sm font-semibold tracking-wide text-foreground">ESTADO DEL CLIMA</h2>
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mt-0.5 max-w-[200px]">
-          Estado calculado mediante AHT10, BMP280 y Sensor de lluvia.
-        </p>
       </div>
 
       {/* Large illustration */}
-      <div className="relative z-10 my-1">
+      <div className="relative z-10 my-2">
         <img
           src={cfg.svgSrc} alt={cfg.label}
-          width={110} height={110}
+          width={140} height={140}
           className="object-contain select-none drop-shadow-lg transition-all duration-500"
         />
       </div>
