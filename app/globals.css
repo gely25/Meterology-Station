@@ -2,13 +2,28 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
+@font-face {
+  font-family: 'DSEG7Classic';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'DSEG7Classic';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: var(--font-outfit), sans-serif;
+  --font-sans: var(--font-rajdhani), sans-serif;
   --font-mono: var(--font-jetbrains), monospace;
-  --font-digital: var(--font-digital), var(--font-jetbrains);
+  --font-digital: 'DSEG7Classic', var(--font-jetbrains), monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -34,52 +49,92 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
+
+  --animate-fade-in: fade-in 0.4s ease both;
+  --animate-slide-up: slide-up 0.4s cubic-bezier(0.16,1,0.3,1) both;
+  --animate-slide-right: slide-right 0.35s cubic-bezier(0.16,1,0.3,1) both;
+  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
 }
 
 :root {
   color-scheme: light;
-  --background: oklch(0.98 0.005 240);
-  --foreground: oklch(0.25 0 0);
+  --background: oklch(0.97 0.004 240);
+  --foreground: oklch(0.2 0.01 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0 0);
-  --panel: oklch(1 0 0);
-  --border: oklch(0.92 0 0);
-  --muted: oklch(0.95 0 0);
-  --muted-foreground: oklch(0.45 0 0);
+  --card-foreground: oklch(0.2 0.01 260);
+  --panel: oklch(0.99 0 0);
+  --border: oklch(0.91 0.005 240);
+  --muted: oklch(0.95 0.003 240);
+  --muted-foreground: oklch(0.52 0.01 260);
   --sidebar: oklch(1 0 0);
 
-  --temp: oklch(0.75 0.14 45);
-  --humidity: oklch(0.55 0.18 250);
-  --rain: oklch(0.75 0.1 230);
-  --pressure: oklch(0.75 0.14 145);
-  --altitude: oklch(0.55 0.18 280);
-  --alert: oklch(0.65 0.15 25);
-  --success: oklch(0.75 0.14 145);
-  --warning: oklch(0.8 0.14 80);
+  --temp: oklch(0.68 0.16 42);
+  --humidity: oklch(0.52 0.18 248);
+  --rain: oklch(0.6 0.14 222);
+  --pressure: oklch(0.58 0.16 148);
+  --altitude: oklch(0.52 0.19 282);
+  --alert: oklch(0.58 0.2 22);
+  --success: oklch(0.58 0.16 148);
+  --warning: oklch(0.72 0.17 78);
 
-  --radius: 0.75rem;
+  --radius: 0.875rem;
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.12 0.01 260);
-  --foreground: oklch(0.97 0 0);
-  --card: oklch(0.17 0.012 260);
-  --card-foreground: oklch(0.97 0 0);
-  --panel: oklch(0.2 0.014 260);
-  --border: oklch(1 0 0 / 8%);
-  --muted: oklch(0.26 0.012 260);
-  --muted-foreground: oklch(0.68 0.01 260);
-  --sidebar: oklch(0.15 0.012 260);
+  --background: oklch(0.11 0.012 258);
+  --foreground: oklch(0.96 0.004 260);
+  --card: oklch(0.16 0.014 258);
+  --card-foreground: oklch(0.96 0.004 260);
+  --panel: oklch(0.19 0.014 258);
+  --border: oklch(1 0 0 / 7%);
+  --muted: oklch(0.25 0.012 258);
+  --muted-foreground: oklch(0.62 0.012 258);
+  --sidebar: oklch(0.14 0.013 258);
 
-  --temp: oklch(0.85 0.12 50);
-  --humidity: oklch(0.85 0.12 240);
-  --rain: oklch(0.85 0.12 210);
-  --pressure: oklch(0.85 0.12 150);
-  --altitude: oklch(0.85 0.12 300);
-  --alert: oklch(0.85 0.12 25);
-  --success: oklch(0.85 0.12 150);
-  --warning: oklch(0.88 0.12 80);
+  --temp: oklch(0.82 0.14 48);
+  --humidity: oklch(0.78 0.14 242);
+  --rain: oklch(0.78 0.13 212);
+  --pressure: oklch(0.78 0.14 152);
+  --altitude: oklch(0.78 0.14 298);
+  --alert: oklch(0.78 0.15 22);
+  --success: oklch(0.78 0.14 152);
+  --warning: oklch(0.84 0.14 80);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-right {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-from-right {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-out-to-right {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+@keyframes banner-in {
+  from { opacity: 0; transform: translateY(-100%); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @layer base {
@@ -92,4 +147,21 @@
   html {
     @apply font-sans;
   }
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in       { animation: var(--animate-fade-in); }
+  .animate-slide-up      { animation: var(--animate-slide-up); }
+  .animate-slide-right   { animation: var(--animate-slide-right); }
+  .animate-pulse-glow    { animation: var(--animate-pulse-glow); }
+  .animate-banner-in     { animation: banner-in 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+  .animate-slide-in-panel { animation: slide-in-from-right 0.35s cubic-bezier(0.16,1,0.3,1) both; }
 }

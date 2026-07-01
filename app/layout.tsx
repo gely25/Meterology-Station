@@ -1,20 +1,18 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Outfit, JetBrains_Mono, Share_Tech_Mono } from 'next/font/google'
+import { Rajdhani, JetBrains_Mono } from 'next/font/google'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
-const outfit = Outfit({ variable: '--font-outfit', subsets: ['latin'] })
+const rajdhani = Rajdhani({ 
+  variable: '--font-rajdhani', 
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'] 
+})
 const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains',
   subsets: ['latin'],
 })
-const shareTechMono = Share_Tech_Mono({
-  variable: '--font-digital',
-  weight: '400',
-  subsets: ['latin'],
-})
-
-import { ThemeProvider } from '@/components/theme-provider'
 
 export const metadata: Metadata = {
   title: 'Estación Meteorológica IoT ',
@@ -53,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning className={`${outfit.variable} ${jetbrainsMono.variable} ${shareTechMono.variable}`}>
+    <html lang="es" suppressHydrationWarning className={`${rajdhani.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-background font-sans antialiased">
         <ThemeProvider
           attribute="class"

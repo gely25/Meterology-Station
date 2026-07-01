@@ -1,17 +1,27 @@
-import { CloudSun, Wifi, WifiOff, Home, RadioTower, LineChart, Bell, Settings, Info } from "lucide-react"
+import { CloudSun, Wifi, WifiOff, Home, LineChart, Settings, Info } from "lucide-react"
 import type { WeatherData } from "@/types/weather"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { NotificationBell } from "./alert-system"
 
 const navItems = [
   { id: "dashboard", label: "DASHBOARD", icon: Home },
-  { id: "sensores", label: "SENSORES", icon: RadioTower },
   { id: "historial", label: "HISTORIAL", icon: LineChart },
-  { id: "alertas", label: "ALERTAS", icon: Bell },
-  { id: "configuracion", label: "AJUSTES", icon: Settings },
+  { id: "configuracion", label: "CONFIGURACIÓN", icon: Settings },
+  { id: "acerca", label: "ACERCA DEL PROYECTO", icon: Info },
 ]
 
-export function TopNavigation({ data, active, onNavigate }: { data: WeatherData, active: string, onNavigate: (id: string) => void }) {
+export function TopNavigation({
+  data,
+  active,
+  onNavigate,
+  onBellClick,
+}: {
+  data: WeatherData
+  active: string
+  onNavigate: (id: string) => void
+  onBellClick: () => void
+}) {
   const { hora, fecha, conexionESP32 } = data;
   return (
     <header className="flex flex-col xl:flex-row items-center justify-between gap-4 border-b border-border px-5 py-3 bg-sidebar">
@@ -52,7 +62,7 @@ export function TopNavigation({ data, active, onNavigate }: { data: WeatherData,
       </nav>
 
       {/* Status */}
-      <div className="flex items-center gap-5 w-full xl:w-auto justify-end">
+      <div className="flex items-center gap-3 w-full xl:w-auto justify-end">
         <div className="flex items-center gap-2 rounded-xl border border-border bg-card/80 px-4 py-2">
           <span className={`size-2 rounded-full shadow-[0_0_8px] ${conexionESP32 === 'conectado' ? 'bg-success shadow-success' : 'bg-alert shadow-alert'}`} />
           <div className="leading-tight">
@@ -65,6 +75,7 @@ export function TopNavigation({ data, active, onNavigate }: { data: WeatherData,
           <p className="text-[10px] font-medium tracking-widest text-muted-foreground">{fecha}</p>
         </div>
         {conexionESP32 === 'conectado' ? <Wifi className="size-5 text-muted-foreground" /> : <WifiOff className="size-5 text-alert" />}
+        <NotificationBell data={data} onClick={onBellClick} />
         <ThemeToggle />
       </div>
     </header>

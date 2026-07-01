@@ -1,7 +1,7 @@
 "use client"
 
 import { Area, AreaChart, ResponsiveContainer } from "recharts"
-import { TriangleAlert, TrendingUp, Clock } from "lucide-react"
+import { TrendingUp, Clock } from "lucide-react"
 import { Panel, PanelHeader } from "./panel"
 import type { WeatherData, HistoryPoint } from "@/types/weather"
 
@@ -168,35 +168,6 @@ export function AltitudeCard({ data }: { data: WeatherData }) {
   )
 }
 
-export function AlertCard({ data }: { data: WeatherData }) {
-  const accent = "var(--color-alert)"
-  const { alerta } = data
-  
-  return (
-    <Panel glow={alerta ? accent : undefined} className={`flex-1 flex flex-col justify-center relative overflow-hidden ${alerta ? 'border-alert/40 bg-alert/5' : ''}`}>
-      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none ${alerta ? 'text-alert' : 'text-muted-foreground'}`}>
-        <TriangleAlert strokeWidth={1} style={{ width: 140, height: 140 }} />
-      </div>
-      <div className="relative z-10 flex flex-col h-full">
-        <PanelHeader icon={<TriangleAlert className="size-4" />} title="ALERTAS" accent={alerta ? accent : 'var(--color-muted-foreground)'} />
-        <div className="flex flex-col py-1 mt-1">
-          {alerta ? (
-            <>
-              <h3 className="text-lg font-bold text-alert mb-1">Alarma Activa</h3>
-              <p className="text-xs font-medium text-muted-foreground leading-relaxed">
-                {alerta} — revise el entorno.
-              </p>
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full pt-4">
-              <p className="text-sm font-medium text-muted-foreground">Sin alertas activas</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </Panel>
-  )
-}
 
 import { useState, useEffect } from 'react'
 

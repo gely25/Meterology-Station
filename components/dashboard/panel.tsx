@@ -5,19 +5,22 @@ export function Panel({
   children,
   className,
   glow,
+  variant = "default",
 }: {
-  children: ReactNode
+  children?: ReactNode
   className?: string
   glow?: string
+  variant?: "default" | "hero"
 }) {
   return (
     <section
       className={cn(
-        "relative rounded-2xl border border-border bg-card/80 p-4 backdrop-blur-sm",
-        "shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset,0_10px_30px_-15px_rgba(0,0,0,0.8)]",
+        "relative rounded-2xl border border-border bg-card/90 backdrop-blur-sm transition-shadow duration-300",
+        variant === "default" && "p-4 shadow-[0_2px_0_0_rgba(255,255,255,0.06)_inset,0_8px_24px_-8px_rgba(0,0,0,0.12)]",
+        variant === "hero"    && "p-6 shadow-[0_2px_0_0_rgba(255,255,255,0.06)_inset,0_16px_40px_-12px_rgba(0,0,0,0.18)]",
         className,
       )}
-      style={glow ? { boxShadow: `0 0 0 1px ${glow}22, 0 10px 40px -20px ${glow}55` } : undefined}
+      style={glow ? { boxShadow: `0 0 0 1px ${glow}1a, 0 12px 40px -16px ${glow}44` } : undefined}
     >
       {children}
     </section>

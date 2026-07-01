@@ -2,29 +2,14 @@
 
 import { Area, AreaChart, ResponsiveContainer } from "recharts"
 import { TriangleAlert } from "lucide-react"
-import { Panel, PanelHeader } from "./panel"
+import { Panel } from "./panel"
+import { cn } from "@/lib/utils"
 import type { WeatherData, HistoryPoint } from "@/types/weather"
 
 // ─── Shared icon sizes ────────────────────────────────────────────────────────
 const ICON_SIZE = 96 // px — consistent across ALL cards
 
-function SvgIcon({ src, alt, filter }: { src: string; alt: string; filter?: string }) {
-  return (
-    <div className="shrink-0 flex items-center justify-center" style={{ width: ICON_SIZE, height: ICON_SIZE }}>
-      <img
-        src={src}
-        alt={alt}
-        width={ICON_SIZE}
-        height={ICON_SIZE}
-        className="object-contain select-none w-full h-full"
-        style={filter ? { filter } : undefined}
-      />
-    </div>
-  )
-}
-
 // CSS filter values to tint each SVG to match its card accent
-// Generated via https://isotropic.co/tool/hex-color-to-css-filter/
 const TINT = {
   temp:     "brightness(0) saturate(100%) invert(55%) sepia(86%) saturate(600%) hue-rotate(10deg) brightness(110%)",
   humidity: "brightness(0) saturate(100%) invert(55%) sepia(60%) saturate(600%) hue-rotate(190deg) brightness(105%)",
@@ -57,13 +42,13 @@ function Sparkline({ data, dataKey, color }: { data: HistoryPoint[]; dataKey: ke
 }
 
 // ─── Temperature ──────────────────────────────────────────────────────────────
-export function TemperatureCard({ data }: { data: WeatherData }) {
+export function TemperatureCard({ data, className }: { data: WeatherData; className?: string }) {
   const accent = "var(--color-temp)"
   const { temperatura: value, history } = data
   const min = Math.min(...history.map(h => h.temperature))
   const max = Math.max(...history.map(h => h.temperature))
   return (
-    <Panel className="flex flex-col justify-between overflow-hidden relative">
+    <Panel className={cn("flex flex-col justify-between overflow-hidden relative", className)}>
       <div className="flex items-center gap-3 z-10 relative">
         <div className="shrink-0 flex items-center justify-center -my-2" style={{ width: 96, height: 125 }}>
           <img
@@ -104,19 +89,29 @@ export function HumidityCard({ data }: { data: WeatherData }) {
   const angle = -90 + (value / 100) * 180
   return (
     <Panel className="flex flex-col justify-between overflow-hidden relative">
-      <div className="flex items-start gap-3 mb-2 z-10 relative">
-        <SvgIcon src="/svg/humedad.svg" alt="Humedad" filter={TINT.humidity} />
-        <div className="flex flex-col mt-4">
-          <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">HUMEDAD</h2>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">AHT10</p>
-        </div>
+      {/* Icon — absolute, top-left, small */}
+      <div className="absolute top-3 left-3 z-10 pointer-events-none" style={{ width: 44, height: 44 }}>
+        <img
+          src="/svg/humedad.svg"
+          alt=""
+          className="object-contain select-none w-full h-full"
+          style={{ filter: TINT.humidity }}
+        />
       </div>
 
+      {/* Header text */}
+      <div className="flex flex-col pl-14 pt-1 z-10 relative">
+        <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">HUMEDAD</h2>
+        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">AHT10</p>
+      </div>
+
+      {/* Background watermark */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
         <img src="/svg/humedad.svg" alt="" width={220} height={220} className="object-contain" />
       </div>
 
-      <div className="relative mx-auto mt-1 h-24 w-48 z-10">
+      {/* Gauge + value centered at arc pivot */}
+      <div className="relative mx-auto mt-2 h-36 w-full px-4 z-10">
         <svg viewBox="0 0 200 110" className="h-full w-full">
           <path d="M16 100 A84 84 0 0 1 184 100" fill="none" stroke="oklch(0.15 0.02 260)" strokeWidth="16" strokeLinecap="round" />
           {Array.from({ length: 21 }).map((_, i) => {
@@ -136,11 +131,12 @@ export function HumidityCard({ data }: { data: WeatherData }) {
             y2={100 + 70 * Math.sin((angle * Math.PI) / 180)} stroke="oklch(0.97 0 0)" strokeWidth="2.5" strokeLinecap="round" />
           <circle cx="100" cy="100" r="5" fill="oklch(0.97 0 0)" />
         </svg>
-        <div className="absolute inset-x-0 bottom-0 flex items-end justify-center z-10">
-          <span className="font-digital text-6xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-center pb-1">
+          <span className="font-digital text-6xl leading-none text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
           <span className="mb-1 ml-2 text-xl font-bold text-humidity drop-shadow-[0_0_8px_var(--color-humidity)]">%</span>
         </div>
       </div>
+
       <div className="mt-1 flex justify-between px-2 text-[11px] font-medium text-muted-foreground">
         <span>0</span><span>50</span><span>100</span>
       </div>
@@ -154,7 +150,6 @@ export function RainCard({ data }: { data: WeatherData }) {
   const accent = "var(--color-rain)"
   const { lluvia: value, estadoLluvia } = data
 
-  // Use same illustration as Estado del Clima based on actual rain level
   const rainSvg =
     value >= 70 ? '/svg/Lluvia intensa.svg'
     : value > 20 ? '/svg/Lluvia detectada.svg'
@@ -162,19 +157,17 @@ export function RainCard({ data }: { data: WeatherData }) {
 
   return (
     <Panel className="flex flex-col justify-between overflow-hidden relative">
-      <div className="flex items-start gap-3 mb-2 z-10 relative">
-        <div className="shrink-0 flex items-center justify-center" style={{ width: 130, height: 96 }}>
-          <img
-            src={rainSvg}
-            alt="Lluvia"
-            className="object-contain select-none w-full h-full"
-          />
-        </div>
-        <div className="flex flex-col mt-4">
-          <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">INTENSIDAD DE LLUVIA</h2>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">SENSOR DE LLUVIA</p>
-        </div>
+      {/* Icon — absolute, top-left, small */}
+      <div className="absolute top-3 left-3 z-10 pointer-events-none" style={{ width: 52, height: 52 }}>
+        <img src={rainSvg} alt="" className="object-contain select-none w-full h-full" />
       </div>
+
+      {/* Header text */}
+      <div className="flex flex-col pl-16 pt-1 z-10 relative">
+        <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">INTENSIDAD DE LLUVIA</h2>
+        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">SENSOR DE LLUVIA</p>
+      </div>
+
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
         <img src={rainSvg} alt="" width={220} height={220} className="object-contain" />
       </div>
@@ -205,7 +198,7 @@ export function RainCard({ data }: { data: WeatherData }) {
   )
 }
 
-// ─── Condition Card (4 real states) ──────────────────────────────────────────
+// ─── Condition Card (HERO — Estado del Clima) ─────────────────────────────────
 type WeatherState = 'clear' | 'humid' | 'rain' | 'heavy-rain'
 
 export function deriveWeatherState(data: WeatherData): WeatherState {
@@ -217,31 +210,27 @@ export function deriveWeatherState(data: WeatherData): WeatherState {
 }
 
 const STATE_CONFIG: Record<WeatherState, {
-  svgSrc: string; label: string; subtitle: string; labelColor: string; glowColor: string; tintFilter: string
+  svgSrc: string; label: string; subtitle: string; labelColor: string; bgGradient: string
 }> = {
   clear: {
     svgSrc: '/svg/Ambiente despejado.svg', label: 'AMBIENTE DESPEJADO',
-    subtitle: 'Sin lluvia · Humedad normal', labelColor: 'text-yellow-400',
-    glowColor: 'rgba(250,204,21,0.4)',
-    tintFilter: "brightness(0) saturate(100%) invert(85%) sepia(50%) saturate(600%) hue-rotate(15deg) brightness(110%)",
+    subtitle: 'Sin lluvia · Humedad normal', labelColor: 'text-yellow-500 dark:text-yellow-400',
+    bgGradient: 'from-yellow-500/5 via-transparent to-transparent',
   },
   humid: {
     svgSrc: '/svg/Ambiente húmedo.svg', label: 'AMBIENTE HÚMEDO',
-    subtitle: 'Sin lluvia · Humedad alta', labelColor: 'text-sky-400',
-    glowColor: 'rgba(56,189,248,0.4)',
-    tintFilter: "brightness(0) saturate(100%) invert(65%) sepia(60%) saturate(500%) hue-rotate(180deg) brightness(110%)",
+    subtitle: 'Sin lluvia · Humedad alta', labelColor: 'text-sky-500 dark:text-sky-400',
+    bgGradient: 'from-sky-500/5 via-transparent to-transparent',
   },
   rain: {
     svgSrc: '/svg/Lluvia detectada.svg', label: 'LLUVIA DETECTADA',
-    subtitle: 'Lluvia leve o moderada', labelColor: 'text-blue-400',
-    glowColor: 'rgba(96,165,250,0.4)',
-    tintFilter: "brightness(0) saturate(100%) invert(55%) sepia(50%) saturate(600%) hue-rotate(190deg) brightness(110%)",
+    subtitle: 'Lluvia leve o moderada', labelColor: 'text-blue-500 dark:text-blue-400',
+    bgGradient: 'from-blue-500/8 via-transparent to-transparent',
   },
   'heavy-rain': {
     svgSrc: '/svg/Lluvia intensa.svg', label: 'LLUVIA INTENSA',
-    subtitle: 'Alarma activa · Revisar entorno', labelColor: 'text-red-400',
-    glowColor: 'rgba(248,113,113,0.4)',
-    tintFilter: "brightness(0) saturate(100%) invert(50%) sepia(80%) saturate(600%) hue-rotate(330deg) brightness(110%)",
+    subtitle: 'Alarma activa · Revisar entorno', labelColor: 'text-red-500 dark:text-red-400',
+    bgGradient: 'from-red-500/8 via-transparent to-transparent',
   },
 }
 
@@ -249,26 +238,38 @@ export function ConditionCard({ data }: { data: WeatherData }) {
   const state = deriveWeatherState(data)
   const cfg = STATE_CONFIG[state]
   return (
-    <Panel className="flex flex-col items-center justify-between overflow-hidden relative">
-      <div className="w-full mb-1 z-10 relative">
+    <Panel variant="hero" className={`flex flex-col items-center justify-center overflow-hidden relative bg-gradient-to-b ${cfg.bgGradient}`}>
+      {/* Background watermark */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
+        <img src={cfg.svgSrc} alt="" width={300} height={300} className="object-contain" />
+      </div>
+
+      {/* Header */}
+      <div className="w-full mb-2 z-10 relative">
         <h2 className="text-sm font-semibold tracking-wide text-foreground">ESTADO DEL CLIMA</h2>
         <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">AHT10 · Sensor de lluvia</p>
       </div>
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
-        <img src={cfg.svgSrc} alt="" width={240} height={240} className="object-contain" />
-      </div>
-
-      <div className="relative z-10">
+      {/* Large illustration */}
+      <div className="relative z-10 my-4">
         <img
           src={cfg.svgSrc} alt={cfg.label}
-          width={ICON_SIZE + 30} height={ICON_SIZE + 30}
-          className="object-contain select-none"
+          width={160} height={160}
+          className="object-contain select-none drop-shadow-lg transition-all duration-500"
         />
       </div>
+
+      {/* State label */}
       <div className="z-10 text-center">
-        <p className={`text-xl font-extrabold tracking-widest ${cfg.labelColor}`}>{cfg.label}</p>
-        <p className="mt-1 text-[11px] font-medium text-muted-foreground">{cfg.subtitle}</p>
+        <p className={`text-2xl font-extrabold tracking-widest ${cfg.labelColor} transition-colors duration-500`}>{cfg.label}</p>
+        <p className="mt-1.5 text-xs font-medium text-muted-foreground">{cfg.subtitle}</p>
+      </div>
+
+      {/* Current conditions summary */}
+      <div className="z-10 mt-4 flex items-center gap-4 text-[11px] font-semibold text-muted-foreground">
+        <span>🌡 {data.temperatura.toFixed(1)}°C</span>
+        <span>💧 {Math.round(data.humedad)}%</span>
+        <span>🌧 {Math.round(data.lluvia)}%</span>
       </div>
     </Panel>
   )

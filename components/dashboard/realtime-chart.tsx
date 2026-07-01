@@ -1,18 +1,33 @@
 "use client"
 
 import { useState } from "react"
-import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts"
+import { Area, AreaChart, ResponsiveContainer, YAxis, XAxis, Tooltip } from "recharts"
 import { Activity } from "lucide-react"
 import { Panel } from "./panel"
 import type { WeatherData } from "@/types/weather"
 import { cn } from "@/lib/utils"
 
-type MetricKey = "temperature" | "humidity" | "pressure"
+type MetricKey = "temperature" | "humidity" | "pressure" | "rain"
 
 const METRICS = {
   temperature: { label: "Temperatura", color: "var(--color-temp)", unit: "°C" },
   humidity: { label: "Humedad", color: "var(--color-humidity)", unit: "%" },
   pressure: { label: "Presión", color: "var(--color-pressure)", unit: "hPa" },
+  rain: { label: "Lluvia", color: "var(--color-rain)", unit: "%" },
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  const val = payload[0]
+  return (
+    <div className="rounded-xl border border-border bg-card/95 backdrop-blur-sm px-3 py-2 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.2)]">
+      <p className="text-[10px] text-muted-foreground mb-0.5">{label}</p>
+      <p className="text-sm font-bold" style={{ color: val.color }}>
+        {Number(val.value).toFixed(1)} {val.unit || ''}
+      </p>
+    </div>
+  )
 }
 
 export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
@@ -24,8 +39,6 @@ export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
   const maxVal = Math.max(...history.map(h => h[activeMetric]))
   
   const metricInfo = METRICS[activeMetric]
-
-  // Add a bit of padding to the Y axis domain so the chart doesn't touch the edges
   const domainPadding = activeMetric === "pressure" ? 2 : 5;
 
   return (
@@ -66,12 +79,12 @@ export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
         </div>
       </div>
 
-      <div className="flex-1 mt-6 -mx-4 -mb-4 z-10 relative">
-        <ResponsiveContainer width="100%" height={180}>
-          <AreaChart data={history} margin={{ top: 10, right: -5, left: -5, bottom: 0 }}>
+      <div className="flex-1 mt-4 -mx-4 -mb-4 z-10 relative">
+        <ResponsiveContainer width="100%" height={240}>
+          <AreaChart data={history} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
             <defs>
               <linearGradient id={`gradient-${activeMetric}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={metricInfo.color} stopOpacity={0.6} />
+                <stop offset="0%" stopColor={metricInfo.color} stopOpacity={0.5} />
                 <stop offset="100%" stopColor={metricInfo.color} stopOpacity={0.0} />
               </linearGradient>
               <filter id={`glow-${activeMetric}`} x="-20%" y="-20%" width="140%" height="140%">
@@ -79,12 +92,23 @@ export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
             </defs>
+            <XAxis
+              dataKey="time"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }}
+              interval="preserveStartEnd"
+            />
             <YAxis domain={[`dataMin - ${domainPadding}`, `dataMax + ${domainPadding}`]} hide />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ stroke: 'var(--color-border)', strokeWidth: 1, strokeDasharray: '4 4' }}
+            />
             <Area
               type="monotone"
               dataKey={activeMetric}
               stroke={metricInfo.color}
-              strokeWidth={3.5}
+              strokeWidth={3}
               fill={`url(#gradient-${activeMetric})`}
               isAnimationActive={false}
               filter={`url(#glow-${activeMetric})`}
