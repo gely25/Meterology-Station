@@ -8,7 +8,6 @@ const navItems = [
   { id: "dashboard", label: "DASHBOARD", icon: Home },
   { id: "historial", label: "HISTORIAL", icon: LineChart },
   { id: "configuracion", label: "CONFIGURACIÓN", icon: Settings },
-  { id: "acerca", label: "ACERCA DEL PROYECTO", icon: Info },
 ]
 
 export function TopNavigation({
@@ -24,16 +23,16 @@ export function TopNavigation({
 }) {
   const { hora, fecha, conexionESP32 } = data;
   return (
-    <header className="flex flex-col xl:flex-row items-center justify-between gap-4 border-b border-border px-5 py-3 bg-sidebar">
+    <header className="flex flex-col xl:flex-row items-center justify-between gap-1.5 border-b border-border px-4 py-1 bg-sidebar">
       {/* Branding */}
-      <div className="flex items-center gap-3 w-full xl:w-auto justify-between xl:justify-start">
-        <div className="flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-xl bg-humidity/15 text-humidity">
-            <CloudSun className="size-7" />
+      <div className="flex items-center gap-2 w-full xl:w-auto justify-between xl:justify-start">
+        <div className="flex items-center gap-2">
+          <span className="grid size-9 place-items-center rounded-xl bg-humidity/15 text-humidity">
+            <CloudSun className="size-5.5" />
           </span>
           <div>
-            <h1 className="text-[17px] font-extrabold tracking-tight text-foreground">ESTACIÓN METEOROLÓGICA IoT</h1>
-            <p className="text-xs font-semibold tracking-widest text-humidity">GRUPO 6</p>
+            <h1 className="text-[15px] font-extrabold tracking-tight text-foreground">ESTACIÓN METEOROLÓGICA IoT</h1>
+            <p className="text-[10px] font-semibold tracking-widest text-humidity">GRUPO 6</p>
           </div>
         </div>
       </div>
@@ -48,13 +47,13 @@ export function TopNavigation({
               key={item.id}
               onClick={() => onNavigate(item.id)}
               className={cn(
-                "flex items-center gap-2 rounded-xl px-4 py-2.5 text-[11px] font-bold tracking-widest transition-colors whitespace-nowrap",
+                "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-bold tracking-widest transition-colors whitespace-nowrap",
                 isActive
                   ? "bg-humidity/15 text-humidity ring-1 ring-humidity/40"
                   : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               )}
             >
-              <Icon className="size-4 shrink-0" strokeWidth={2.5} />
+              <Icon className="size-3.5 shrink-0" strokeWidth={2.5} />
               {item.label}
             </button>
           )
@@ -63,18 +62,25 @@ export function TopNavigation({
 
       {/* Status */}
       <div className="flex items-center gap-3 w-full xl:w-auto justify-end">
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-card/80 px-4 py-2">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-card/80 px-3 py-1">
           <span className={`size-2 rounded-full shadow-[0_0_8px] ${conexionESP32 === 'conectado' ? 'bg-success shadow-success' : 'bg-alert shadow-alert'}`} />
           <div className="leading-tight">
-            <p className="text-[11px] font-bold text-foreground">ESP32</p>
-            <p className="text-[9px] font-medium tracking-wide text-muted-foreground uppercase">{conexionESP32}</p>
+            <p className="text-[10px] font-bold text-foreground">ESP32</p>
+            <p className="text-[8px] font-medium tracking-wide text-muted-foreground uppercase">{conexionESP32}</p>
           </div>
         </div>
         <div className="text-right leading-tight hidden sm:block">
-          <p className="font-mono text-xl font-bold tracking-widest text-foreground tabular-nums">{hora}</p>
-          <p className="text-[10px] font-medium tracking-widest text-muted-foreground">{fecha}</p>
+          <p className="font-mono text-lg font-bold tracking-widest text-foreground tabular-nums">{hora}</p>
+          <p className="text-[9px] font-medium tracking-widest text-muted-foreground">ACTUALIZADO: {data.ultimaActualizacion}</p>
         </div>
-        {conexionESP32 === 'conectado' ? <Wifi className="size-5 text-muted-foreground" /> : <WifiOff className="size-5 text-alert" />}
+        <div className="flex flex-col items-center justify-center mx-2 hidden sm:flex">
+          {conexionESP32 === 'conectado' ? (
+            <Wifi className={`size-5 ${data.wifiCalidad === 'Excelente' || data.wifiCalidad === 'Muy buena' ? 'text-success' : data.wifiCalidad === 'Buena' ? 'text-yellow-400' : 'text-orange-400'}`} />
+          ) : (
+            <WifiOff className="size-5 text-alert" />
+          )}
+          <span className="text-[8px] font-bold uppercase mt-0.5 text-muted-foreground">{data.wifiCalidad}</span>
+        </div>
         <NotificationBell data={data} onClick={onBellClick} />
         <ThemeToggle />
       </div>

@@ -6,28 +6,13 @@ export function useWeather() {
   const [data, setData] = useState<WeatherData | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function fetchData() {
-      try {
-        const newData = await weatherService.getWeatherData();
-        if (mounted) {
-          setData(newData);
-        }
-      } catch (error) {
-        console.error('Error fetching weather data:', error);
-      }
-    }
-
-    // Initial fetch
-    fetchData();
-
-    // Poll every second to simulate real-time updates
-    const interval = setInterval(fetchData, 1000);
+    // Subscribe to real-time updates from the weather service
+    const unsubscribe = weatherService.subscribe((newData) => {
+      setData({ ...newData });
+    });
 
     return () => {
-      mounted = false;
-      clearInterval(interval);
+      unsubscribe();
     };
   }, []);
 

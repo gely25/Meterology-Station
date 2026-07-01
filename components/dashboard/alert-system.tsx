@@ -6,57 +6,51 @@ import type { WeatherData } from "@/types/weather"
 import { cn } from "@/lib/utils"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-interface Notification {
-  id: number
-  time: string
-  message: string
-  type: "alert" | "info"
-}
+import type { SystemEvent } from "@/types/weather"
 
 // ─── Alert Banner (Disabled per request) ──────────────────────────────────────
 export function AlertBanner({ data }: { data: WeatherData }) {
-  return null
+  if (!data.alertaActiva) return null
+  return (
+    <div className="animate-slide-down mb-4 flex items-center justify-center gap-2 rounded-xl bg-alert/15 border border-alert/30 py-2.5 px-4">
+      <TriangleAlert className="size-4 text-alert" strokeWidth={2.5} />
+      <p className="text-xs font-bold uppercase tracking-wider text-alert">{data.alertaActiva}</p>
+    </div>
+  )
 }
 
 // ─── Alert Toast (Premium disappearing pop-up window) ─────────────────────────
 export function AlertToast({ data }: { data: WeatherData }) {
   const [visible, setVisible] = useState(false)
-  const [message, setMessage] = useState("")
-  const prevAlerta = useRef(data.alerta)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevAlerta = useRef<string | null>(null)
 
   useEffect(() => {
-    if (data.alerta && data.alerta !== prevAlerta.current) {
-      setMessage(data.alerta)
+    if (data.alertaActiva && data.alertaActiva !== prevAlerta.current) {
       setVisible(true)
-      if (timerRef.current) clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => setVisible(false), 5000)
+      const timer = setTimeout(() => setVisible(false), 5000)
+      prevAlerta.current = data.alertaActiva
+      return () => clearTimeout(timer)
     }
-    prevAlerta.current = data.alerta
-    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data.alerta])
+    if (!data.alertaActiva) {
+      setVisible(false)
+    }
+    prevAlerta.current = data.alertaActiva
+  }, [data.alertaActiva])
 
-  if (!visible) return null
+  if (!visible || !data.alertaActiva) return null
 
   return (
-    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up w-[360px] max-w-[90vw]">
-      <div className="flex items-start gap-4 rounded-2xl border border-alert/30 bg-card/95 backdrop-blur-md shadow-[0_20px_50px_-12px_rgba(239,68,68,0.25)] p-5 border-l-4 border-l-alert">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-alert/15">
-          <TriangleAlert className="size-5 text-alert animate-pulse-glow" />
+    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
+      <div className="flex items-center gap-3 rounded-2xl border border-alert/30 bg-card/95 backdrop-blur px-5 py-3 shadow-[0_8px_32px_-12px_rgba(239,68,68,0.5)]">
+        <span className="grid size-8 place-items-center rounded-full bg-alert/15 text-alert animate-pulse">
+          <TriangleAlert className="size-4" strokeWidth={2.5} />
         </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-extrabold tracking-wide text-alert uppercase">⚠ ALERTA DE SISTEMA</p>
-          <p className="text-xs font-semibold text-muted-foreground mt-1 leading-relaxed">
-            {message === "lluvia intensa" || message === "Lluvia intensa" 
-              ? "Lluvia intensa detectada. Se activó la alarma sonora. Revise el entorno." 
-              : `${message} — revise el entorno.`}
-          </p>
+        <div className="flex flex-col">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Nueva Alerta</p>
+          <p className="text-sm font-semibold text-foreground">{data.alertaActiva}</p>
         </div>
-        <button 
-          onClick={() => setVisible(false)} 
-          className="shrink-0 rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-        >
-          <X className="size-4.5" />
+        <button onClick={() => setVisible(false)} className="ml-2 rounded-full p-1 text-muted-foreground hover:bg-muted transition-colors">
+          <X className="size-4" />
         </button>
       </div>
     </div>
@@ -65,7 +59,7 @@ export function AlertToast({ data }: { data: WeatherData }) {
 
 // ─── Bell Icon with Badge (Flashing/Blinking Red when Alerting) ────────────────
 export function NotificationBell({ data, onClick }: { data: WeatherData; onClick: () => void }) {
-  const hasAlert = !!data.alerta
+  const hasAlert = !!data.alertaActiva
   return (
     <button
       onClick={onClick}
@@ -93,7 +87,7 @@ export function NotificationPanel({
 }: {
   open: boolean
   onClose: () => void
-  notifications: Notification[]
+  notifications: SystemEvent[]
 }) {
   if (!open) return null
 
@@ -104,7 +98,7 @@ export function NotificationPanel({
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div className="flex items-center gap-2">
             <Bell className="size-4 text-muted-foreground" />
-            <h2 className="text-sm font-bold tracking-wide text-foreground">Notificaciones</h2>
+            <h2 className="text-sm font-bold tracking-wide text-foreground">Registro de Eventos</h2>
           </div>
           <button
             onClick={onClose}
@@ -117,26 +111,31 @@ export function NotificationPanel({
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center gap-2 py-8">
               <Bell className="size-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Sin notificaciones</p>
+              <p className="text-sm text-muted-foreground">Sin eventos recientes</p>
             </div>
           ) : (
-            notifications.map((n) => (
-              <div
-                key={n.id}
-                className="flex items-start gap-3 rounded-xl border border-border bg-panel/60 px-3 py-3 animate-fade-in"
-              >
-                <span className={`mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg ${n.type === 'alert' ? 'bg-alert/15' : 'bg-muted'}`}>
-                  {n.type === 'alert'
-                    ? <TriangleAlert className="size-3.5 text-alert" />
-                    : <Bell className="size-3.5 text-muted-foreground" />
-                  }
-                </span>
-                <div>
-                  <p className="text-xs font-medium text-foreground leading-snug">{n.message}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{n.time}</p>
+            notifications.map((n) => {
+              const bg = n.type === 'alert' ? 'bg-alert/15' : n.type === 'success' ? 'bg-success/15' : n.type === 'warning' ? 'bg-orange-500/15' : 'bg-muted';
+              const color = n.type === 'alert' ? 'text-alert' : n.type === 'success' ? 'text-success' : n.type === 'warning' ? 'text-orange-500' : 'text-muted-foreground';
+              
+              return (
+                <div
+                  key={n.id}
+                  className="flex items-start gap-3 rounded-xl border border-border bg-panel/60 px-3 py-3 animate-fade-in"
+                >
+                  <span className={`mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg ${bg}`}>
+                    {n.type === 'alert' || n.type === 'warning'
+                      ? <TriangleAlert className={`size-3.5 ${color}`} />
+                      : <Bell className={`size-3.5 ${color}`} />
+                    }
+                  </span>
+                  <div>
+                    <p className="text-xs font-medium text-foreground leading-snug">{n.message}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{n.time}</p>
+                  </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       </div>
@@ -146,33 +145,6 @@ export function NotificationPanel({
 
 // ─── Hook: useNotifications ───────────────────────────────────────────────────
 export function useNotifications(data: WeatherData | null) {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const prevAlerta = useRef<string | null>(null)
-  const idRef = useRef(0)
-
-  useEffect(() => {
-    if (!data) return
-    const now = new Date()
-    const fmt = (d: Date) => d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-    setNotifications([
-      { id: idRef.current++, time: fmt(new Date(now.getTime() - 2 * 60000)), message: "Sistema iniciado", type: "info" },
-      { id: idRef.current++, time: fmt(new Date(now.getTime() - 1 * 60000)), message: "ESP32 conectado", type: "info" },
-    ])
-    prevAlerta.current = data.alerta
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!data])
-
-  useEffect(() => {
-    if (!data) return
-    if (data.alerta && data.alerta !== prevAlerta.current) {
-      const time = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-      setNotifications(prev => [
-        { id: idRef.current++, time, message: data.alerta!, type: "alert" },
-        ...prev,
-      ])
-    }
-    prevAlerta.current = data.alerta
-  }, [data?.alerta, data])
-
-  return notifications
+  // We no longer manage state locally, we just stream the events from the central service
+  return data?.events || []
 }

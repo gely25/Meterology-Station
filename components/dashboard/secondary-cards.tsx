@@ -1,11 +1,11 @@
 "use client"
 
 import { Area, AreaChart, ResponsiveContainer } from "recharts"
-import { TrendingUp, Clock } from "lucide-react"
+import { TrendingUp, Clock, Wind } from "lucide-react"
 import { Panel, PanelHeader } from "./panel"
 import type { WeatherData, HistoryPoint } from "@/types/weather"
 
-function MiniArea({ data, dataKey, color, height = 56 }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint; color: string; height?: number }) {
+function MiniArea({ data, dataKey, color, height = 32 }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint; color: string; height?: number }) {
   const id = `mini-${String(dataKey)}-${color.replace(/[^a-z0-9]/gi, "")}`
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -74,7 +74,7 @@ export function PressureCard({ data }: { data: WeatherData }) {
         <span className="mb-1.5 ml-2 text-xl font-bold text-pressure drop-shadow-[0_0_8px_var(--color-pressure)]">hPa</span>
       </div>
       <div className="mt-1 flex items-center justify-between gap-3 relative z-10">
-        <div className="relative h-24 w-28">
+        <div className="relative h-20 w-24">
           <svg viewBox="0 0 120 110" className="h-full w-full">
             <path d="M18 92 A52 52 0 1 1 102 92" fill="none" stroke="oklch(0.15 0.02 260)" strokeWidth="12" strokeLinecap="round" />
             {Array.from({ length: 13 }).map((_, i) => {
@@ -128,42 +128,40 @@ export function PressureCard({ data }: { data: WeatherData }) {
   )
 }
 
-export function AltitudeCard({ data }: { data: WeatherData }) {
-  const accent = "var(--color-altitude)"
-  const { altitud: value, history } = data
+export function AirQualityCard({ data }: { data: WeatherData }) {
+  const accent = "var(--color-altitude)" // using altitude's color or we can use a new variable. For simplicity we can reuse the altitude styling or adjust it.
+  const { calidadAire: value, history } = data
+  
+  const status = value < 100 ? "BUENA" : value < 200 ? "MODERADA" : "MALA"
+  const statusColor = value < 100 ? "#4ade80" : value < 200 ? "#facc15" : "#f87171"
+  
   return (
     <Panel className="flex flex-col justify-between overflow-hidden relative">
-      <div className="flex items-start gap-3 mb-1 z-10 relative">
-        <div className="shrink-0 flex items-center justify-center -ml-4 -mt-4" style={{width: 110, height: 150}}>
-          <div 
-            className="w-full h-full"
-            style={{
-              WebkitMaskImage: 'url(/svg/altitud.svg)',
-              WebkitMaskSize: 'contain',
-              WebkitMaskRepeat: 'no-repeat',
-              WebkitMaskPosition: 'center',
-              backgroundColor: 'var(--color-altitude)'
-            }}
-          />
+      <div className="flex items-start mb-1 z-10 relative">
+        <div className="absolute top-3 left-3 z-10 pointer-events-none" style={{ width: 44, height: 44 }}>
+          <Wind className="w-full h-full text-teal-400 opacity-70" />
         </div>
-        <div className="flex flex-col mt-1">
-          <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">ALTITUD</h2>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">BMP280</p>
+        <div className="flex flex-col pl-12 pt-1">
+          <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">CALIDAD DEL AIRE</h2>
+          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">MQ135</p>
         </div>
       </div>
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
-        <img src="/svg/altitud.svg" alt="" width={200} height={200} className="object-contain" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{width: 160, height: 160}} className="text-foreground">
+          <path d="M12 2v20" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
       </div>
 
       <div className="flex items-end justify-center py-1 relative z-10">
         <span className="font-digital text-7xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
-        <span className="mb-2 ml-2 text-2xl font-bold text-altitude drop-shadow-[0_0_8px_var(--color-altitude)]">m</span>
+        <span className="mb-2 ml-2 text-2xl font-bold text-muted-foreground">ppm</span>
       </div>
-      <p className="mb-2 text-center text-[11px] font-medium uppercase tracking-widest text-muted-foreground relative z-10">
-        Sobre el nivel del mar
+      <p className="mb-2 text-center text-[12px] font-bold tracking-widest relative z-10" style={{color: statusColor}}>
+        {status}
       </p>
-      <MiniArea data={history} dataKey="pressure" color={accent} />
+      <MiniArea data={history} dataKey="airQuality" color={statusColor} />
     </Panel>
   )
 }
@@ -188,11 +186,11 @@ export function LocalTimeCard() {
   return (
     <Panel className="flex-1 flex flex-col justify-center">
       <PanelHeader icon={<Clock className="size-4 text-sky-400" />} title="Hora local" subtitle="Tiempo real" accent="var(--color-foreground)" />
-      <div className="flex flex-col items-center justify-center mt-3">
-        <div className="font-digital text-[2.75rem] tracking-widest text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] leading-none">
+      <div className="flex flex-col items-center justify-center mt-1.5">
+        <div className="font-digital text-[2.5rem] tracking-widest text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] leading-none">
           {timeString}
         </div>
-        <p className="mt-2 text-[10px] font-medium uppercase tracking-widest text-muted-foreground capitalize">
+        <p className="mt-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground capitalize">
           {dateString}
         </p>
       </div>

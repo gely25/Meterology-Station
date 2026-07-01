@@ -22,7 +22,7 @@ const TINT = {
 function Sparkline({ data, dataKey, color }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint; color: string }) {
   const id = `spark-${String(dataKey)}`
   return (
-    <ResponsiveContainer width="100%" height={56}>
+    <ResponsiveContainer width="100%" height={32}>
       <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
@@ -50,7 +50,7 @@ export function TemperatureCard({ data, className }: { data: WeatherData; classN
   return (
     <Panel className={cn("flex flex-col justify-between overflow-hidden relative", className)}>
       <div className="flex items-center gap-3 z-10 relative">
-        <div className="shrink-0 flex items-center justify-center -my-2" style={{ width: 96, height: 125 }}>
+        <div className="shrink-0 flex items-center justify-center -my-4" style={{ width: 80, height: 100 }}>
           <img
             src="/svg/temperatura.svg"
             alt="Temperatura"
@@ -111,7 +111,7 @@ export function HumidityCard({ data }: { data: WeatherData }) {
       </div>
 
       {/* Gauge + value centered at arc pivot */}
-      <div className="relative mx-auto mt-2 h-36 w-full px-4 z-10">
+      <div className="relative mx-auto mt-1 h-28 w-full px-4 z-10">
         <svg viewBox="0 0 200 110" className="h-full w-full">
           <path d="M16 100 A84 84 0 0 1 184 100" fill="none" stroke="oklch(0.15 0.02 260)" strokeWidth="16" strokeLinecap="round" />
           {Array.from({ length: 21 }).map((_, i) => {
@@ -171,12 +171,10 @@ export function RainCard({ data }: { data: WeatherData }) {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
         <img src={rainSvg} alt="" width={220} height={220} className="object-contain" />
       </div>
-      <div className="flex items-end justify-center py-1 relative z-10">
-        <span className="font-digital text-7xl leading-none text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
-        <span className="mb-1 ml-2 text-2xl font-bold text-rain drop-shadow-[0_0_8px_var(--color-rain)]">%</span>
-      </div>
-      <div className="mx-auto mb-4 w-fit rounded-full border border-alert/50 bg-alert/15 px-4 py-1 text-xs font-bold tracking-wide text-alert relative z-10">
-        {estadoLluvia}
+      <div className="flex items-center justify-center py-2 relative z-10">
+        <span className="font-bold text-4xl tracking-widest text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] uppercase">
+          {estadoLluvia}
+        </span>
       </div>
       <div className="relative">
         <div
@@ -247,29 +245,31 @@ export function ConditionCard({ data }: { data: WeatherData }) {
       {/* Header */}
       <div className="w-full mb-2 z-10 relative">
         <h2 className="text-sm font-semibold tracking-wide text-foreground">ESTADO DEL CLIMA</h2>
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">AHT10 · Sensor de lluvia</p>
+        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mt-0.5 max-w-[200px]">
+          Estado calculado mediante AHT10, BMP280 y Sensor de lluvia.
+        </p>
       </div>
 
       {/* Large illustration */}
-      <div className="relative z-10 my-4">
+      <div className="relative z-10 my-1">
         <img
           src={cfg.svgSrc} alt={cfg.label}
-          width={160} height={160}
+          width={110} height={110}
           className="object-contain select-none drop-shadow-lg transition-all duration-500"
         />
       </div>
 
       {/* State label */}
       <div className="z-10 text-center">
-        <p className={`text-2xl font-extrabold tracking-widest ${cfg.labelColor} transition-colors duration-500`}>{cfg.label}</p>
-        <p className="mt-1.5 text-xs font-medium text-muted-foreground">{cfg.subtitle}</p>
+        <p className={`text-xl font-extrabold tracking-widest ${cfg.labelColor} transition-colors duration-500`}>{cfg.label}</p>
+        <p className="mt-1 text-xs font-medium text-muted-foreground">{cfg.subtitle}</p>
       </div>
 
       {/* Current conditions summary */}
-      <div className="z-10 mt-4 flex items-center gap-4 text-[11px] font-semibold text-muted-foreground">
+      <div className="z-10 mt-2 flex items-center gap-4 text-[11px] font-semibold text-muted-foreground">
         <span>🌡 {data.temperatura.toFixed(1)}°C</span>
         <span>💧 {Math.round(data.humedad)}%</span>
-        <span>🌧 {Math.round(data.lluvia)}%</span>
+        <span>🌧 {data.estadoLluvia}</span>
       </div>
     </Panel>
   )

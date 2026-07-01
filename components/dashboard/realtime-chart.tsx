@@ -7,13 +7,14 @@ import { Panel } from "./panel"
 import type { WeatherData } from "@/types/weather"
 import { cn } from "@/lib/utils"
 
-type MetricKey = "temperature" | "humidity" | "pressure" | "rain"
+type MetricKey = "temperature" | "humidity" | "pressure" | "rain" | "airQuality"
 
 const METRICS = {
   temperature: { label: "Temperatura", color: "var(--color-temp)", unit: "°C" },
   humidity: { label: "Humedad", color: "var(--color-humidity)", unit: "%" },
   pressure: { label: "Presión", color: "var(--color-pressure)", unit: "hPa" },
   rain: { label: "Lluvia", color: "var(--color-rain)", unit: "%" },
+  airQuality: { label: "Calidad del aire", color: "var(--color-altitude)", unit: "ppm" },
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,8 +80,8 @@ export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
         </div>
       </div>
 
-      <div className="flex-1 mt-4 -mx-4 -mb-4 z-10 relative">
-        <ResponsiveContainer width="100%" height={240}>
+      <div className="flex-1 mt-1 -mx-4 -mb-4 z-10 relative">
+        <ResponsiveContainer width="100%" height={130}>
           <AreaChart data={history} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
             <defs>
               <linearGradient id={`gradient-${activeMetric}`} x1="0" y1="0" x2="0" y2="1">

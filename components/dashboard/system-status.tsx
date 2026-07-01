@@ -1,26 +1,40 @@
-import { Thermometer, Gauge, CloudRain, MonitorSmartphone, Cpu } from "lucide-react"
+import { Thermometer, Gauge, CloudRain, MonitorSmartphone, Cpu, Wind, Lightbulb, BellRing } from "lucide-react"
 import { Panel } from "./panel"
 import type { WeatherData } from "@/types/weather"
 
 export function SystemStatus({ data }: { data: WeatherData }) {
+  const getStatus = (status: 'operativo' | 'error' | 'desconectado') => {
+    if (data.conexionESP32 === 'desconectado') return "Desconectado"
+    return status === 'operativo' ? "Operativo" : status === 'error' ? "Error" : "Desconectado"
+  }
+  
+  const getActive = (status: 'operativo' | 'error' | 'desconectado') => {
+    if (data.conexionESP32 === 'desconectado') return false
+    return status === 'operativo'
+  }
+
   const rows = [
-    { icon: Thermometer, name: "AHT10", status: data.estadoAHT10 === 'operativo' ? "Operativo" : "Error", active: data.estadoAHT10 === 'operativo' },
-    { icon: Gauge, name: "BMP280", status: data.estadoBMP280 === 'operativo' ? "Operativo" : "Error", active: data.estadoBMP280 === 'operativo' },
-    { icon: CloudRain, name: "Sensor de lluvia", status: data.estadoSensorLluvia === 'operativo' ? "Operativo" : "Error", active: data.estadoSensorLluvia === 'operativo' },
-    { icon: MonitorSmartphone, name: "Pantalla OLED", status: data.estadoOLED === 'activa' ? "Activa" : "Inactiva", active: data.estadoOLED === 'activa' },
     { icon: Cpu, name: "ESP32", status: data.conexionESP32 === 'conectado' ? "Conectado" : "Desconectado", active: data.conexionESP32 === 'conectado' },
+    { icon: Thermometer, name: "AHT10", status: getStatus(data.estadoAHT10), active: getActive(data.estadoAHT10) },
+    { icon: Gauge, name: "BMP280", status: getStatus(data.estadoBMP280), active: getActive(data.estadoBMP280) },
+    { icon: Wind, name: "MQ135", status: getStatus(data.estadoMQ135), active: getActive(data.estadoMQ135) },
+    { icon: CloudRain, name: "Sensor de lluvia", status: getStatus(data.estadoSensorLluvia), active: getActive(data.estadoSensorLluvia) },
+    { icon: MonitorSmartphone, name: "OLED", status: getStatus(data.estadoOLED), active: getActive(data.estadoOLED) },
+    { icon: Lightbulb, name: "LED Verde", status: getStatus(data.estadoLedVerde), active: getActive(data.estadoLedVerde) },
+    { icon: Lightbulb, name: "LED Rojo", status: getStatus(data.estadoLedRojo), active: getActive(data.estadoLedRojo) },
+    { icon: BellRing, name: "Buzzer", status: getStatus(data.estadoBuzzer), active: getActive(data.estadoBuzzer) },
   ]
 
   return (
     <Panel className="h-full">
-      <h2 className="mb-3 text-sm font-semibold tracking-wide text-foreground">ESTADO DEL SISTEMA</h2>
-      <ul className="flex flex-col gap-2.5">
+      <h2 className="mb-1.5 text-sm font-semibold tracking-wide text-foreground">ESTADO DEL SISTEMA</h2>
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1">
         {rows.map((row) => {
           const Icon = row.icon
           return (
             <li
               key={row.name}
-              className="flex items-center justify-between rounded-lg border border-border bg-panel/60 px-3 py-2.5"
+              className="flex items-center justify-between rounded-lg border border-border bg-panel/60 px-2 py-0.5"
             >
               <span className="flex items-center gap-2.5">
                 <Icon className="size-4 text-muted-foreground" />

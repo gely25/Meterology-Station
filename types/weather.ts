@@ -4,22 +4,47 @@ export interface HistoryPoint {
   humidity: number;
   pressure: number;
   rain: number;
+  airQuality: number;
+}
+
+export type EventType = 'info' | 'alert' | 'success' | 'warning';
+
+export interface SystemEvent {
+  id: string;
+  time: string;
+  type: EventType;
+  message: string;
+  icon?: string;
 }
 
 export interface WeatherData {
   temperatura: number;
   humedad: number;
   presion: number;
-  altitud: number;
-  lluvia: number;
+  calidadAire: number;
+  nivelLluvia: number;
   estadoLluvia: string;
+  estadoClima: string;
+  
   hora: string;
   fecha: string;
+  ultimaActualizacion: string;
+  uptime: string;
+  
   conexionESP32: 'conectado' | 'desconectado';
-  estadoAHT10: 'operativo' | 'error';
-  estadoBMP280: 'operativo' | 'error';
-  estadoSensorLluvia: 'operativo' | 'error';
-  estadoOLED: 'activa' | 'inactiva';
-  alerta: string | null;
+  wifiRSSI: number;
+  wifiCalidad: 'Excelente' | 'Muy buena' | 'Buena' | 'Débil' | 'Sin conexión';
+  
+  estadoAHT10: 'operativo' | 'error' | 'desconectado';
+  estadoBMP280: 'operativo' | 'error' | 'desconectado';
+  estadoMQ135: 'operativo' | 'error' | 'desconectado';
+  estadoSensorLluvia: 'operativo' | 'error' | 'desconectado';
+  estadoOLED: 'operativo' | 'error' | 'desconectado';
+  estadoLedVerde: 'operativo' | 'error' | 'desconectado';
+  estadoLedRojo: 'operativo' | 'error' | 'desconectado';
+  estadoBuzzer: 'operativo' | 'error' | 'desconectado';
+  
+  alertaActiva: string | null;
   history: HistoryPoint[];
+  events: SystemEvent[];
 }
