@@ -39,23 +39,23 @@ export function PressureCard({ data }: { data: WeatherData }) {
           <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="none" strokeLinecap="round" strokeLinejoin="round">
             <defs>
               <radialGradient id="gaugeGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#4ade80" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+                <stop offset="0%" stopColor="#c084fc" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
               </radialGradient>
             </defs>
-            <circle cx="12" cy="12" r="10" fill="url(#gaugeGlow)" stroke="#22c55e" strokeWidth="1.5" opacity="0.4"/>
-            <path d="M3.34 19a10 10 0 1 1 17.32 0" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round"/>
-            <path d="M12 12 L17 7" stroke="#4ade80" strokeWidth="2" strokeLinecap="round"
-              style={{filter:'drop-shadow(0 0 6px #4ade80)'}}/>
-            <circle cx="12" cy="12" r="1.5" fill="#4ade80"
-              style={{filter:'drop-shadow(0 0 4px #4ade80)'}}/>
+            <circle cx="12" cy="12" r="10" fill="url(#gaugeGlow)" stroke="#a855f7" strokeWidth="1.5" opacity="0.4"/>
+            <path d="M3.34 19a10 10 0 1 1 17.32 0" stroke="#c084fc" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M12 12 L17 7" stroke="#c084fc" strokeWidth="2" strokeLinecap="round"
+              style={{filter:'drop-shadow(0 0 6px #c084fc)'}}/>
+            <circle cx="12" cy="12" r="1.5" fill="#c084fc"
+              style={{filter:'drop-shadow(0 0 4px #c084fc)'}}/>
             {[0,1,2,3,4,5,6,7,8,9,10,11,12].map(i => {
               const a = ((i / 12) * 240 - 210) * Math.PI / 180;
               const r1 = i % 3 === 0 ? 7 : 8, r2 = 9;
               return <line key={i}
                 x1={12 + r1*Math.cos(a)} y1={12 + r1*Math.sin(a)}
                 x2={12 + r2*Math.cos(a)} y2={12 + r2*Math.sin(a)}
-                stroke={i % 3 === 0 ? '#4ade80' : '#166534'} strokeWidth={i % 3 === 0 ? 1.5 : 1} />;
+                stroke={i % 3 === 0 ? '#c084fc' : '#6b21a8'} strokeWidth={i % 3 === 0 ? 1.5 : 1} />;
             })}
           </svg>
         </div>
@@ -76,7 +76,7 @@ export function PressureCard({ data }: { data: WeatherData }) {
       <div className="mt-1 flex items-center justify-between gap-3 relative z-10">
         <div className="relative h-20 w-24">
           <svg viewBox="0 0 120 110" className="h-full w-full">
-            <path d="M18 92 A52 52 0 1 1 102 92" fill="none" stroke="oklch(0.15 0.02 260)" strokeWidth="12" strokeLinecap="round" />
+            <path d="M18 92 A52 52 0 1 1 102 92" fill="none" stroke="color-mix(in srgb, var(--color-foreground) 15%, transparent)" strokeWidth="12" strokeLinecap="round" />
             {Array.from({ length: 13 }).map((_, i) => {
               const tickAngle = 240 - (i / 12) * 240;
               const angleRad = ((-tickAngle - 30) * Math.PI) / 180;
@@ -88,7 +88,7 @@ export function PressureCard({ data }: { data: WeatherData }) {
               const x2 = 60 + r2 * Math.cos(angleRad);
               const y2 = 70 + r2 * Math.sin(angleRad);
               return (
-                <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={isMajor ? "oklch(0.5 0.05 260)" : "oklch(0.3 0.02 260)"} strokeWidth={isMajor ? 1.5 : 1} />
+                <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={isMajor ? "var(--color-muted-foreground)" : "color-mix(in srgb, var(--color-foreground) 15%, transparent)"} strokeWidth={isMajor ? 1.5 : 1} />
               )
             })}
             <path
@@ -117,7 +117,7 @@ export function PressureCard({ data }: { data: WeatherData }) {
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className="flex items-center gap-1 rounded-md border border-success/40 bg-success/15 px-2 py-1 text-xs font-bold text-success">
+          <span className="flex items-center gap-1 rounded-md border border-pressure/40 bg-pressure/15 px-2 py-1 text-xs font-bold text-pressure">
             <TrendingUp className="size-3.5" /> {trend > 0 ? "+" : ""}
             {trend.toFixed(1)} hPa
           </span>
@@ -133,7 +133,7 @@ export function AirQualityCard({ data }: { data: WeatherData }) {
   const { calidadAire: value, history } = data
   
   const status = value < 100 ? "BUENA" : value < 200 ? "MODERADA" : "MALA"
-  const statusColor = value < 100 ? "#4ade80" : value < 200 ? "#facc15" : "#f87171"
+  const statusColor = value < 100 ? "#2dd4bf" : value < 200 ? "#facc15" : "#f87171" // #2dd4bf is teal-400
   
   return (
     <Panel className="flex flex-col justify-between overflow-hidden relative">
@@ -141,7 +141,7 @@ export function AirQualityCard({ data }: { data: WeatherData }) {
         <div className="absolute top-3 left-3 z-10 pointer-events-none" style={{ width: 44, height: 44 }}>
           <Wind className="w-full h-full text-teal-400 opacity-70" />
         </div>
-        <div className="flex flex-col pl-12 pt-1">
+        <div className="flex flex-col pl-16 pt-1">
           <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">CALIDAD DEL AIRE</h2>
           <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">MQ135</p>
         </div>

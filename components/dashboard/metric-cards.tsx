@@ -113,7 +113,7 @@ export function HumidityCard({ data }: { data: WeatherData }) {
       {/* Gauge + value centered at arc pivot */}
       <div className="relative mx-auto h-24 w-full px-4 z-10">
         <svg viewBox="0 0 200 110" className="h-full w-full">
-          <path d="M16 100 A84 84 0 0 1 184 100" fill="none" stroke="oklch(0.15 0.02 260)" strokeWidth="16" strokeLinecap="round" />
+          <path d="M16 100 A84 84 0 0 1 184 100" fill="none" stroke="color-mix(in srgb, var(--color-foreground) 15%, transparent)" strokeWidth="16" strokeLinecap="round" />
           {Array.from({ length: 21 }).map((_, i) => {
             const tickAngle = 180 - (i / 20) * 180
             const isMajor = i % 5 === 0
@@ -122,7 +122,7 @@ export function HumidityCard({ data }: { data: WeatherData }) {
             const y1 = 100 - r1 * Math.sin((tickAngle * Math.PI) / 180)
             const x2 = 100 + r2 * Math.cos((tickAngle * Math.PI) / 180)
             const y2 = 100 - r2 * Math.sin((tickAngle * Math.PI) / 180)
-            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={isMajor ? "oklch(0.5 0.05 260)" : "oklch(0.3 0.02 260)"} strokeWidth={isMajor ? 2 : 1.5} />
+            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={isMajor ? "var(--color-muted-foreground)" : "color-mix(in srgb, var(--color-foreground) 15%, transparent)"} strokeWidth={isMajor ? 2 : 1.5} />
           })}
           <path d="M16 100 A84 84 0 0 1 184 100" fill="none" stroke={accent} strokeWidth="8"
             strokeLinecap="round" strokeDasharray={`${(value / 100) * 264} 264`}

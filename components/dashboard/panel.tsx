@@ -15,13 +15,21 @@ export function Panel({
   return (
     <section
       className={cn(
-        "relative rounded-2xl border border-border bg-card/90 backdrop-blur-sm transition-shadow duration-300",
+        // Base structure
+        "relative rounded-2xl transition-all duration-300",
         "p-1.5 md:p-2",
-        variant === "default" && "shadow-[0_2px_0_0_rgba(255,255,255,0.06)_inset,0_8px_24px_-8px_rgba(0,0,0,0.12)]",
-        variant === "hero"    && "shadow-[0_2px_0_0_rgba(255,255,255,0.06)_inset,0_16px_40px_-12px_rgba(0,0,0,0.18)]",
+        // Glass: semi-transparent bg + blur
+        "bg-card/70 backdrop-blur-md",
+        // Border: bright top edge + subtle outer ring → glass look
+        "border border-white/[0.08]",
+        // Inner top-edge highlight (simulates glass thickness)
+        "ring-1 ring-inset ring-white/[0.06]",
+        // Shadow: lift the card off the background
+        variant === "default" && "shadow-[0_4px_32px_-4px_rgba(0,0,0,0.45),0_1px_0_0_rgba(255,255,255,0.08)_inset]",
+        variant === "hero"    && "shadow-[0_8px_48px_-8px_rgba(0,0,0,0.55),0_1px_0_0_rgba(255,255,255,0.10)_inset]",
         className,
       )}
-      style={glow ? { boxShadow: `0 0 0 1px ${glow}1a, 0 12px 40px -16px ${glow}44` } : undefined}
+      style={glow ? { boxShadow: `0 0 0 1px ${glow}22, 0 12px 40px -16px ${glow}55` } : undefined}
     >
       {children}
     </section>
@@ -35,10 +43,10 @@ export function PanelHeader({
   accent,
   right,
 }: {
-  icon: ReactNode
+  icon?: ReactNode
   title: string
   subtitle?: string
-  accent: string
+  accent?: string
   right?: ReactNode
 }) {
   return (

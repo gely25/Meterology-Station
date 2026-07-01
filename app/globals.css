@@ -58,7 +58,7 @@
 
 :root {
   color-scheme: light;
-  --background: oklch(0.97 0.004 240);
+  --background: oklch(0.96 0.001 240);
   --foreground: oklch(0.2 0.01 260);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.01 260);
@@ -68,10 +68,10 @@
   --muted-foreground: oklch(0.52 0.01 260);
   --sidebar: oklch(1 0 0);
 
-  --temp: oklch(0.68 0.16 42);
+  --temp: oklch(0.6 0.18 22);
   --humidity: oklch(0.52 0.18 248);
   --rain: oklch(0.6 0.14 222);
-  --pressure: oklch(0.58 0.16 148);
+  --pressure: oklch(0.6 0.18 290);
   --altitude: oklch(0.52 0.19 282);
   --alert: oklch(0.58 0.2 22);
   --success: oklch(0.58 0.16 148);
@@ -82,20 +82,20 @@
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.11 0.012 258);
-  --foreground: oklch(0.96 0.004 260);
-  --card: oklch(0.16 0.014 258);
-  --card-foreground: oklch(0.96 0.004 260);
-  --panel: oklch(0.19 0.014 258);
-  --border: oklch(1 0 0 / 7%);
-  --muted: oklch(0.25 0.012 258);
-  --muted-foreground: oklch(0.62 0.012 258);
-  --sidebar: oklch(0.14 0.013 258);
+  --background: oklch(0.11 0.032 258);
+  --foreground: oklch(0.96 0.006 240);
+  --card: oklch(0.20 0.042 255);
+  --card-foreground: oklch(0.96 0.006 240);
+  --panel: oklch(0.23 0.042 255);
+  --border: oklch(1 0 0 / 10%);
+  --muted: oklch(0.27 0.03 258);
+  --muted-foreground: oklch(0.62 0.016 255);
+  --sidebar: oklch(0.14 0.036 255);
 
-  --temp: oklch(0.82 0.14 48);
+  --temp: oklch(0.7 0.16 22);
   --humidity: oklch(0.78 0.14 242);
   --rain: oklch(0.78 0.13 212);
-  --pressure: oklch(0.78 0.14 152);
+  --pressure: oklch(0.75 0.16 295);
   --altitude: oklch(0.78 0.14 298);
   --alert: oklch(0.78 0.15 22);
   --success: oklch(0.78 0.14 152);

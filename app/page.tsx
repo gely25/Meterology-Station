@@ -5,6 +5,7 @@ import { TemperatureCard, HumidityCard, RainCard, ConditionCard } from "@/compon
 import { PressureCard, AirQualityCard } from "@/components/dashboard/secondary-cards"
 import { RealtimeChart } from "@/components/dashboard/realtime-chart"
 import { SystemStatus } from "@/components/dashboard/system-status"
+import { HistoryView } from "@/components/dashboard/history-view"
 
 import { AlertBanner, AlertToast, NotificationPanel, useNotifications } from "@/components/dashboard/alert-system"
 import { useWeather } from "@/hooks/useWeather"
@@ -55,8 +56,8 @@ export default function Page() {
                 </div>
               </>
             ) : activeView === 'historial' ? (
-              <div className="flex-1 min-h-[500px]">
-                <RealtimeChart data={data} />
+              <div className="flex-1 h-full min-h-0">
+                <HistoryView data={data} />
               </div>
             ) : activeView === 'configuracion' ? (
               <div className="flex-1">
