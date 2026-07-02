@@ -30,8 +30,6 @@ export function PressureCard({ data }: { data: WeatherData }) {
   const accent = "var(--color-pressure)"
   const { presion: value, history } = data
   const trend = history.length > 1 ? value - history[history.length - 2].pressure : 0
-  const pct = Math.min(1, Math.max(0, (value - 980) / 60))
-  const angle = -120 + pct * 240
   return (
     <Panel className="flex flex-col justify-between overflow-hidden relative">
       <div className="flex items-start gap-3 mb-1 z-10 relative">
@@ -73,57 +71,14 @@ export function PressureCard({ data }: { data: WeatherData }) {
         <span className="font-digital text-5xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{value.toFixed(1)}</span>
         <span className="mb-1.5 ml-2 text-lg font-bold text-pressure drop-shadow-[0_0_8px_var(--color-pressure)]">hPa</span>
       </div>
-      <div className="mt-1 flex items-center justify-between gap-3 relative z-10">
-        <div className="relative h-20 w-24">
-          <svg viewBox="0 0 120 110" className="h-full w-full">
-            <path d="M18 92 A52 52 0 1 1 102 92" fill="none" stroke="color-mix(in srgb, var(--color-foreground) 15%, transparent)" strokeWidth="12" strokeLinecap="round" />
-            {Array.from({ length: 13 }).map((_, i) => {
-              const tickAngle = 240 - (i / 12) * 240;
-              const angleRad = ((-tickAngle - 30) * Math.PI) / 180;
-              const isMajor = i % 3 === 0;
-              const r1 = isMajor ? 40 : 44;
-              const r2 = 52;
-              const x1 = 60 + r1 * Math.cos(angleRad);
-              const y1 = 70 + r1 * Math.sin(angleRad);
-              const x2 = 60 + r2 * Math.cos(angleRad);
-              const y2 = 70 + r2 * Math.sin(angleRad);
-              return (
-                <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={isMajor ? "var(--color-muted-foreground)" : "color-mix(in srgb, var(--color-foreground) 15%, transparent)"} strokeWidth={isMajor ? 1.5 : 1} />
-              )
-            })}
-            <path
-              d="M18 92 A52 52 0 1 1 102 92"
-              fill="none"
-              stroke={accent}
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeDasharray={`${pct * 245} 400`}
-              className="drop-shadow-[0_0_6px_var(--color-pressure)]"
-            />
-            <line
-              x1="60"
-              y1="70"
-              x2={60 + 40 * Math.cos((angle * Math.PI) / 180)}
-              y2={70 + 40 * Math.sin((angle * Math.PI) / 180)}
-              stroke="oklch(0.97 0 0)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            <circle cx="60" cy="70" r="4" fill={accent} />
-          </svg>
-          <div className="absolute inset-x-0 bottom-0 flex justify-between px-1 text-[9px] text-muted-foreground">
-            <span>980</span>
-            <span>1040</span>
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <span className="flex items-center gap-1 rounded-md border border-pressure/40 bg-pressure/15 px-2 py-1 text-xs font-bold text-pressure">
-            <TrendingUp className="size-3.5" /> {trend > 0 ? "+" : ""}
-            {trend.toFixed(1)} hPa
-          </span>
-          <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Tendencia</span>
-        </div>
+      <div className="mt-1 flex items-center justify-end gap-1 relative z-10">
+        <span className="flex items-center gap-1 rounded-md border border-pressure/40 bg-pressure/15 px-2 py-1 text-xs font-bold text-pressure">
+          <TrendingUp className="size-3.5" /> {trend > 0 ? "+" : ""}
+          {trend.toFixed(1)} hPa
+        </span>
+        <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">TENDENCIA</span>
       </div>
+      <MiniArea data={history} dataKey="pressure" color={accent} />
     </Panel>
   )
 }

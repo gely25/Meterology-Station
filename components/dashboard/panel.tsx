@@ -17,7 +17,7 @@ export function Panel({
       className={cn(
         // Base structure
         "relative rounded-2xl transition-all duration-300",
-        "p-1.5 md:p-2",
+        "p-3 md:p-4",
         // Glass: semi-transparent bg + blur
         "bg-card/70 backdrop-blur-md",
         // Border: bright top edge + subtle outer ring → glass look
@@ -50,7 +50,7 @@ export function PanelHeader({
   right?: ReactNode
 }) {
   return (
-    <header className="mb-1.5 flex items-start justify-between gap-2">
+    <header className="mb-3 flex items-start justify-between gap-2">
       <div className="flex items-center gap-2">
         {icon}
         <div>
