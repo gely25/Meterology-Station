@@ -1,11 +1,29 @@
 "use client"
 
-import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 import { TrendingUp, Clock, Wind } from "lucide-react"
 import { Panel, PanelHeader } from "./panel"
 import type { WeatherData, HistoryPoint } from "@/types/weather"
 
-function MiniArea({ data, dataKey, color, height = 32 }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint; color: string; height?: number }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function MiniTooltip({ active, payload, label, color, unit }: any) {
+  if (!active || !payload?.length) return null
+  const raw = Number(payload[0].value).toFixed(2)
+  const [int, dec] = raw.split('.')
+  return (
+    <div className="rounded-md border border-border bg-card/95 backdrop-blur-sm px-2 py-1 shadow-lg text-left">
+      <p className="text-[8px] text-muted-foreground mb-0.5 leading-none">{label}</p>
+      <p className="text-[11px] font-bold font-digital leading-none">
+        <span style={{ color }}>{int}</span>
+        <span className="text-foreground">.</span>
+        <span style={{ color }}>{dec}</span>
+        <span className="text-[8px] ml-0.5 font-normal text-muted-foreground">{unit}</span>
+      </p>
+    </div>
+  )
+}
+
+function MiniArea({ data, dataKey, color, height = 32, unit = '' }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint; color: string; height?: number; unit?: string }) {
   const id = `mini-${String(dataKey)}-${color.replace(/[^a-z0-9]/gi, "")}`
   const displayData = data.slice(-20)
   return (
@@ -22,15 +40,8 @@ function MiniArea({ data, dataKey, color, height = 32 }: { data: HistoryPoint[];
           </filter>
         </defs>
         <XAxis dataKey="time" hide />
-        <YAxis hide domain={([dataMin, dataMax]) => {
-          const minRange = dataKey === 'airQuality' ? 50 : dataKey === 'pressure' ? 1.0 : 0.5;
-          const range = dataMax - dataMin;
-          if (range < minRange) {
-            const center = (dataMax + dataMin) / 2;
-            return [center - minRange / 2, center + minRange / 2];
-          }
-          return [dataMin, dataMax];
-        }} />
+        <YAxis hide domain={[`dataMin - ${dataKey === 'airQuality' ? 50 : dataKey === 'pressure' ? 1 : 2}`, `dataMax + ${dataKey === 'airQuality' ? 50 : dataKey === 'pressure' ? 1 : 2}`]} />
+        <Tooltip content={<MiniTooltip color={color} unit={unit} />} cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: '3 3' }} />
         <Area type="linear" dataKey={dataKey as string} stroke={color} strokeWidth={3} fill={`url(#${id})`} isAnimationActive={true} animationDuration={500} animationEasing="linear" dot={false} filter={`url(#glow-${id})`} />
       </AreaChart>
     </ResponsiveContainer>
@@ -89,7 +100,7 @@ export function PressureCard({ data }: { data: WeatherData }) {
         </span>
         <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">TENDENCIA</span>
       </div>
-      <MiniArea data={data.estadoBMP280 === 'operativo' ? history : []} dataKey="pressure" color={accent} />
+      <MiniArea data={data.estadoBMP280 === 'operativo' ? history : []} dataKey="pressure" color={accent} unit="hPa" />
     </Panel>
   )
 }
@@ -138,7 +149,7 @@ export function AirQualityCard({ data }: { data: WeatherData }) {
           {status}
         </span>
       </div>
-      <MiniArea data={data.estadoMQ135 === 'operativo' ? history : []} dataKey="airQuality" color="#2dd4bf" />
+      <MiniArea data={data.estadoMQ135 === 'operativo' ? history : []} dataKey="airQuality" color="#2dd4bf" unit="ppm" />
     </Panel>
   )
 }

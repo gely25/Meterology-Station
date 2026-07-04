@@ -100,7 +100,7 @@ export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
               tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }}
               interval="preserveStartEnd"
             />
-            <YAxis domain={[`dataMin - ${domainPadding}`, `dataMax + ${domainPadding}`]} hide />
+            <YAxis hide domain={[`dataMin - ${activeMetric === 'airQuality' ? 50 : activeMetric === 'pressure' ? 1 : activeMetric === 'humidity' ? 2 : 1}`, `dataMax + ${activeMetric === 'airQuality' ? 50 : activeMetric === 'pressure' ? 1 : activeMetric === 'humidity' ? 2 : 1}`]} />
             <Tooltip
               content={<CustomTooltip />}
               cursor={{ stroke: 'var(--color-border)', strokeWidth: 1, strokeDasharray: '4 4' }}

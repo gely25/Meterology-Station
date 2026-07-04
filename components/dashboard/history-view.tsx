@@ -30,7 +30,7 @@ function CustomTooltip({ active, payload, label }: any) {
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
       </div>
       <p className="text-2xl font-bold tracking-wider font-digital" style={{ color: val.color, textShadow: `0 0 12px ${val.color}40` }}>
-        {Number(val.value).toFixed(1)} {val.unit || ''}
+        {Number(val.value).toFixed(2)} {val.unit || ''}
       </p>
     </div>
   )
@@ -199,12 +199,12 @@ export function HistoryView({ data }: { data: WeatherData }) {
                 interval="preserveStartEnd"
               />
               <YAxis 
-                domain={[`dataMin - ${domainPadding}`, `dataMax + ${domainPadding}`]} 
+                domain={[`dataMin - ${activeMetric === 'airQuality' ? 50 : activeMetric === 'pressure' ? 1 : activeMetric === 'humidity' ? 2 : 1}`, `dataMax + ${activeMetric === 'airQuality' ? 50 : activeMetric === 'pressure' ? 1 : activeMetric === 'humidity' ? 2 : 1}`]} 
                 axisLine={false}
                 tickLine={false}
                 tick={{ fontSize: 11, fill: 'var(--color-muted-foreground)', fontWeight: 500 }}
                 tickMargin={12}
-                tickFormatter={(val) => val.toFixed(0)}
+                tickFormatter={(val) => val.toFixed(2)}
               />
               <Tooltip
                 content={<CustomTooltip />}
@@ -253,7 +253,7 @@ function StatBox({ label, value, unit, color }: { label: string, value: number, 
       <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
       <div className="flex items-baseline gap-0.5 mt-0.5">
         <span className="text-lg font-bold font-digital tracking-wide" style={{ color: color || 'var(--color-foreground)' }}>
-          {value.toFixed(1)}
+          {value.toFixed(2)}
         </span>
         <span className="text-[10px] font-bold text-muted-foreground">{unit}</span>
       </div>
