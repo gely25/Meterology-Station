@@ -159,7 +159,7 @@ export function HumidityCard({ data }: { data: WeatherData }) {
 // ─── Rain ─────────────────────────────────────────────────────────────────────
 export function RainCard({ data }: { data: WeatherData }) {
   const accent = "var(--color-rain)"
-  const { lluvia: value, estadoLluvia } = data
+  const { nivelLluvia: value, estadoLluvia } = data
 
   const rainSvg =
     value >= 70 ? '/svg/Lluvia intensa.svg'
@@ -211,9 +211,9 @@ export function RainCard({ data }: { data: WeatherData }) {
 type WeatherState = 'clear' | 'humid' | 'rain' | 'heavy-rain'
 
 export function deriveWeatherState(data: WeatherData): WeatherState {
-  const { lluvia, humedad } = data
-  if (lluvia >= 70) return 'heavy-rain'
-  if (lluvia > 20) return 'rain'
+  const { nivelLluvia, humedad } = data
+  if (nivelLluvia >= 70) return 'heavy-rain'
+  if (nivelLluvia > 20) return 'rain'
   if (humedad > 70) return 'humid'
   return 'clear'
 }
@@ -277,7 +277,7 @@ export function ConditionCard({ data }: { data: WeatherData }) {
       <div className="z-10 mt-2 flex items-center gap-4 text-[11px] font-semibold text-muted-foreground">
         <span>🌡 {data.temperatura.toFixed(1)}°C</span>
         <span>💧 {Math.round(data.humedad)}%</span>
-        <span>🌧 {data.lluvia >= 20 ? 'Lluvia' : 'Sin lluvia'}</span>
+        <span>🌧 {data.nivelLluvia >= 20 ? 'Lluvia' : 'Sin lluvia'}</span>
       </div>
       <p className="z-10 mt-2 text-center text-[9px] text-muted-foreground/70 max-w-[80%]">Humedad del aire medida por el sensor AHT10.</p>
     </Panel>
