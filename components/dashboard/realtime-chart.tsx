@@ -106,12 +106,14 @@ export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
               cursor={{ stroke: 'var(--color-border)', strokeWidth: 1, strokeDasharray: '4 4' }}
             />
             <Area
-              type="monotone"
+              type="linear"
               dataKey={activeMetric}
               stroke={metricInfo.color}
               strokeWidth={3}
               fill={`url(#gradient-${activeMetric})`}
-              isAnimationActive={false}
+              isAnimationActive={true}
+              animationDuration={500}
+              animationEasing="linear"
               filter={`url(#glow-${activeMetric})`}
             />
           </AreaChart>

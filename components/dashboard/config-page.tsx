@@ -46,6 +46,33 @@ export function ConfigPage() {
       </div>
 
       <div className="grid gap-6">
+        {/* ── MODO SIMULACIÓN ── */}
+        <Panel>
+          <PanelHeader icon={<Cpu className="size-4 text-amber-500" />} title="Modo Simulación" subtitle="Generar datos simulados o conectar a hardware real" accent="var(--color-amber-500)" />
+          <div className="mt-4">
+            <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-background/50">
+              <div className="flex flex-col gap-0.5 pr-4">
+                <span className="text-sm font-semibold text-foreground">Habilitar datos simulados</span>
+                <span className="text-xs text-muted-foreground leading-snug">Cuando está activo, el dashboard muestra datos simulados. Desactívalo para conectar tu ESP32 físico.</span>
+              </div>
+              <button
+                onClick={() => updateConfig({ useSimulation: !config.useSimulation })}
+                className={cn(
+                  "relative shrink-0 h-6 w-11 rounded-full transition-colors",
+                  config.useSimulation ? "bg-amber-500" : "bg-muted"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-1 left-1 size-4 rounded-full bg-background transition-transform shadow",
+                    config.useSimulation ? "translate-x-5" : "translate-x-0"
+                  )}
+                />
+              </button>
+            </div>
+          </div>
+        </Panel>
+
         {/* ── CONEXIÓN ESP32 ── */}
         <Panel>
           <PanelHeader icon={<Server className="size-4 text-sky-500" />} title="Conexión ESP32" subtitle="Parámetros de red HTTP / WebSocket" accent="var(--color-sky-500)" />

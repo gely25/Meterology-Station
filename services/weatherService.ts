@@ -15,6 +15,7 @@ export interface AppConfig {
   interval: number;
   autoReconnect: boolean;
   theme: 'light' | 'dark' | 'system';
+  useSimulation: boolean;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -23,6 +24,7 @@ const DEFAULT_CONFIG: AppConfig = {
   interval: 1000,
   autoReconnect: true,
   theme: 'system',
+  useSimulation: true,
 };
 
 class WeatherService {
@@ -86,15 +88,14 @@ class WeatherService {
   private getInitialData(): WeatherData {
     const time = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     
-    // Seed initial history
+    // Generar 30 puntos iniciales (ventana deslizante de 30)
     const history: HistoryPoint[] = [];
-    const start = 13 * 60 + 30; // 13:30
-    for (let i = 0; i < 13; i++) {
-      const mins = start + i * 5;
-      const hh = Math.floor(mins / 60);
-      const mm = mins % 60;
+    const now = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const past = new Date(now.getTime() - i * 1000); // Restar segundos
+      const timeStr = past.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
       history.push({
-        time: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`,
+        time: timeStr,
         temperature: 18 + Math.sin(i / 2) * 4 + Math.random() * 2,
         humidity: 55 + Math.cos(i / 3) * 8 + Math.random() * 4,
         pressure: 1012 + Math.sin(i / 4) * 3,
@@ -115,7 +116,8 @@ class WeatherService {
       fecha: new Date().toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' }),
       ultimaActualizacion: time,
       uptime: '0h 0m',
-      conexionESP32: 'conectado',
+      conexionESP32: 'desconectado',
+      estadoCalidadAire: 'Calculando...',
       wifiRSSI: -45,
       wifiCalidad: 'Excelente',
       estadoAHT10: 'operativo',
@@ -151,11 +153,96 @@ class WeatherService {
   }
 
   private async fetchRealData() {
-    // In a real implementation:
-    // const response = await fetch(`http://${this.config.ip}:${this.config.port}/api/data`);
-    // const data = await response.json();
-    // return data;
-    
+    if (!this.config.useSimulation) {
+      const response = await fetch(`http://${this.config.ip}:${this.config.port}/api/data`);
+      if (!response.ok) {
+        throw new Error("Fallo al obtener datos del ESP32");
+      }
+      const espData = await response.json();
+      
+      const now = new Date();
+      this.lastFetchTime = Date.now();
+      const hora = now.toLocaleTimeString('es-EC', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
+
+      const temperatura = typeof espData.temperatura === 'number' && !isNaN(espData.temperatura) ? espData.temperatura : 0.0;
+      const humedad = typeof espData.humedad === 'number' && !isNaN(espData.humedad) ? espData.humedad : 0.0;
+      const nivelLluvia = typeof espData.nivelLluvia === 'number' && !isNaN(espData.nivelLluvia) ? espData.nivelLluvia : 0.0;
+      const presion = typeof espData.presion === 'number' && !isNaN(espData.presion) ? espData.presion : 0.0;
+      const calidadAire = typeof espData.calidadAire === 'number' && !isNaN(espData.calidadAire) ? espData.calidadAire : 0.0;
+      const wifiRSSI = typeof espData.wifiRSSI === 'number' && !isNaN(espData.wifiRSSI) ? espData.wifiRSSI : 0.0;
+
+      this.tick += 1;
+      let history = this.currentData.history;
+      
+      // Ventana deslizante: mantener solo los últimos 30 elementos
+      const newPoint = {
+        time: hora,
+        temperature: temperatura,
+        humidity: humedad,
+        pressure: presion,
+        rain: nivelLluvia / 10,
+        airQuality: calidadAire,
+      };
+      
+      history = [...history.slice(history.length >= 30 ? 1 : 0), newPoint];
+
+      const intenso = nivelLluvia >= 70;
+      const estadoLluvia = intenso ? 'Intensa' : nivelLluvia >= 20 ? 'Ligera' : 'Seco';
+      const alertaActiva = intenso ? 'LLUVIA INTENSA DETECTADA' : null;
+      const estadoClima = this.deriveWeatherState(nivelLluvia, humedad);
+
+      // Event Triggers
+      if (alertaActiva && !this.currentData.alertaActiva) {
+        this.addEvent('Alarma activada: Lluvia intensa', 'alert');
+        this.addEvent('Lluvia intensa detectada', 'warning');
+      } else if (!alertaActiva && this.currentData.alertaActiva) {
+        this.addEvent('Alarma desactivada', 'success');
+      }
+      
+      if (this.currentData.conexionESP32 === 'desconectado') {
+        this.addEvent('ESP32 reconectado', 'success');
+      }
+
+      const wifiCalidad = this.deriveWiFiQuality(wifiRSSI);
+      const uptime = `0h ${Math.floor(this.tick / 60)}m`;
+
+      this.currentData = {
+        ...this.currentData,
+        temperatura,
+        humedad,
+        nivelLluvia,
+        presion,
+        calidadAire,
+        hora,
+        history,
+        estadoLluvia,
+        estadoClima,
+        alertaActiva,
+        wifiRSSI,
+        wifiCalidad,
+        ultimaActualizacion: hora,
+        uptime,
+        conexionESP32: 'conectado',
+        estadoCalidadAire: espData.estadoCalidadAire || (calidadAire < 100 ? "BUENA" : calidadAire < 200 ? "MODERADA" : "MALA"),
+        estadoAHT10: espData.estadoAHT10 || 'operativo',
+        estadoBMP280: espData.estadoBMP280 || 'operativo',
+        estadoMQ135: espData.estadoMQ135 || 'operativo',
+        estadoSensorLluvia: espData.estadoSensorLluvia || 'operativo',
+        estadoOLED: espData.estadoOLED || 'operativo',
+        estadoLedVerde: espData.estadoLedVerde || 'operativo',
+        estadoLedRojo: espData.estadoLedRojo || 'operativo',
+        estadoBuzzer: espData.estadoBuzzer || 'operativo',
+      };
+
+      this.notify();
+      return;
+    }
+
     // MOCK DATA GENERATION FOR NOW
     this.tick += 1;
     const now = new Date();
@@ -176,24 +263,18 @@ class WeatherService {
     const wifiRSSI = clamp(this.currentData.wifiRSSI + (Math.random() - 0.5) * 2, -90, -30);
 
     let history = this.currentData.history;
-    if (this.tick % 5 === 0) {
-      const last = this.currentData.history[this.currentData.history.length - 1];
-      const [h, m] = last.time.split(':').map(Number);
-      const total = h * 60 + m + 5;
-      const nh = Math.floor(total / 60) % 24;
-      const nm = total % 60;
-      history = [
-        ...this.currentData.history.slice(1),
-        {
-          time: `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`,
-          temperature: temperatura,
-          humidity: humedad,
-          pressure: presion,
-          rain: nivelLluvia / 10,
-          airQuality: calidadAire,
-        },
-      ];
-    }
+    
+    // Ventana deslizante: mantener solo los últimos 30 elementos
+    const newPoint = {
+      time: hora,
+      temperature: temperatura,
+      humidity: humedad,
+      pressure: presion,
+      rain: nivelLluvia / 10,
+      airQuality: calidadAire,
+    };
+    
+    history = [...history.slice(history.length >= 30 ? 1 : 0), newPoint];
 
     const intenso = nivelLluvia >= 70;
     const estadoLluvia = intenso ? 'Intensa' : nivelLluvia >= 20 ? 'Ligera' : 'Seco';
@@ -226,6 +307,7 @@ class WeatherService {
       history,
       estadoLluvia,
       estadoClima,
+      estadoCalidadAire: calidadAire < 100 ? "BUENA" : calidadAire < 200 ? "MODERADA" : "MALA",
       alertaActiva,
       wifiRSSI,
       wifiCalidad,
@@ -269,6 +351,9 @@ class WeatherService {
 
   public start() {
     if (this.timer) clearInterval(this.timer);
+    
+    // Ejecutar una petición inicial inmediata para evitar retraso al arrancar o guardar
+    this.fetchRealData().catch(err => console.error('Error en consulta inicial:', err));
     
     this.timer = setInterval(async () => {
       try {

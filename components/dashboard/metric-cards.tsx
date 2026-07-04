@@ -1,6 +1,6 @@
 "use client"
 
-import { Area, AreaChart, ResponsiveContainer } from "recharts"
+import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
 import { TriangleAlert } from "lucide-react"
 import { Panel } from "./panel"
 import { cn } from "@/lib/utils"
@@ -21,9 +21,10 @@ const TINT = {
 // ─── Sparkline ────────────────────────────────────────────────────────────────
 function Sparkline({ data, dataKey, color }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint; color: string }) {
   const id = `spark-${String(dataKey)}`
+  const displayData = data.slice(-20)
   return (
     <ResponsiveContainer width="100%" height={32}>
-      <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+      <AreaChart data={displayData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity={0.6} />
@@ -34,8 +35,18 @@ function Sparkline({ data, dataKey, color }: { data: HistoryPoint[]; dataKey: ke
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
         </defs>
-        <Area type="monotone" dataKey={dataKey as string} stroke={color} strokeWidth={3}
-          fill={`url(#${id})`} isAnimationActive={false} dot={false} filter={`url(#glow-${id})`} />
+        <XAxis dataKey="time" hide />
+        <YAxis hide domain={([dataMin, dataMax]) => {
+          const minRange = dataKey === 'airQuality' ? 50 : dataKey === 'pressure' ? 1.0 : 0.5;
+          const range = dataMax - dataMin;
+          if (range < minRange) {
+            const center = (dataMax + dataMin) / 2;
+            return [center - minRange / 2, center + minRange / 2];
+          }
+          return [dataMin, dataMax];
+        }} />
+        <Area type="linear" dataKey={dataKey as string} stroke={color} strokeWidth={3}
+          fill={`url(#${id})`} isAnimationActive={true} animationDuration={500} animationEasing="linear" dot={false} filter={`url(#glow-${id})`} />
       </AreaChart>
     </ResponsiveContainer>
   )
@@ -58,18 +69,18 @@ export function TemperatureCard({ data, className }: { data: WeatherData; classN
           />
         </div>
         <div className="flex flex-col">
-          <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">TEMPERATURA</h2>
-          <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">AHT10</p>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Temperatura</h2>
+          <p className="mb-1 text-[9px] font-semibold uppercase tracking-widest text-temp/70">AHT10</p>
           <div className="flex items-end mb-1">
-            <span className="font-digital text-6xl leading-none text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{value.toFixed(1)}</span>
+            <span className="font-digital text-6xl leading-none text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{value.toFixed(2)}</span>
             <span className="mb-0.5 ml-1 text-xl font-bold text-temp drop-shadow-[0_0_8px_var(--color-temp)]">°C</span>
           </div>
-          <div className="flex items-center gap-4 text-[11px] font-medium">
+          <div className="flex items-center gap-4 text-[10px] font-semibold">
             <span className="flex items-center gap-1 text-muted-foreground">
-              <TriangleAlert className="size-3.5 text-warning" /> MIN <b className="text-foreground">{min.toFixed(1)}°C</b>
+              <TriangleAlert className="size-3 text-warning" /> MIN <b className="text-foreground">{min.toFixed(2)}°C</b>
             </span>
             <span className="flex items-center gap-1 text-muted-foreground">
-              <TriangleAlert className="size-3.5 text-warning" /> MAX <b className="text-foreground">{max.toFixed(1)}°C</b>
+              <TriangleAlert className="size-3 text-warning" /> MAX <b className="text-foreground">{max.toFixed(2)}°C</b>
             </span>
           </div>
         </div>
@@ -77,7 +88,7 @@ export function TemperatureCard({ data, className }: { data: WeatherData; classN
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
         <img src="/svg/temperatura.svg" alt="" width={220} height={220} className="object-contain" />
       </div>
-      <Sparkline data={history} dataKey="temperature" color={accent} />
+      <Sparkline data={data.estadoAHT10 === 'operativo' ? history : []} dataKey="temperature" color={accent} />
     </Panel>
   )
 }
@@ -101,8 +112,8 @@ export function HumidityCard({ data }: { data: WeatherData }) {
 
       {/* Header text */}
       <div className="flex flex-col pl-14 pt-1 z-10 relative">
-        <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">HUMEDAD</h2>
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">AHT10</p>
+        <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Humedad</h2>
+        <p className="text-[9px] font-semibold uppercase tracking-widest text-humidity/70">AHT10</p>
       </div>
 
       {/* Background watermark */}
@@ -140,7 +151,7 @@ export function HumidityCard({ data }: { data: WeatherData }) {
       <div className="mt-1 flex justify-between px-2 text-[11px] font-medium text-muted-foreground">
         <span>0</span><span>50</span><span>100</span>
       </div>
-      <Sparkline data={history} dataKey="humidity" color={accent} />
+      <Sparkline data={data.estadoAHT10 === 'operativo' ? history : []} dataKey="humidity" color={accent} />
     </Panel>
   )
 }
@@ -164,8 +175,8 @@ export function RainCard({ data }: { data: WeatherData }) {
 
       {/* Header text */}
       <div className="flex flex-col pl-16 pt-1 z-10 relative">
-        <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">INTENSIDAD DE LLUVIA</h2>
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">SENSOR DE LLUVIA</p>
+        <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Detección de Lluvia</h2>
+        <p className="text-[9px] font-semibold uppercase tracking-widest text-rain/70">SENSOR DE LLUVIA</p>
       </div>
 
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
@@ -173,7 +184,7 @@ export function RainCard({ data }: { data: WeatherData }) {
       </div>
       <div className="flex items-center justify-center py-1 relative z-10">
         <span className="font-bold text-2xl tracking-widest text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] uppercase">
-          {estadoLluvia}
+          {value >= 20 ? 'Lluvia detectada' : 'Sin lluvia'}
         </span>
       </div>
       <div className="relative">
@@ -188,10 +199,10 @@ export function RainCard({ data }: { data: WeatherData }) {
           style={{ left: `calc(${value}% - 8px)` }} />
       </div>
       <div className="mt-2 flex justify-between text-[11px] font-semibold">
-        <span style={{color:'#A7F3D0'}}>SECO</span>
-        <span style={{color:'#FDE68A'}}>LIGERA</span>
-        <span style={{color:'#FCA5A5'}}>INTENSA</span>
+        <span style={{color:'#A7F3D0'}}>SIN LLUVIA</span>
+        <span style={{color:'#FCA5A5'}}>LLUVIA DETECTADA</span>
       </div>
+      <p className="mt-1 text-center text-[9px] text-muted-foreground/70 relative z-10">Estado detectado por el sensor de lluvia.</p>
     </Panel>
   )
 }
@@ -244,7 +255,7 @@ export function ConditionCard({ data }: { data: WeatherData }) {
 
       {/* Header */}
       <div className="w-full mb-2 z-10 relative">
-        <h2 className="text-sm font-semibold tracking-wide text-foreground">ESTADO DEL CLIMA</h2>
+        <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Estado del Clima</h2>
       </div>
 
       {/* Large illustration */}
@@ -266,8 +277,9 @@ export function ConditionCard({ data }: { data: WeatherData }) {
       <div className="z-10 mt-2 flex items-center gap-4 text-[11px] font-semibold text-muted-foreground">
         <span>🌡 {data.temperatura.toFixed(1)}°C</span>
         <span>💧 {Math.round(data.humedad)}%</span>
-        <span>🌧 {data.estadoLluvia}</span>
+        <span>🌧 {data.lluvia >= 20 ? 'Lluvia' : 'Sin lluvia'}</span>
       </div>
+      <p className="z-10 mt-2 text-center text-[9px] text-muted-foreground/70 max-w-[80%]">Humedad del aire medida por el sensor AHT10.</p>
     </Panel>
   )
 }

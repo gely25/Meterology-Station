@@ -54,9 +54,9 @@ export function PanelHeader({
       <div className="flex items-center gap-2">
         {icon}
         <div>
-          <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">{title}</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{title}</h2>
           {subtitle ? (
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">{subtitle}</p>
+            <p className="text-[9px] font-semibold uppercase tracking-widest" style={accent ? { color: accent, opacity: 0.7 } : undefined}>{subtitle}</p>
           ) : null}
         </div>
       </div>

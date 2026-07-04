@@ -27,7 +27,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
 
   return (
     <Panel className={className || "h-full"}>
-      <h2 className="mb-1.5 text-sm font-semibold tracking-wide text-foreground">ESTADO DEL SISTEMA</h2>
+      <h2 className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Estado del Sistema</h2>
       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1">
         {rows.map((row) => {
           const Icon = row.icon

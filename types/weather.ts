@@ -24,6 +24,7 @@ export interface WeatherData {
   calidadAire: number;
   nivelLluvia: number;
   estadoLluvia: string;
+  estadoCalidadAire: string;
   estadoClima: string;
   
   hora: string;

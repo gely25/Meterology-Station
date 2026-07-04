@@ -1,15 +1,16 @@
 "use client"
 
-import { Area, AreaChart, ResponsiveContainer } from "recharts"
+import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
 import { TrendingUp, Clock, Wind } from "lucide-react"
 import { Panel, PanelHeader } from "./panel"
 import type { WeatherData, HistoryPoint } from "@/types/weather"
 
 function MiniArea({ data, dataKey, color, height = 32 }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint; color: string; height?: number }) {
   const id = `mini-${String(dataKey)}-${color.replace(/[^a-z0-9]/gi, "")}`
+  const displayData = data.slice(-20)
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+      <AreaChart data={displayData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity={0.6} />
@@ -20,7 +21,17 @@ function MiniArea({ data, dataKey, color, height = 32 }: { data: HistoryPoint[];
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
         </defs>
-        <Area type="monotone" dataKey={dataKey as string} stroke={color} strokeWidth={3} fill={`url(#${id})`} isAnimationActive={false} dot={false} filter={`url(#glow-${id})`} />
+        <XAxis dataKey="time" hide />
+        <YAxis hide domain={([dataMin, dataMax]) => {
+          const minRange = dataKey === 'airQuality' ? 50 : dataKey === 'pressure' ? 1.0 : 0.5;
+          const range = dataMax - dataMin;
+          if (range < minRange) {
+            const center = (dataMax + dataMin) / 2;
+            return [center - minRange / 2, center + minRange / 2];
+          }
+          return [dataMin, dataMax];
+        }} />
+        <Area type="linear" dataKey={dataKey as string} stroke={color} strokeWidth={3} fill={`url(#${id})`} isAnimationActive={true} animationDuration={500} animationEasing="linear" dot={false} filter={`url(#glow-${id})`} />
       </AreaChart>
     </ResponsiveContainer>
   )
@@ -58,8 +69,8 @@ export function PressureCard({ data }: { data: WeatherData }) {
           </svg>
         </div>
         <div className="flex flex-col mt-1">
-          <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">PRESIÓN ATMOSFÉRICA</h2>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">BMP280</p>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Presión Atmosférica</h2>
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-pressure/70">BMP280</p>
         </div>
       </div>
 
@@ -78,17 +89,17 @@ export function PressureCard({ data }: { data: WeatherData }) {
         </span>
         <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">TENDENCIA</span>
       </div>
-      <MiniArea data={history} dataKey="pressure" color={accent} />
+      <MiniArea data={data.estadoBMP280 === 'operativo' ? history : []} dataKey="pressure" color={accent} />
     </Panel>
   )
 }
 
 export function AirQualityCard({ data }: { data: WeatherData }) {
-  const accent = "var(--color-altitude)" // using altitude's color or we can use a new variable. For simplicity we can reuse the altitude styling or adjust it.
-  const { calidadAire: value, history } = data
+  const { calidadAire: value, estadoCalidadAire: status, history } = data
   
-  const status = value < 100 ? "BUENA" : value < 200 ? "MODERADA" : "MALA"
-  const statusColor = value < 100 ? "#2dd4bf" : value < 200 ? "#facc15" : "#f87171" // #2dd4bf is teal-400
+  const statusColor = value < 100 ? "#2dd4bf" : value < 200 ? "#facc15" : "#f87171"
+  const statusBg = value < 100 ? "rgba(45,212,191,0.15)" : value < 200 ? "rgba(250,204,21,0.15)" : "rgba(248,113,113,0.15)"
+  const statusBorder = value < 100 ? "rgba(45,212,191,0.4)" : value < 200 ? "rgba(250,204,21,0.4)" : "rgba(248,113,113,0.4)"
   
   return (
     <Panel className="flex flex-col justify-between overflow-hidden relative">
@@ -97,30 +108,37 @@ export function AirQualityCard({ data }: { data: WeatherData }) {
           <Wind className="w-full h-full text-teal-400 opacity-70" />
         </div>
         <div className="flex flex-col pl-16 pt-1">
-          <h2 className="text-sm font-semibold leading-tight tracking-wide text-foreground">CALIDAD DEL AIRE</h2>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">MQ135</p>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Calidad del Aire</h2>
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-teal-400/70">MQ135</p>
         </div>
       </div>
 
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{width: 160, height: 160}} className="text-foreground">
-          <path d="M12 2v20" />
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-        </svg>
+        <Wind style={{width: 160, height: 160}} className="text-foreground" />
       </div>
 
       <div className="flex items-end justify-center py-0 relative z-10">
         <span className="font-digital text-6xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
-        <span className="mb-2 ml-2 text-xl font-bold text-muted-foreground">ppm</span>
       </div>
-      <p className="mb-2 text-center text-[12px] font-bold tracking-widest relative z-10" style={{color: statusColor}}>
-        {status}
-      </p>
-      <MiniArea data={history} dataKey="airQuality" color={statusColor} />
+      <div className="text-center text-[9px] uppercase font-bold tracking-widest text-muted-foreground -mt-1 mb-2 relative z-10">
+        Lectura MQ135
+      </div>
+      <div className="mb-2 flex justify-center relative z-10">
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest transition-all duration-300"
+          style={{
+            color: statusColor,
+            backgroundColor: statusBg,
+            border: `1px solid ${statusBorder}`,
+            boxShadow: status === "MALA" ? `0 0 12px ${statusColor}33` : "none",
+            animation: status === "MALA" ? "pulse 2s ease-in-out infinite" : "none",
+          }}
+        >
+          {status === "MALA" && <span className="text-sm">⚠️</span>}
+          {status}
+        </span>
+      </div>
+      <MiniArea data={data.estadoMQ135 === 'operativo' ? history : []} dataKey="airQuality" color="#2dd4bf" />
     </Panel>
   )
 }
-
-
-
-
