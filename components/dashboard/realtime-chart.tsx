@@ -34,13 +34,13 @@ function CustomTooltip({ active, payload, label }: any) {
 export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
   const [activeMetric, setActiveMetric] = useState<MetricKey>("temperature")
   const { history } = weatherData
+  const displayHistory = history.slice(-30)
 
-  const currentVal = history[history.length - 1][activeMetric]
-  const minVal = Math.min(...history.map(h => h[activeMetric]))
-  const maxVal = Math.max(...history.map(h => h[activeMetric]))
+  const currentVal = displayHistory[displayHistory.length - 1] ? displayHistory[displayHistory.length - 1][activeMetric] : 0
+  const minVal = displayHistory.length > 0 ? Math.min(...displayHistory.map(h => h[activeMetric])) : 0
+  const maxVal = displayHistory.length > 0 ? Math.max(...displayHistory.map(h => h[activeMetric])) : 0
   
   const metricInfo = METRICS[activeMetric]
-  const domainPadding = activeMetric === "pressure" ? 2 : 5;
 
   return (
     <Panel className="h-full flex flex-col justify-between overflow-hidden relative p-3">
@@ -82,7 +82,7 @@ export function RealtimeChart({ data: weatherData }: { data: WeatherData }) {
 
       <div className="flex-1 mt-1 -mx-4 -mb-4 z-10 relative">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={history} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+          <AreaChart data={displayHistory} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
             <defs>
               <linearGradient id={`gradient-${activeMetric}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={metricInfo.color} stopOpacity={0.5} />

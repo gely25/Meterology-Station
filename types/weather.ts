@@ -15,6 +15,7 @@ export interface SystemEvent {
   type: EventType;
   message: string;
   icon?: string;
+  timestamp?: number;
 }
 
 export interface WeatherData {
@@ -31,6 +32,7 @@ export interface WeatherData {
   fecha: string;
   ultimaActualizacion: string;
   uptime: string;
+  latency?: number;
   
   conexionESP32: 'conectado' | 'desconectado';
   wifiRSSI: number;

@@ -1,10 +1,32 @@
 "use client"
 
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
-import { TrendingUp, Clock, Wind } from "lucide-react"
-import { Panel, PanelHeader } from "./panel"
+import { TrendingUp, TrendingDown, Minus, Wind, WifiOff } from "lucide-react"
+import { Panel } from "./panel"
 import type { WeatherData, HistoryPoint } from "@/types/weather"
 
+// ─── Trend helper ─────────────────────────────────────────────────────────────
+function calcTrend(history: HistoryPoint[], key: keyof HistoryPoint, threshold = 0.5) {
+  if (history.length < 3) return 'stable'
+  const recent = history.slice(-3).map(h => Number(h[key]))
+  const delta = recent[2] - recent[0]
+  if (delta > threshold) return 'up'
+  if (delta < -threshold) return 'down'
+  return 'stable'
+}
+
+function TrendBadge({ trend, color }: { trend: 'up' | 'down' | 'stable'; color: string }) {
+  const Icon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus
+  const label = trend === 'up' ? 'Subiendo' : trend === 'down' ? 'Bajando' : 'Estable'
+  return (
+    <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <Icon className="size-3" style={{ color }} />
+      {label}
+    </span>
+  )
+}
+
+// ─── Mini tooltip ─────────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function MiniTooltip({ active, payload, label, color, unit }: any) {
   if (!active || !payload?.length) return null
@@ -48,14 +70,51 @@ function MiniArea({ data, dataKey, color, height = 32, unit = '' }: { data: Hist
   )
 }
 
+// ─── Pressure ─────────────────────────────────────────────────────────────────
 export function PressureCard({ data }: { data: WeatherData }) {
   const accent = "var(--color-pressure)"
-  const { presion: value, history } = data
-  const trend = history.length > 1 ? value - history[history.length - 2].pressure : 0
+  const { presion: value, history, estadoBMP280, conexionESP32 } = data
+  const isConnected = conexionESP32 === 'conectado' && estadoBMP280 === 'operativo'
+
+  if (!isConnected) {
+    return (
+      <Panel className="flex flex-col justify-between overflow-hidden relative min-h-[160px]">
+        <div className="flex items-start gap-3 mb-1 z-10 relative">
+          <div className="shrink-0 flex items-center justify-center" style={{ width: 96, height: 96 }}>
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="none" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" fill="none" stroke="#6b7280" strokeWidth="1.5" opacity="0.4" />
+              <path d="M3.34 19a10 10 0 1 1 17.32 0" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" />
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => {
+                const a = ((i / 12) * 240 - 210) * Math.PI / 180;
+                const r1 = i % 3 === 0 ? 7 : 8, r2 = 9;
+                return <line key={i}
+                  x1={12 + r1 * Math.cos(a)} y1={12 + r1 * Math.sin(a)}
+                  x2={12 + r2 * Math.cos(a)} y2={12 + r2 * Math.sin(a)}
+                  stroke="#4b5563" strokeWidth={i % 3 === 0 ? 1.5 : 1} />;
+              })}
+            </svg>
+          </div>
+          <div className="flex flex-col mt-1">
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Presión Atmosférica</h2>
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-alert">BMP280 · Sin conexión</p>
+            <div className="flex flex-col items-center justify-center p-3 text-center rounded-xl bg-alert/5 border border-alert/20 mt-1">
+              <span className="text-[9px] font-extrabold tracking-widest text-alert uppercase flex items-center gap-1">⚠️ ERROR DE SENSOR</span>
+              <p className="text-[8px] text-muted-foreground mt-0.5 leading-tight">Verifique la conexión I2C (SDA/SCL) de la placa BMP280.</p>
+            </div>
+          </div>
+        </div>
+        <MiniArea data={[]} dataKey="pressure" color={accent} unit="hPa" />
+      </Panel>
+    )
+  }
+
+  const trend = history.length > 2 ? value - history[history.length - 3].pressure : 0
+  const trendDir = calcTrend(history, 'pressure', 0.3)
+
   return (
     <Panel className="flex flex-col justify-between overflow-hidden relative">
       <div className="flex items-start gap-3 mb-1 z-10 relative">
-        <div className="shrink-0 flex items-center justify-center" style={{width: 96, height: 96}}>
+        <div className="shrink-0 flex items-center justify-center" style={{ width: 96, height: 96 }}>
           <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="none" strokeLinecap="round" strokeLinejoin="round">
             <defs>
               <radialGradient id="gaugeGlow" cx="50%" cy="50%" r="50%">
@@ -63,18 +122,18 @@ export function PressureCard({ data }: { data: WeatherData }) {
                 <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
               </radialGradient>
             </defs>
-            <circle cx="12" cy="12" r="10" fill="url(#gaugeGlow)" stroke="#a855f7" strokeWidth="1.5" opacity="0.4"/>
-            <path d="M3.34 19a10 10 0 1 1 17.32 0" stroke="#c084fc" strokeWidth="1.5" strokeLinecap="round"/>
+            <circle cx="12" cy="12" r="10" fill="url(#gaugeGlow)" stroke="#a855f7" strokeWidth="1.5" opacity="0.4" />
+            <path d="M3.34 19a10 10 0 1 1 17.32 0" stroke="#c084fc" strokeWidth="1.5" strokeLinecap="round" />
             <path d="M12 12 L17 7" stroke="#c084fc" strokeWidth="2" strokeLinecap="round"
-              style={{filter:'drop-shadow(0 0 6px #c084fc)'}}/>
+              style={{ filter: 'drop-shadow(0 0 6px #c084fc)' }} />
             <circle cx="12" cy="12" r="1.5" fill="#c084fc"
-              style={{filter:'drop-shadow(0 0 4px #c084fc)'}}/>
-            {[0,1,2,3,4,5,6,7,8,9,10,11,12].map(i => {
+              style={{ filter: 'drop-shadow(0 0 4px #c084fc)' }} />
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => {
               const a = ((i / 12) * 240 - 210) * Math.PI / 180;
               const r1 = i % 3 === 0 ? 7 : 8, r2 = 9;
               return <line key={i}
-                x1={12 + r1*Math.cos(a)} y1={12 + r1*Math.sin(a)}
-                x2={12 + r2*Math.cos(a)} y2={12 + r2*Math.sin(a)}
+                x1={12 + r1 * Math.cos(a)} y1={12 + r1 * Math.sin(a)}
+                x2={12 + r2 * Math.cos(a)} y2={12 + r2 * Math.sin(a)}
                 stroke={i % 3 === 0 ? '#c084fc' : '#6b21a8'} strokeWidth={i % 3 === 0 ? 1.5 : 1} />;
             })}
           </svg>
@@ -89,29 +148,67 @@ export function PressureCard({ data }: { data: WeatherData }) {
         <img src="/svg/presión atmosferica.svg" alt="" width={200} height={200} className="object-contain" />
       </div>
 
-      <div className="flex items-end justify-center relative z-10">
-        <span className="font-digital text-5xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{value.toFixed(1)}</span>
-        <span className="mb-1.5 ml-2 text-lg font-bold text-pressure drop-shadow-[0_0_8px_var(--color-pressure)]">hPa</span>
+      <div className="flex flex-col items-center justify-center relative z-10">
+        <div className="flex items-end justify-center">
+          <span className="font-digital text-5xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{value.toFixed(1)}</span>
+          <span className="mb-1.5 ml-2 text-lg font-bold text-pressure drop-shadow-[0_0_8px_var(--color-pressure)]">hPa</span>
+        </div>
+        <p className="text-center text-[9px] font-semibold text-muted-foreground/60 mt-0.5">Rango normal: 1008.0 - 1020.0 hPa</p>
       </div>
-      <div className="mt-1 flex items-center justify-end gap-1 relative z-10">
+
+      <div className="mt-1 flex items-center justify-end gap-2 relative z-10">
+        <TrendBadge trend={trendDir} color="var(--color-pressure)" />
         <span className="flex items-center gap-1 rounded-md border border-pressure/40 bg-pressure/15 px-2 py-1 text-xs font-bold text-pressure">
-          <TrendingUp className="size-3.5" /> {trend > 0 ? "+" : ""}
-          {trend.toFixed(1)} hPa
+          {trendDir === 'up' ? <TrendingUp className="size-3.5" /> : trendDir === 'down' ? <TrendingDown className="size-3.5" /> : <Minus className="size-3.5" />}
+          {trend > 0 ? "+" : ""}{trend.toFixed(1)} hPa
         </span>
         <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">TENDENCIA</span>
       </div>
-      <MiniArea data={data.estadoBMP280 === 'operativo' ? history : []} dataKey="pressure" color={accent} unit="hPa" />
+      <MiniArea data={history} dataKey="pressure" color={accent} unit="hPa" />
     </Panel>
   )
 }
 
+// ─── Air Quality ──────────────────────────────────────────────────────────────
+type AQLevel = { label: string; desc: string; color: string; bg: string; border: string }
+
+function getAQLevel(value: number): AQLevel {
+  if (value < 600) return { label: 'Excelente', desc: 'Aire limpio', color: '#2dd4bf', bg: 'rgba(45,212,191,0.12)', border: 'rgba(45,212,191,0.4)' }
+  if (value < 1000) return { label: 'Buena', desc: 'Calidad aceptable', color: '#86efac', bg: 'rgba(134,239,172,0.12)', border: 'rgba(134,239,172,0.4)' }
+  if (value < 1400) return { label: 'Moderada', desc: 'Ligera contaminación', color: '#facc15', bg: 'rgba(250,204,21,0.12)', border: 'rgba(250,204,21,0.4)' }
+  if (value < 1800) return { label: 'Mala', desc: 'Poco recomendable', color: '#fb923c', bg: 'rgba(251,146,60,0.12)', border: 'rgba(251,146,60,0.4)' }
+  return { label: 'Muy mala', desc: 'Evitar exposición', color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.4)' }
+}
+
 export function AirQualityCard({ data }: { data: WeatherData }) {
-  const { calidadAire: value, estadoCalidadAire: status, history } = data
-  
-  const statusColor = value < 100 ? "#2dd4bf" : value < 200 ? "#facc15" : "#f87171"
-  const statusBg = value < 100 ? "rgba(45,212,191,0.15)" : value < 200 ? "rgba(250,204,21,0.15)" : "rgba(248,113,113,0.15)"
-  const statusBorder = value < 100 ? "rgba(45,212,191,0.4)" : value < 200 ? "rgba(250,204,21,0.4)" : "rgba(248,113,113,0.4)"
-  
+  const { calidadAire: value, history, estadoMQ135, conexionESP32 } = data
+  const isConnected = conexionESP32 === 'conectado' && estadoMQ135 === 'operativo'
+
+  if (!isConnected) {
+    return (
+      <Panel className="flex flex-col justify-between overflow-hidden relative min-h-[160px]">
+        <div className="flex items-start mb-1 z-10 relative">
+          <div className="absolute top-3 left-3 z-10 pointer-events-none" style={{ width: 44, height: 44 }}>
+            <Wind className="w-full h-full text-alert opacity-30 grayscale" />
+          </div>
+          <div className="flex flex-col pl-16 pt-1">
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Calidad del Aire</h2>
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-alert">MQ135 · Sin conexión</p>
+            <div className="flex flex-col items-center justify-center p-3 text-center rounded-xl bg-alert/5 border border-alert/20 mt-1">
+              <span className="text-[9px] font-extrabold tracking-widest text-alert uppercase flex items-center gap-1">⚠️ ERROR DE SENSOR</span>
+              <p className="text-[8px] text-muted-foreground mt-0.5 leading-tight">Verifique el cableado analógico/VCC del sensor MQ135.</p>
+            </div>
+          </div>
+        </div>
+        <MiniArea data={[]} dataKey="airQuality" color="#2dd4bf" unit="" />
+      </Panel>
+    )
+  }
+
+  const level = getAQLevel(value)
+  const trendDir = calcTrend(history, 'airQuality', 20)
+  const isBad = value >= 1800
+
   return (
     <Panel className="flex flex-col justify-between overflow-hidden relative">
       <div className="flex items-start mb-1 z-10 relative">
@@ -120,36 +217,44 @@ export function AirQualityCard({ data }: { data: WeatherData }) {
         </div>
         <div className="flex flex-col pl-16 pt-1">
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Calidad del Aire</h2>
-          <p className="text-[9px] font-semibold uppercase tracking-widest text-teal-400/70">MQ135</p>
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-teal-400/70">MQ135 · Índice relativo</p>
         </div>
       </div>
 
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
-        <Wind style={{width: 160, height: 160}} className="text-foreground" />
+        <Wind style={{ width: 160, height: 160 }} className="text-foreground" />
       </div>
 
-      <div className="flex items-end justify-center py-0 relative z-10">
+      <div className="flex flex-col items-center justify-center py-0 relative z-10">
         <span className="font-digital text-6xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
+        <p className="text-center text-[9px] uppercase font-bold tracking-widest text-muted-foreground mt-0.5 mb-0.5">Valor relativo</p>
+        <p className="text-center text-[9px] font-semibold text-muted-foreground/60 mb-2">Rango saludable: 0 - 600</p>
       </div>
-      <div className="text-center text-[9px] uppercase font-bold tracking-widest text-muted-foreground -mt-1 mb-2 relative z-10">
-        Lectura MQ135
-      </div>
-      <div className="mb-2 flex justify-center relative z-10">
+
+      {/* Level badge + description */}
+      <div className="mb-1 flex flex-col items-center gap-0.5 relative z-10">
         <span
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest transition-all duration-300"
           style={{
-            color: statusColor,
-            backgroundColor: statusBg,
-            border: `1px solid ${statusBorder}`,
-            boxShadow: status === "MALA" ? `0 0 12px ${statusColor}33` : "none",
-            animation: status === "MALA" ? "pulse 2s ease-in-out infinite" : "none",
+            color: level.color,
+            backgroundColor: level.bg,
+            border: `1px solid ${level.border}`,
+            boxShadow: isBad ? `0 0 12px ${level.color}33` : 'none',
+            animation: isBad ? 'pulse 2s ease-in-out infinite' : 'none',
           }}
         >
-          {status === "MALA" && <span className="text-sm">⚠️</span>}
-          {status}
+          {isBad && <span className="text-sm">⚠️</span>}
+          {level.label}
         </span>
+        <span className="text-[8px] text-muted-foreground font-medium italic">{level.desc}</span>
       </div>
-      <MiniArea data={data.estadoMQ135 === 'operativo' ? history : []} dataKey="airQuality" color="#2dd4bf" unit="ppm" />
+
+      {/* Trend */}
+      <div className="flex justify-center mb-1 z-10 relative">
+        <TrendBadge trend={trendDir} color={level.color} />
+      </div>
+
+      <MiniArea data={isConnected ? history : []} dataKey="airQuality" color="#2dd4bf" unit="" />
     </Panel>
   )
 }

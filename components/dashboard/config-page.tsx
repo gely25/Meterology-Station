@@ -134,6 +134,30 @@ export function ConfigPage() {
                 <span>Intervalos muy bajos pueden aumentar el tráfico de red.</span>
               </div>
             )}
+
+            {/* ── System Read Statistics (replaces battery impact) ── */}
+            {(() => {
+              const perMin  = Math.floor(60_000 / config.interval)
+              const perHour = Math.floor(3_600_000 / config.interval)
+              const perDay  = Math.floor(86_400_000 / config.interval)
+              const stats = [
+                { label: "Intervalo actual",  value: `${config.interval} ms`,                   sub: config.interval <= 500 ? "Alta frecuencia" : config.interval <= 2000 ? "Recomendado" : "Baja frecuencia" },
+                { label: "Lecturas / minuto", value: perMin.toLocaleString(),                  sub: "req/min" },
+                { label: "Lecturas / hora",   value: perHour.toLocaleString(),                 sub: "req/h" },
+                { label: "Lecturas / día",    value: perDay.toLocaleString(),                  sub: "req/día" },
+              ]
+              return (
+                <div className="mt-1.5 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {stats.map(s => (
+                    <div key={s.label} className="flex flex-col gap-0.5 rounded-xl border border-border/60 bg-background/50 px-3 py-2.5">
+                      <span className="text-[9px] font-extrabold uppercase tracking-widest text-muted-foreground">{s.label}</span>
+                      <span className="text-base font-bold text-foreground leading-tight">{s.value}</span>
+                      <span className="text-[9px] text-muted-foreground/70">{s.sub}</span>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
           </div>
         </Panel>
 
@@ -213,35 +237,67 @@ export function ConfigPage() {
         </Panel>
       </div>
 
+      {/* ── FLOATING TOAST NOTIFICATION ── */}
+      {(hasChanges && !saved) && (
+        <div className="fixed top-20 right-6 z-50 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-card p-4 shadow-xl shadow-amber-500/5 max-w-sm animate-slide-in-right">
+          <AlertTriangle className="size-5 shrink-0 text-amber-500 mt-0.5" />
+          <div className="flex-1 flex flex-col gap-0.5 pr-2">
+            <span className="text-xs font-bold text-foreground">Cambios pendientes</span>
+            <span className="text-[11px] text-muted-foreground leading-snug">Tienes modificaciones en la configuración del ESP32 sin aplicar.</span>
+          </div>
+        </div>
+      )}
+
+      {saved && (
+        <div className="fixed top-20 right-6 z-50 flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-card p-4 shadow-xl shadow-emerald-500/5 max-w-sm animate-slide-in-right">
+          <CheckCircle2 className="size-5 shrink-0 text-emerald-500 mt-0.5" />
+          <div className="flex-1 flex flex-col gap-0.5 pr-2">
+            <span className="text-xs font-bold text-foreground">Ajustes guardados</span>
+            <span className="text-[11px] text-muted-foreground leading-snug">La configuración ha sido sincronizada con el firmware correctamente.</span>
+          </div>
+        </div>
+      )}
+
       {/* ── SAVE BAR ── */}
-      <div className="flex items-center justify-between pt-2">
-        {hasChanges && !saved ? (
-          <p className="text-xs font-semibold text-warning flex items-center gap-1.5">
-            <AlertTriangle className="size-3.5" /> Hay cambios sin guardar.
-          </p>
-        ) : saved ? (
-          <p className="text-xs font-semibold text-emerald-500 flex items-center gap-1.5">
-            <CheckCircle2 className="size-3.5" /> Configuración guardada correctamente.
-          </p>
-        ) : (
-          <span />
-        )}
+      <div className="flex items-center justify-between pt-2 border-t border-border/10">
+        {/* Left side: status indicator */}
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 className={cn("size-3.5 transition-colors", hasChanges ? "text-muted-foreground/35" : "text-emerald-500")} />
+          <span className={cn("text-xs font-semibold transition-colors", hasChanges ? "text-muted-foreground/60" : "text-emerald-500/80")}>
+            {hasChanges ? "Esperando aplicación de cambios" : "Configuración sincronizada"}
+          </span>
+        </div>
+
+        {/* Right side: save button */}
         <button
           onClick={handleSave}
-          disabled={!hasChanges && !saved}
+          disabled={!hasChanges}
           className={cn(
-            "flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold tracking-widest text-white transition-all",
+            "flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold tracking-widest transition-all",
             saved
-              ? "bg-emerald-500 cursor-default"
+              ? "bg-emerald-500 text-white cursor-default"
               : hasChanges
-                ? "bg-sky-500 hover:bg-sky-600 shadow-lg shadow-sky-500/20"
-                : "bg-muted text-muted-foreground cursor-not-allowed"
+                ? "bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/20"
+                : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
           )}
         >
-          {saved ? <CheckCircle2 className="size-4" /> : <Save className="size-4" />}
-          {saved ? "GUARDADO" : "GUARDAR CONFIGURACIÓN"}
+          {saved
+            ? <><CheckCircle2 className="size-4" /> GUARDADO</>
+            : hasChanges
+              ? <><Save className="size-4" /> GUARDAR CAMBIOS</>
+              : <><Save className="size-4" /> SIN CAMBIOS</>}
         </button>
       </div>
+
+      <style>{`
+        @keyframes slideInRight {
+          from { opacity: 0; transform: translateX(24px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        .animate-slide-in-right {
+          animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
     </div>
   )
 }

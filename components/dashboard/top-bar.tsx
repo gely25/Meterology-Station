@@ -1,4 +1,7 @@
-import { CloudSun, Wifi, WifiOff, Home, LineChart, Settings, Info } from "lucide-react"
+"use client"
+
+import { useState, useEffect } from "react"
+import { CloudSun, Wifi, WifiOff, Home, LineChart, Settings, Bell } from "lucide-react"
 import type { WeatherData } from "@/types/weather"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -7,8 +10,42 @@ import { NotificationBell } from "./alert-system"
 const navItems = [
   { id: "dashboard", label: "DASHBOARD", icon: Home },
   { id: "historial", label: "HISTORIAL", icon: LineChart },
+  { id: "eventos", label: "EVENTOS", icon: Bell },
   { id: "configuracion", label: "CONFIGURACIÓN", icon: Settings },
 ]
+
+function RelativeUpdateTime({ updated }: { updated: string }) {
+  const [seconds, setSeconds] = useState(0)
+
+  useEffect(() => {
+    const parseTime = (timeStr: string) => {
+      if (!timeStr) return 0
+      const parts = timeStr.split(':').map(Number)
+      if (parts.length < 3) return 0
+      const [h, m, s] = parts
+      return h * 3600 + m * 60 + s
+    }
+
+    const updateDiff = () => {
+      const now = new Date()
+      const currentSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
+      const updatedSecs = parseTime(updated)
+      let diff = currentSecs - updatedSecs
+      if (diff < 0) diff += 24 * 3600 // Day rollover
+      setSeconds(diff)
+    }
+
+    updateDiff()
+    const timer = setInterval(updateDiff, 1000)
+    return () => clearInterval(timer)
+  }, [updated])
+
+  return (
+    <p className="text-[8px] font-medium tracking-widest text-muted-foreground/70 uppercase">
+      Hace {seconds}s
+    </p>
+  )
+}
 
 export function TopNavigation({
   data,
@@ -71,7 +108,8 @@ export function TopNavigation({
         </div>
         <div className="text-right leading-tight hidden sm:block">
           <p className="font-mono text-lg font-bold tracking-widest text-foreground tabular-nums">{hora}</p>
-          <p className="text-[9px] font-medium tracking-widest text-muted-foreground">ACTUALIZADO: {data.ultimaActualizacion}</p>
+          <p className="text-[9px] font-medium tracking-wide text-muted-foreground">{fecha}</p>
+          <RelativeUpdateTime updated={data.ultimaActualizacion} />
         </div>
         <div className="flex flex-col items-center justify-center mx-2 hidden sm:flex">
           {conexionESP32 === 'conectado' ? (

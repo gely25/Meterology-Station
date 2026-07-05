@@ -3,15 +3,16 @@
 import { TopNavigation } from "@/components/dashboard/top-bar"
 import { TemperatureCard, HumidityCard, RainCard, ConditionCard } from "@/components/dashboard/metric-cards"
 import { PressureCard, AirQualityCard } from "@/components/dashboard/secondary-cards"
-import { RealtimeChart } from "@/components/dashboard/realtime-chart"
 import { SystemStatus } from "@/components/dashboard/system-status"
 import { HistoryView } from "@/components/dashboard/history-view"
+import { EventsView } from "@/components/dashboard/events-view"
 
 import { AlertBanner, AlertToast, NotificationPanel, useNotifications } from "@/components/dashboard/alert-system"
 import { useWeather } from "@/hooks/useWeather"
 import { ConfigPage } from "@/components/dashboard/config-page"
 import { useState } from "react"
-import { Panel } from "@/components/dashboard/panel"
+
+import { MonitoringCenter } from "@/components/dashboard/monitoring-center"
 
 export default function Page() {
   const data = useWeather()
@@ -35,29 +36,37 @@ export default function Page() {
           <div className="flex flex-1 flex-col gap-3 p-3 md:p-4 h-full">
             {activeView === 'dashboard' ? (
               <>
-                {/* Row 1: Hero — Estado del Clima + Temperatura + Humedad */}
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-                  <ConditionCard data={data} />
-                  <TemperatureCard data={data} className="h-full" />
-                  <HumidityCard data={data} />
-                </div>
+                <AlertBanner data={data} onNavigate={setActiveView} />
+                
+                <MonitoringCenter data={data} onNavigate={setActiveView} />
 
-                {/* Row 2: Lluvia, Presión, Calidad del Aire, Estado del Sistema */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <RainCard data={data} />
-                  <PressureCard data={data} />
-                  <AirQualityCard data={data} />
-                  <SystemStatus data={data} className="h-full" />
-                </div>
+                {/* Full-height flex column — rows share the available space */}
+                <div className="flex-1 flex flex-col gap-3 min-h-0">
 
-                {/* Row 3: Historial */}
-                <div className="flex-1 min-h-0">
-                  <RealtimeChart data={data} />
+                  {/* Row 1: Estado del Clima · Temperatura · Humedad  (~55%) */}
+                  <div className="flex-[5.5] min-h-0 grid grid-cols-1 gap-3 lg:grid-cols-3">
+                    <ConditionCard    data={data} className="h-full" />
+                    <TemperatureCard  data={data} className="h-full" />
+                    <HumidityCard     data={data} className="h-full" />
+                  </div>
+
+                  {/* Row 2: Lluvia · Presión · Calidad del Aire · Sistema  (~45%) */}
+                  <div className="flex-[4.5] min-h-0 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <RainCard        data={data} className="h-full" />
+                    <PressureCard    data={data} className="h-full" />
+                    <AirQualityCard  data={data} className="h-full" />
+                    <SystemStatus    data={data} className="h-full" />
+                  </div>
+
                 </div>
               </>
             ) : activeView === 'historial' ? (
               <div className="flex-1 h-full min-h-0">
                 <HistoryView data={data} />
+              </div>
+            ) : activeView === 'eventos' ? (
+              <div className="flex-1 h-full min-h-0">
+                <EventsView data={data} />
               </div>
             ) : activeView === 'configuracion' ? (
               <div className="flex-1">
@@ -80,3 +89,4 @@ export default function Page() {
     </div>
   )
 }
+

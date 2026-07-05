@@ -8,16 +8,87 @@ import { cn } from "@/lib/utils"
 // ─── Types ───────────────────────────────────────────────────────────────────
 import type { SystemEvent } from "@/types/weather"
 
-// ─── Alert Banner (Disabled per request) ──────────────────────────────────────
-export function AlertBanner({ data }: { data: WeatherData }) {
-  if (!data.alertaActiva) return null
+// ─── Alert Banner ─────────────────────────────────────────────────────────────
+type AlertLevel = { msg: string; color: string; bg: string; border: string; icon: string }
+
+function deriveAlerts(data: WeatherData): AlertLevel[] {
+  const alerts: AlertLevel[] = []
+  if (data.nivelLluvia >= 70)
+    alerts.push({ msg: '⛈ Lluvia intensa detectada — Buzzer y LED activos', color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.35)', icon: '⛈' })
+  if (data.calidadAire >= 1800)
+    alerts.push({ msg: '🏭 Calidad del aire muy mala — Evitar exposición', color: '#fb923c', bg: 'rgba(251,146,60,0.12)', border: 'rgba(251,146,60,0.35)', icon: '🏭' })
+  if (data.estadoBMP280 === 'desconectado' && data.conexionESP32 === 'conectado')
+    alerts.push({ msg: '📡 Sensor BMP280 desconectado — Presión no disponible', color: '#facc15', bg: 'rgba(250,204,21,0.12)', border: 'rgba(250,204,21,0.35)', icon: '📡' })
+  if (data.estadoAHT10 === 'desconectado' && data.conexionESP32 === 'conectado')
+    alerts.push({ msg: '🌡 Sensor AHT10 desconectado — Temp y Humedad no disponibles', color: '#facc15', bg: 'rgba(250,204,21,0.12)', border: 'rgba(250,204,21,0.35)', icon: '🌡' })
+  // legacy field fallback
+  if (data.alertaActiva && alerts.length === 0)
+    alerts.push({ msg: data.alertaActiva, color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.35)', icon: '⚠️' })
+  return alerts
+}
+
+export function AlertBanner({ data, onNavigate }: { data: WeatherData; onNavigate?: (view: string) => void }) {
+  const alerts = deriveAlerts(data)
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set())
+
+  // Reset dismissed set whenever the alert list changes length/content
+  const alertKey = alerts.map(a => a.msg).join("|")
+  const prevKeyRef = useRef(alertKey)
+  if (prevKeyRef.current !== alertKey) {
+    prevKeyRef.current = alertKey
+    dismissed.clear()
+  }
+
+  const visible = alerts.filter((_, i) => !dismissed.has(i))
+  if (visible.length === 0) return null
+
+  const handleReview = (msg: string) => {
+    if (!onNavigate) return
+    const m = msg.toLowerCase()
+    if (m.includes("desconectado") || m.includes("sensor")) {
+      onNavigate("configuracion")
+    } else {
+      onNavigate("eventos")
+    }
+  }
+
   return (
-    <div className="animate-slide-down mb-4 flex items-center justify-center gap-2 rounded-xl bg-alert/15 border border-alert/30 py-2.5 px-4">
-      <TriangleAlert className="size-4 text-alert" strokeWidth={2.5} />
-      <p className="text-xs font-bold uppercase tracking-wider text-alert">{data.alertaActiva}</p>
+    <div className="mb-3 flex flex-col gap-1.5 animate-slide-down">
+      {alerts.map((a, i) => {
+        if (dismissed.has(i)) return null
+        return (
+          <div
+            key={i}
+            className="flex items-center gap-2.5 rounded-xl px-4 py-2 pr-3"
+            style={{ backgroundColor: a.bg, border: `1px solid ${a.border}` }}
+          >
+            <TriangleAlert className="size-4 shrink-0" style={{ color: a.color }} strokeWidth={2.5} />
+            <p className="text-xs font-bold tracking-wide flex-1" style={{ color: a.color }}>{a.msg}</p>
+            
+            {onNavigate && (
+              <button
+                onClick={() => handleReview(a.msg)}
+                className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase border hover:bg-white/10 transition-colors whitespace-nowrap"
+                style={{ borderColor: a.border, color: a.color }}
+              >
+                Revisar
+              </button>
+            )}
+
+            <button
+              onClick={() => setDismissed(prev => new Set([...prev, i]))}
+              className="ml-1 rounded-full p-1 opacity-60 hover:opacity-100 transition-opacity hover:bg-white/10"
+              title="Cerrar alerta"
+            >
+              <X className="size-3.5" style={{ color: a.color }} />
+            </button>
+          </div>
+        )
+      })}
     </div>
   )
 }
+
 
 // ─── Alert Toast (Premium disappearing pop-up window) ─────────────────────────
 export function AlertToast({ data }: { data: WeatherData }) {
