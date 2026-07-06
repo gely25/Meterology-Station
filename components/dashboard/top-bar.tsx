@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { CloudSun, Wifi, WifiOff, Home, LineChart, Settings, Bell } from "lucide-react"
-import type { WeatherData } from "@/types/weather"
+import type { WeatherData, SystemEvent } from "@/types/weather"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { NotificationBell } from "./alert-system"
+import { NotificationBell, NotificationCenter } from "./alert-system"
 
 const navItems = [
   { id: "dashboard", label: "DASHBOARD", icon: Home },
@@ -51,14 +51,16 @@ export function TopNavigation({
   data,
   active,
   onNavigate,
-  onBellClick,
+  notifications,
 }: {
   data: WeatherData
   active: string
   onNavigate: (id: string) => void
-  onBellClick: () => void
+  notifications: SystemEvent[]
 }) {
   const { hora, fecha, conexionESP32 } = data;
+  const [notifOpen, setNotifOpen] = useState(false)
+
   return (
     <header className="flex flex-col xl:flex-row items-center justify-between gap-1.5 border-b border-border px-4 py-1 bg-sidebar">
       {/* Branding */}
@@ -84,10 +86,10 @@ export function TopNavigation({
               key={item.id}
               onClick={() => onNavigate(item.id)}
               className={cn(
-                "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-bold tracking-widest transition-colors whitespace-nowrap",
+                "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-bold tracking-widest transition-all duration-200 whitespace-nowrap",
                 isActive
-                  ? "bg-humidity/15 text-humidity ring-1 ring-humidity/40"
-                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  ? "bg-humidity/20 text-humidity ring-1 ring-humidity/50 opacity-100 shadow-sm"
+                  : "text-muted-foreground/75 hover:bg-muted/40 hover:text-foreground opacity-60 hover:opacity-100"
               )}
             >
               <Icon className="size-3.5 shrink-0" strokeWidth={2.5} />
@@ -119,7 +121,23 @@ export function TopNavigation({
           )}
           <span className="text-[8px] font-bold uppercase mt-0.5 text-muted-foreground">{data.wifiCalidad}</span>
         </div>
-        <NotificationBell data={data} onClick={onBellClick} />
+
+        {/* Notification Bell + Dropdown Container */}
+        <div className="relative">
+          <NotificationBell
+            data={data}
+            onClick={() => setNotifOpen(prev => !prev)}
+            isOpen={notifOpen}
+          />
+          <NotificationCenter
+            open={notifOpen}
+            onClose={() => setNotifOpen(false)}
+            data={data}
+            notifications={notifications}
+            onNavigate={(view) => { onNavigate(view); setNotifOpen(false) }}
+          />
+        </div>
+
         <ThemeToggle />
       </div>
     </header>

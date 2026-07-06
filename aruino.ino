@@ -217,7 +217,12 @@ if (WiFi.status() == WL_CONNECTED) {
   server.begin();
 
   Serial.println("Servidor HTTP iniciado");
+  Serial.print("Servidor escuchando en: http://");
+  Serial.print(WiFi.localIP());
+  Serial.println("/api/data");
 
+} else {
+  Serial.println("No se inició el servidor HTTP - WiFi no conectado");
 }
 
 }   // <-- ESTA LLAVE FALTA

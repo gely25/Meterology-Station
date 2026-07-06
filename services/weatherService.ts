@@ -101,22 +101,7 @@ class WeatherService {
   // --- Core Logic ---
   private getInitialData(): WeatherData {
     const time = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    
-    // Generar 30 puntos iniciales (ventana deslizante de 30)
     const history: HistoryPoint[] = [];
-    const now = new Date();
-    for (let i = 29; i >= 0; i--) {
-      const past = new Date(now.getTime() - i * 1000); // Restar segundos
-      const timeStr = past.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-      history.push({
-        time: timeStr,
-        temperature: 18 + Math.sin(i / 2) * 4 + Math.random() * 2,
-        humidity: 55 + Math.cos(i / 3) * 8 + Math.random() * 4,
-        pressure: 1012 + Math.sin(i / 4) * 3,
-        rain: 2 + Math.random() * 3,
-        airQuality: 60 + Math.random() * 20,
-      });
-    }
 
     return {
       temperatura: 23.6,

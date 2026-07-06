@@ -7,7 +7,7 @@ import { SystemStatus } from "@/components/dashboard/system-status"
 import { HistoryView } from "@/components/dashboard/history-view"
 import { EventsView } from "@/components/dashboard/events-view"
 
-import { AlertBanner, AlertToast, NotificationPanel, useNotifications } from "@/components/dashboard/alert-system"
+import { AlertToast, useNotifications } from "@/components/dashboard/alert-system"
 import { useWeather } from "@/hooks/useWeather"
 import { ConfigPage } from "@/components/dashboard/config-page"
 import { useState } from "react"
@@ -17,7 +17,6 @@ import { MonitoringCenter } from "@/components/dashboard/monitoring-center"
 export default function Page() {
   const data = useWeather()
   const [activeView, setActiveView] = useState("dashboard")
-  const [notifOpen, setNotifOpen] = useState(false)
   const notifications = useNotifications(data)
 
   if (!data) return null;
@@ -29,33 +28,33 @@ export default function Page() {
           data={data}
           active={activeView}
           onNavigate={setActiveView}
-          onBellClick={() => setNotifOpen(true)}
+          notifications={notifications}
         />
 
-        <main className="flex min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
-          <div className="flex flex-1 flex-col gap-3 p-3 md:p-4 h-full">
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="flex flex-1 flex-col gap-3.5 p-2.5 md:p-3 h-full">
             {activeView === 'dashboard' ? (
               <>
-                <AlertBanner data={data} onNavigate={setActiveView} />
-                
-                <MonitoringCenter data={data} onNavigate={setActiveView} />
+                <div className="mt-5 mb-2 shrink-0">
+                  <MonitoringCenter data={data} onNavigate={setActiveView} />
+                </div>
 
                 {/* Full-height flex column — rows share the available space */}
-                <div className="flex-1 flex flex-col gap-3 min-h-0">
+                <div className="flex-1 flex flex-col gap-3.5 min-h-0">
 
-                  {/* Row 1: Estado del Clima · Temperatura · Humedad  (~55%) */}
-                  <div className="flex-[5.5] min-h-0 grid grid-cols-1 gap-3 lg:grid-cols-3">
-                    <ConditionCard    data={data} className="h-full" />
-                    <TemperatureCard  data={data} className="h-full" />
-                    <HumidityCard     data={data} className="h-full" />
+                  {/* Row 1: Estado del Clima · Temperatura · Humedad  (~56%) */}
+                  <div className="flex-[5.6] min-h-0 grid grid-cols-1 gap-3.5 lg:grid-cols-3">
+                    <ConditionCard data={data} className="h-full" />
+                    <TemperatureCard data={data} className="h-full" />
+                    <HumidityCard data={data} />
                   </div>
 
-                  {/* Row 2: Lluvia · Presión · Calidad del Aire · Sistema  (~45%) */}
-                  <div className="flex-[4.5] min-h-0 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <RainCard        data={data} className="h-full" />
-                    <PressureCard    data={data} className="h-full" />
-                    <AirQualityCard  data={data} className="h-full" />
-                    <SystemStatus    data={data} className="h-full" />
+                  {/* Row 2: Lluvia · Presión · Calidad del Aire · Sistema  (~44%) */}
+                  <div className="flex-[4.4] min-h-0 grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+                    <RainCard data={data} />
+                    <PressureCard data={data} />
+                    <AirQualityCard data={data} className="h-full" />
+                    <SystemStatus data={data} className="h-full" />
                   </div>
 
                 </div>
@@ -79,14 +78,6 @@ export default function Page() {
 
       {/* Toast notification */}
       <AlertToast data={data} />
-
-      {/* Notification panel */}
-      <NotificationPanel
-        open={notifOpen}
-        onClose={() => setNotifOpen(false)}
-        notifications={notifications}
-      />
     </div>
   )
 }
-

@@ -9,6 +9,7 @@
   font-style: normal;
   font-display: swap;
 }
+
 @font-face {
   font-family: 'DSEG7Classic';
   src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2');
@@ -51,22 +52,22 @@
   --radius-2xl: calc(var(--radius) * 1.8);
 
   --animate-fade-in: fade-in 0.4s ease both;
-  --animate-slide-up: slide-up 0.4s cubic-bezier(0.16,1,0.3,1) both;
-  --animate-slide-right: slide-right 0.35s cubic-bezier(0.16,1,0.3,1) both;
+  --animate-slide-up: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-right: slide-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
 }
 
 :root {
   color-scheme: light;
-  --background: oklch(0.96 0.001 240);
-  --foreground: oklch(0.2 0.01 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.01 260);
-  --panel: oklch(0.99 0 0);
-  --border: oklch(0.91 0.005 240);
-  --muted: oklch(0.95 0.003 240);
-  --muted-foreground: oklch(0.52 0.01 260);
-  --sidebar: oklch(1 0 0);
+  --background: oklch(0.93 0.003 240);
+  --foreground: oklch(0.12 0.015 255);        /* Texto más oscuro y legible */
+  --card: oklch(1 0 0);                       /* Cards blanco puro */
+  --card-foreground: oklch(0.12 0.015 255);   /* Texto en cards también oscuro */
+  --panel: oklch(0.96 0.001 240);
+  --border: oklch(0.88 0.006 240);
+  --muted: oklch(0.92 0.004 240);
+  --muted-foreground: oklch(0.44 0.012 255);  /* Texto secundario gris oscuro, legible */
+  --sidebar: oklch(0.95 0.002 240);
 
   --temp: oklch(0.6 0.18 22);
   --humidity: oklch(0.52 0.18 248);
@@ -82,15 +83,20 @@
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.11 0.032 258);
+  --background: oklch(0.08 0.015 258);
+  /* Nivel 0: Background principal (oscuro) */
+  --sidebar: oklch(0.11 0.020 255);
+  /* Nivel 1: Navbar (un poco más claro) */
+  --panel: oklch(0.14 0.024 255);
+  /* Nivel 2: Centro de Monitoreo */
+  --card: oklch(0.17 0.028 255);
+  /* Nivel 3: Cards del dashboard (más claro) */
   --foreground: oklch(0.96 0.006 240);
-  --card: oklch(0.20 0.042 255);
   --card-foreground: oklch(0.96 0.006 240);
-  --panel: oklch(0.23 0.042 255);
-  --border: oklch(1 0 0 / 10%);
-  --muted: oklch(0.27 0.03 258);
-  --muted-foreground: oklch(0.62 0.016 255);
-  --sidebar: oklch(0.14 0.036 255);
+  --border: oklch(1 0 0 / 6%);
+  /* Bordes por defecto sumamente sutiles / casi invisibles */
+  --muted: oklch(0.18 0.022 255);
+  --muted-foreground: oklch(0.58 0.016 255);
 
   --temp: oklch(0.7 0.16 22);
   --humidity: oklch(0.78 0.14 242);
@@ -103,65 +109,180 @@
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slide-right {
-  from { opacity: 0; transform: translateX(-12px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slide-in-from-right {
-  from { opacity: 0; transform: translateX(100%); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slide-out-to-right {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(100%); }
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.6; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 @keyframes banner-in {
-  from { opacity: 0; transform: translateY(-100%); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
+@keyframes bellRing {
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  20%,
+  60% {
+    transform: rotate(15deg);
+  }
+
+  40%,
+  80% {
+    transform: rotate(-15deg);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
   }
+
   /* Hide scrollbar utility */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 }
 
 @layer utilities {
-  .animate-fade-in       { animation: var(--animate-fade-in); }
-  .animate-slide-up      { animation: var(--animate-slide-up); }
-  .animate-slide-right   { animation: var(--animate-slide-right); }
-  .animate-pulse-glow    { animation: var(--animate-pulse-glow); }
-  .animate-banner-in     { animation: banner-in 0.35s cubic-bezier(0.16,1,0.3,1) both; }
-  .animate-slide-in-panel { animation: slide-in-from-right 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+  .animate-fade-in {
+    animation: var(--animate-fade-in);
+  }
+
+  .animate-slide-up {
+    animation: var(--animate-slide-up);
+  }
+
+  .animate-slide-right {
+    animation: var(--animate-slide-right);
+  }
+
+  .animate-pulse-glow {
+    animation: var(--animate-pulse-glow);
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-banner-in {
+    animation: banner-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-slide-in-panel {
+    animation: slide-in-from-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 }

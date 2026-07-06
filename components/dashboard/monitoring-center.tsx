@@ -5,8 +5,6 @@ import type { WeatherData } from "@/types/weather"
 import { cn } from "@/lib/utils"
 
 export function MonitoringCenter({ data, onNavigate }: { data: WeatherData; onNavigate?: (view: string) => void }) {
-  // 1. Calculate operational and error sensors
-  // We have 4 main sensors: AHT10, BMP280, MQ135, Sensor de Lluvia
   const sensors = [
     { name: "AHT10", status: data.estadoAHT10 },
     { name: "BMP280", status: data.estadoBMP280 },
@@ -14,137 +12,141 @@ export function MonitoringCenter({ data, onNavigate }: { data: WeatherData; onNa
     { name: "Lluvia", status: data.estadoSensorLluvia },
   ]
   const totalSensors = sensors.length
-  const operativeSensors = sensors.filter(s => s.status === "operativo").length
-  const errorSensors = totalSensors - operativeSensors
+  const isESPConnected = data.conexionESP32 === "conectado"
+  const operativeSensors = isESPConnected ? sensors.filter(s => s.status === "operativo").length : 0
+  const errorSensors = isESPConnected ? (totalSensors - operativeSensors) : totalSensors
 
-  // 2. Derive General Status
   let generalStatus = "OPERATIVO"
   let statusColor = "text-emerald-500"
-  let statusBg = "bg-emerald-500/10 border-emerald-500/25"
+  let statusBg = "bg-emerald-500/10 border-emerald-500/20"
   let statusDesc = "Sistema operando normalmente"
   let StatusIcon = ShieldCheck
 
   if (data.conexionESP32 === "desconectado") {
     generalStatus = "DESCONECTADO"
     statusColor = "text-red-500"
-    statusBg = "bg-red-500/10 border-red-500/25"
+    statusBg = "bg-red-500/10 border-red-500/20"
     statusDesc = "Sin conexión con el ESP32"
     StatusIcon = ShieldAlert
   } else if (errorSensors > 0) {
     generalStatus = "FALLO PARCIAL"
     statusColor = "text-amber-500"
-    statusBg = "bg-amber-500/10 border-amber-500/25"
+    statusBg = "bg-amber-500/10 border-amber-500/20"
     statusDesc = `${errorSensors} sensor(es) con falla`
     StatusIcon = ShieldAlert
   }
 
-  // 3. Count alerts
   const criticalCount = data.nivelLluvia >= 70 ? 1 : 0
   const warningCount = (data.calidadAire >= 1800 ? 1 : 0) + (data.nivelLluvia > 20 && data.nivelLluvia < 70 ? 1 : 0)
-
-  // 4. Derive latency classification
   const latency = data.latency ?? 0
-  let latencyText = `${latency} ms`
-  if (data.conexionESP32 === "desconectado") latencyText = "—"
+  const latencyText = data.conexionESP32 === "desconectado" ? "—" : `${latency} ms`
 
   return (
-    <div className="rounded-2xl border border-border bg-card/65 p-4 shadow-sm select-none transition-all">
-      {/* Header Row */}
-      <div className="flex items-center justify-between pb-3 border-b border-border/40">
+    <div className="rounded-xl border border-border/20 bg-panel/75 px-4 py-2.5 shadow-sm select-none transition-all">
+      {/* Executive Header Row */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 pb-2.5 border-b border-border/10">
         <div className="flex items-center gap-2">
-          <span className="grid size-7 place-items-center rounded-lg bg-sky-500/15 text-sky-500">
-            <Cpu className="size-4" />
-          </span>
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Centro de Monitoreo</h3>
-            <p className="text-[10px] text-muted-foreground">Resumen ejecutivo del estado del hardware y ambiente</p>
+          <Cpu className="size-5.5 text-sky-500 shrink-0" />
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <h3 className="text-base font-extrabold uppercase tracking-wide text-foreground">Centro de Monitoreo</h3>
+            <span className="text-[10px] text-muted-foreground/60">Resumen de telemetría y estado de hardware en tiempo real</span>
           </div>
         </div>
         {onNavigate && (
           <button
             onClick={() => onNavigate("configuracion")}
-            className="text-[10px] font-bold text-sky-500 hover:text-sky-400 uppercase tracking-widest hover:underline underline-offset-2 flex items-center gap-1"
+            className="text-[10px] font-bold text-sky-500 hover:text-sky-400 uppercase tracking-widest hover:underline underline-offset-2 flex items-center gap-1 self-end md:self-auto"
           >
             Ver detalles &rsaquo;
           </button>
         )}
       </div>
 
-      {/* Grid of indicators */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 pt-3">
-        
-        {/* 1. Estado General */}
-        <div className={cn("rounded-xl border p-2.5 flex flex-col gap-1 transition-colors", statusBg)}>
-          <div className="flex items-center gap-1.5">
+      {/* Grid of indicators - Cohesive single panel feel, separated by vertical dividers */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-y-2 gap-x-1 pt-2.5">
+
+        {/* 1. Estado General (Takes 2 cols) */}
+        <div className="col-span-2 flex flex-col justify-center pr-4 border-r border-border/10">
+          <div className="flex items-center gap-1.5 text-muted-foreground/80">
             <StatusIcon className={cn("size-3.5", statusColor)} />
-            <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Estado General</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider">Estado General</span>
           </div>
-          <span className={cn("text-xs font-extrabold tracking-wide uppercase", statusColor)}>{generalStatus}</span>
-          <span className="text-[9px] text-muted-foreground/80 truncate leading-none">{statusDesc}</span>
+          <span className={cn("text-lg md:text-xl font-extrabold tracking-wide uppercase mt-1 leading-none", statusColor)}>
+            {generalStatus}
+          </span>
+          <span className="text-[10px] text-muted-foreground/80 mt-1 leading-tight truncate">
+            {statusDesc}
+          </span>
         </div>
 
-        {/* 2. Sensores */}
-        <div className="rounded-xl border border-border/50 bg-background/30 p-2.5 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
+        {/* 2. Sensores (1 col) */}
+        <div className="col-span-1 flex flex-col justify-center px-4 md:border-r md:border-border/10">
+          <div className="flex items-center gap-1.5 text-muted-foreground/60">
             <Activity className="size-3.5 text-sky-500" />
-            <span className="text-[9px] font-extrabold uppercase tracking-wider">Sensores</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider">Sensores</span>
           </div>
-          <span className="text-xs font-extrabold text-foreground tracking-wide">
+          <span className="text-base md:text-lg font-extrabold text-foreground tracking-wide mt-1 leading-none">
             {operativeSensors} / {totalSensors}
           </span>
-          <span className={cn("text-[9px] font-bold leading-none", errorSensors > 0 ? "text-amber-500" : "text-emerald-500")}>
-            {errorSensors > 0 ? `${errorSensors} con error` : "Todos operativos"}
+          <span className={cn("text-[10px] font-semibold mt-1 leading-tight truncate", !isESPConnected ? "text-red-500" : errorSensors > 0 ? "text-amber-500" : "text-emerald-500")}>
+            {!isESPConnected ? "Sin conexión" : errorSensors > 0 ? `${errorSensors} error` : "Operativos"}
           </span>
         </div>
 
-        {/* 3. Alertas Activas */}
-        <div className="rounded-xl border border-border/50 bg-background/30 p-2.5 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
+        {/* 3. Alertas (1 col) */}
+        <div className="col-span-1 flex flex-col justify-center px-4 xl:border-r xl:border-border/10">
+          <div className="flex items-center gap-1.5 text-muted-foreground/60">
             <AlertTriangle className="size-3.5 text-amber-500" />
-            <span className="text-[9px] font-extrabold uppercase tracking-wider">Alertas Activas</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider">Alertas</span>
           </div>
-          <span className={cn("text-xs font-extrabold tracking-wide", criticalCount > 0 ? "text-red-500" : "text-foreground")}>
+          <span className={cn("text-base md:text-lg font-extrabold tracking-wide mt-1 leading-none", criticalCount > 0 ? "text-red-500" : "text-foreground")}>
             {criticalCount} Crítica{criticalCount !== 1 && "s"}
           </span>
-          <span className="text-[9px] font-semibold text-muted-foreground/80 leading-none">
+          <span className="text-[10px] text-muted-foreground/80 mt-1 leading-tight truncate">
             {warningCount} Advertencia{warningCount !== 1 && "s"}
           </span>
         </div>
 
-        {/* 4. Conectividad / Latencia */}
-        <div className="rounded-xl border border-border/50 bg-background/30 p-2.5 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
+        {/* 4. Conectividad (1 col) */}
+        <div className="col-span-1 flex flex-col justify-center px-4 border-r border-border/10">
+          <div className="flex items-center gap-1.5 text-muted-foreground/60">
             <Wifi className="size-3.5 text-indigo-500" />
-            <span className="text-[9px] font-extrabold uppercase tracking-wider">Conectividad</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider">Conectividad</span>
           </div>
-          <span className="text-xs font-extrabold text-foreground tracking-wide uppercase">
-            {data.conexionESP32 === "conectado" ? data.wifiCalidad : "SIN SEÑAL"}
+          <span className="text-base md:text-lg font-extrabold text-foreground tracking-wide uppercase mt-1 leading-none">
+            {data.conexionESP32 === "conectado" ? data.wifiCalidad : "OFFLINE"}
           </span>
-          <span className="text-[9px] text-muted-foreground/80 leading-none font-mono">
+          <span className="text-[10px] text-muted-foreground/80 mt-1 leading-tight font-mono truncate">
             {data.conexionESP32 === "conectado" ? `${data.wifiRSSI} dBm · ${latencyText}` : "Desconectado"}
           </span>
         </div>
 
-        {/* 5. Tiempo Activo */}
-        <div className="rounded-xl border border-border/50 bg-background/30 p-2.5 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
+        {/* 5. Uptime (1 col) */}
+        <div className="col-span-1 flex flex-col justify-center px-4 border-r border-border/10">
+          <div className="flex items-center gap-1.5 text-muted-foreground/60">
             <Clock className="size-3.5 text-purple-500" />
-            <span className="text-[9px] font-extrabold uppercase tracking-wider">Tiempo Activo</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider">Uptime</span>
           </div>
-          <span className="text-xs font-extrabold text-foreground tracking-wide">{data.uptime}</span>
-          <span className="text-[9px] text-muted-foreground/80 leading-none truncate">
-            {data.conexionESP32 === "conectado" ? "Operando continuo" : "Sistema inactivo"}
+          <span className="text-base md:text-lg font-extrabold text-foreground tracking-wide mt-1 leading-none">
+            {data.uptime}
+          </span>
+          <span className="text-[10px] text-muted-foreground/80 mt-1 leading-tight truncate">
+            {data.conexionESP32 === "conectado" ? "Operando continuo" : "Inactivo"}
           </span>
         </div>
 
-        {/* 6. Última Sincronización */}
-        <div className="rounded-xl border border-border/50 bg-background/30 p-2.5 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
+        {/* 6. Última Sincro (1 col) */}
+        <div className="col-span-1 flex flex-col justify-center pl-4">
+          <div className="flex items-center gap-1.5 text-muted-foreground/60">
             <RefreshCw className="size-3.5 text-emerald-500 animate-spin-slow" />
-            <span className="text-[9px] font-extrabold uppercase tracking-wider">Última Sincro</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider">Última Sincro</span>
           </div>
-          <span className="text-xs font-extrabold text-foreground tracking-wide">Activo</span>
-          <span className="text-[9px] text-muted-foreground/80 leading-none font-mono">{data.hora}</span>
+          <span className="text-base md:text-lg font-extrabold text-foreground tracking-wide mt-1 leading-none">
+            Activo
+          </span>
+          <span className="text-[10px] text-muted-foreground/80 mt-1 leading-tight font-mono truncate">
+            {data.hora}
+          </span>
         </div>
 
       </div>

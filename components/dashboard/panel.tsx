@@ -16,20 +16,18 @@ export function Panel({
     <section
       className={cn(
         // Base structure
-        "relative rounded-2xl transition-all duration-300",
-        "p-3 md:p-4",
-        // Glass: semi-transparent bg + blur
-        "bg-card/70 backdrop-blur-md",
-        // Border: bright top edge + subtle outer ring → glass look
-        "border border-white/[0.08]",
-        // Inner top-edge highlight (simulates glass thickness)
-        "ring-1 ring-inset ring-white/[0.06]",
-        // Shadow: lift the card off the background
-        variant === "default" && "shadow-[0_4px_32px_-4px_rgba(0,0,0,0.45),0_1px_0_0_rgba(255,255,255,0.08)_inset]",
-        variant === "hero"    && "shadow-[0_8px_48px_-8px_rgba(0,0,0,0.55),0_1px_0_0_rgba(255,255,255,0.10)_inset]",
+        "relative rounded-xl transition-all duration-300",
+        "p-2 md:p-2.5",
+        // flatter card background
+        "bg-card/90",
+        // Border: clean and simple
+        "border border-border/40",
+        // Shadow: minimal separation
+        variant === "default" && "shadow-sm",
+        variant === "hero" && "shadow-md",
         className,
       )}
-      style={glow ? { boxShadow: `0 0 0 1px ${glow}22, 0 12px 40px -16px ${glow}55` } : undefined}
+      style={glow ? { boxShadow: `0 0 0 1px ${glow}15, 0 4px 12px -2px ${glow}25` } : undefined}
     >
       {children}
     </section>

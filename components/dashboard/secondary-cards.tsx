@@ -1,29 +1,129 @@
 "use client"
 
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
-import { TrendingUp, TrendingDown, Minus, Wind, WifiOff } from "lucide-react"
+import { TrendingUp, TrendingDown, Minus, Wind } from "lucide-react"
 import { Panel } from "./panel"
 import type { WeatherData, HistoryPoint } from "@/types/weather"
+import { cn } from "@/lib/utils"
 
-// ─── Trend helper ─────────────────────────────────────────────────────────────
-function calcTrend(history: HistoryPoint[], key: keyof HistoryPoint, threshold = 0.5) {
-  if (history.length < 3) return 'stable'
-  const recent = history.slice(-3).map(h => Number(h[key]))
-  const delta = recent[2] - recent[0]
-  if (delta > threshold) return 'up'
-  if (delta < -threshold) return 'down'
-  return 'stable'
+// ─── Smooth data helper ───────────────────────────────────────────────────────
+// Suavizado mediante media móvil para eliminar ruido artificial
+function smoothData(data: number[], windowSize: number = 3): number[] {
+  if (data.length < windowSize) return data
+  const smoothed: number[] = []
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - Math.floor(windowSize / 2))
+    const end = Math.min(data.length, i + Math.ceil(windowSize / 2))
+    const window = data.slice(start, end)
+    smoothed.push(window.reduce((sum, val) => sum + val, 0) / window.length)
+  }
+  return smoothed
 }
 
-function TrendBadge({ trend, color }: { trend: 'up' | 'down' | 'stable'; color: string }) {
-  const Icon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus
-  const label = trend === 'up' ? 'Subiendo' : trend === 'down' ? 'Bajando' : 'Estable'
+// ─── Trend helper ─────────────────────────────────────────────────────────────
+type TrendIntensity = 'none' | 'slight' | 'moderate' | 'strong'
+type TrendDirection = 'up' | 'down' | 'stable'
+
+interface TrendInfo {
+  direction: TrendDirection
+  intensity: TrendIntensity
+  magnitude: number
+}
+
+function calcTrend(history: HistoryPoint[], key: keyof HistoryPoint, baseThreshold = 0.5): TrendInfo {
+  if (history.length < 3) return { direction: 'stable', intensity: 'none', magnitude: 0 }
+
+  const recent = history.slice(-3).map(h => Number(h[key]))
+  const delta = recent[2] - recent[0]
+  const magnitude = Math.abs(delta)
+
+  // Calcular intensidad proporcional basada en el valor base
+  const slightThreshold = baseThreshold
+  const moderateThreshold = baseThreshold * 3
+  const strongThreshold = baseThreshold * 10
+
+  let intensity: TrendIntensity = 'none'
+  if (magnitude >= strongThreshold) {
+    intensity = 'strong'
+  } else if (magnitude >= moderateThreshold) {
+    intensity = 'moderate'
+  } else if (magnitude >= slightThreshold) {
+    intensity = 'slight'
+  }
+
+  let direction: TrendDirection = 'stable'
+  if (magnitude >= slightThreshold) {
+    direction = delta > 0 ? 'up' : 'down'
+  }
+
+  return { direction, intensity, magnitude }
+}
+
+function TrendBadge({ trend, color }: { trend: TrendInfo; color: string }) {
+  const { direction, intensity } = trend
+
+  const Icon = direction === 'up' ? TrendingUp : direction === 'down' ? TrendingDown : Minus
+  const label = direction === 'up' ? 'Subiendo' : direction === 'down' ? 'Bajando' : 'Estable'
+
+  const intensityStyles = {
+    none: {
+      opacity: 0.5,
+      iconSize: 'size-3',
+      fontSize: 'text-[9px]',
+      animation: ''
+    },
+    slight: {
+      opacity: 0.6,
+      iconSize: 'size-3',
+      fontSize: 'text-[9px]',
+      animation: 'animate-pulse-slow'
+    },
+    moderate: {
+      opacity: 0.8,
+      iconSize: 'size-3.5',
+      fontSize: 'text-[9px]',
+      animation: 'animate-pulse'
+    },
+    strong: {
+      opacity: 1,
+      iconSize: 'size-4',
+      fontSize: 'text-[10px]',
+      animation: 'animate-pulse'
+    }
+  }
+
+  const style = intensityStyles[intensity]
+  const colorStyle = intensity === 'none' ? 'text-muted-foreground' : ''
+
   return (
-    <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-      <Icon className="size-3" style={{ color }} />
+    <span className={cn(
+      "inline-flex items-center gap-1 font-semibold uppercase tracking-wider",
+      style.fontSize,
+      colorStyle,
+      style.animation
+    )} style={{ opacity: style.opacity }}>
+      <Icon className={style.iconSize} style={{ color: intensity === 'none' ? undefined : color }} />
       {label}
     </span>
   )
+}
+
+
+
+function getChartDomain(data: HistoryPoint[], key: keyof HistoryPoint, minDelta: number): [number, number] {
+  if (data.length === 0) return [0, 100];
+  const values = data.map(d => Number(d[key]));
+  const minVal = Math.min(...values);
+  const maxVal = Math.max(...values);
+  const diff = maxVal - minVal;
+
+  if (diff < minDelta) {
+    const center = (minVal + maxVal) / 2;
+    return [center - minDelta / 2, center + minDelta / 2];
+  }
+
+  const padding = diff * 0.05;
+  return [minVal - padding, maxVal + padding];
 }
 
 // ─── Mini tooltip ─────────────────────────────────────────────────────────────
@@ -45,65 +145,197 @@ function MiniTooltip({ active, payload, label, color, unit }: any) {
   )
 }
 
-function MiniArea({ data, dataKey, color, height = 32, unit = '' }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint; color: string; height?: number; unit?: string }) {
+function MiniArea({ data, dataKey, color, height = 80, unit = '', smoothing = true }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint; color: string; height?: number; unit?: string; smoothing?: boolean }) {
   const id = `mini-${String(dataKey)}-${color.replace(/[^a-z0-9]/gi, "")}`
-  const displayData = data.slice(-20)
+  let displayData = data.slice(-20)
+  const count = displayData.length
+
+  // Aplicar suavizado según tipo de sensor
+  if (smoothing && displayData.length > 2) {
+    const values = displayData.map(d => Number(d[dataKey]))
+    // Ventana de suavizado según tipo de sensor
+    const windowSize = dataKey === 'airQuality' ? 6 : dataKey === 'pressure' ? 4 : 3
+    const smoothedValues = smoothData(values, windowSize)
+    displayData = displayData.map((d, i) => ({ ...d, [dataKey]: smoothedValues[i] }))
+  }
+
+  // Estado inicial: sin datos suficientes
+  if (count === 0) {
+    return (
+      <div className="h-[80px] w-full flex items-center justify-center border-t border-border/10 bg-background/30">
+        <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground/50">Esperando primeras mediciones...</span>
+      </div>
+    )
+  }
+
+  // Determinar delta mínimo para cada métrica en MiniArea
+  const minDelta = dataKey === 'pressure' ? 8.0 : dataKey === 'airQuality' ? 100.0 : 10.0;
+  const domain = getChartDomain(displayData, dataKey, minDelta);
+
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={displayData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.6} />
-            <stop offset="100%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-          <filter id={`glow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
-        <XAxis dataKey="time" hide />
-        <YAxis hide domain={[`dataMin - ${dataKey === 'airQuality' ? 50 : dataKey === 'pressure' ? 1 : 2}`, `dataMax + ${dataKey === 'airQuality' ? 50 : dataKey === 'pressure' ? 1 : 2}`]} />
-        <Tooltip content={<MiniTooltip color={color} unit={unit} />} cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: '3 3' }} />
-        <Area type="linear" dataKey={dataKey as string} stroke={color} strokeWidth={3} fill={`url(#${id})`} isAnimationActive={true} animationDuration={500} animationEasing="linear" dot={false} filter={`url(#glow-${id})`} />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div className="relative w-full flex flex-col justify-end" style={{ height }}>
+      <ResponsiveContainer width="100%" height={height}>
+        <AreaChart data={displayData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.6} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="time" hide />
+          <YAxis hide domain={domain} />
+          <Tooltip content={<MiniTooltip color={color} unit={unit} />} cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: '3 3' }} />
+          <Area
+            type="monotone"
+            dataKey={dataKey as string}
+            stroke={color}
+            strokeWidth={2}
+            fill={`url(#${id})`}
+            isAnimationActive={false}
+            dot={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ─── Pressure Gauge SVG ───────────────────────────────────────────────────────
+function PressureGauge({ value, active = true }: { value?: number; active?: boolean }) {
+  // Map hPa value to needle angle. Range: 980–1040 hPa → -120° to +120°
+  const MIN_HPA = 980, MAX_HPA = 1040
+  const MIN_ANGLE = -120, MAX_ANGLE = 120
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+  const hpa = value ?? ((MIN_HPA + MAX_HPA) / 2)
+  const fraction = (clamp(hpa, MIN_HPA, MAX_HPA) - MIN_HPA) / (MAX_HPA - MIN_HPA)
+  const needleAngle = MIN_ANGLE + fraction * (MAX_ANGLE - MIN_ANGLE) // degrees from top
+
+  // Convert needle angle to SVG coords (0° = top, clockwise)
+  const toRad = (deg: number) => (deg - 90) * Math.PI / 180
+  const cx = 12, cy = 12, r = 8 // gauge center & radius
+  const needleLen = 6.2
+  const nx = cx + needleLen * Math.cos(toRad(needleAngle))
+  const ny = cy + needleLen * Math.sin(toRad(needleAngle))
+
+  const color = active ? '#c084fc' : '#4b5563'
+  const strokeArc = active ? '#c084fc' : '#374151'
+  const opacity = active ? 1 : 0.22
+
+  // Arc path from -120° to +120° (240° sweep)
+  const arcStart = toRad(-120)
+  const arcEnd = toRad(+120)
+  const sx = cx + r * Math.cos(arcStart)
+  const sy = cy + r * Math.sin(arcStart)
+  const ex = cx + r * Math.cos(arcEnd)
+  const ey = cy + r * Math.sin(arcEnd)
+
+  return (
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ opacity }}>
+      {/* Outer ring */}
+      <circle cx={cx} cy={cy} r="10" fill="none" stroke={color} strokeWidth="0.6" opacity="0.3" />
+
+      {/* Background arc track (240° sweep) */}
+      <path
+        d={`M ${sx} ${sy} A ${r} ${r} 0 1 1 ${ex} ${ey}`}
+        fill="none" stroke="#374151" strokeWidth="1.2" strokeLinecap="round"
+      />
+
+      {/* Active arc fill based on value */}
+      {active && (() => {
+        const fracAngle = MIN_ANGLE + fraction * (MAX_ANGLE - MIN_ANGLE)
+        const activEnd = toRad(fracAngle)
+        const aex = cx + r * Math.cos(activEnd)
+        const aey = cy + r * Math.sin(activEnd)
+        const largeArc = fracAngle - (-120) > 180 ? 1 : 0
+        return (
+          <path
+            d={`M ${sx} ${sy} A ${r} ${r} 0 ${largeArc} 1 ${aex} ${aey}`}
+            fill="none" stroke={strokeArc} strokeWidth="1.2" strokeLinecap="round"
+          />
+        )
+      })()}
+
+      {/* Scale ticks (13 ticks, 4 major) */}
+      {Array.from({ length: 13 }).map((_, i) => {
+        const tickDeg = -120 + (i / 12) * 240
+        const isMajor = i % 3 === 0
+        const r1 = isMajor ? 6.5 : 7.2
+        const r2 = 8
+        const ta = toRad(tickDeg)
+        return <line key={i}
+          x1={cx + r1 * Math.cos(ta)} y1={cy + r1 * Math.sin(ta)}
+          x2={cx + r2 * Math.cos(ta)} y2={cy + r2 * Math.sin(ta)}
+          stroke={isMajor ? color : '#4b5563'} strokeWidth={isMajor ? 0.9 : 0.55}
+        />
+      })}
+
+      {/* Needle */}
+      <line
+        x1={cx} y1={cy}
+        x2={nx} y2={ny}
+        stroke={color} strokeWidth="0.9" strokeLinecap="round"
+      />
+
+      {/* Needle base pivot */}
+      <circle cx={cx} cy={cy} r="0.9" fill={color} />
+    </svg>
   )
 }
 
 // ─── Pressure ─────────────────────────────────────────────────────────────────
-export function PressureCard({ data }: { data: WeatherData }) {
+export function PressureCard({ data, className }: { data: WeatherData; className?: string }) {
   const accent = "var(--color-pressure)"
   const { presion: value, history, estadoBMP280, conexionESP32 } = data
   const isConnected = conexionESP32 === 'conectado' && estadoBMP280 === 'operativo'
 
   if (!isConnected) {
     return (
-      <Panel className="flex flex-col justify-between overflow-hidden relative min-h-[160px]">
+      <Panel className={cn("flex flex-col justify-between overflow-hidden relative", className)}>
         <div className="flex items-start gap-3 mb-1 z-10 relative">
           <div className="shrink-0 flex items-center justify-center" style={{ width: 96, height: 96 }}>
-            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="none" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" fill="none" stroke="#6b7280" strokeWidth="1.5" opacity="0.4" />
-              <path d="M3.34 19a10 10 0 1 1 17.32 0" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" />
-              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => {
-                const a = ((i / 12) * 240 - 210) * Math.PI / 180;
-                const r1 = i % 3 === 0 ? 7 : 8, r2 = 9;
-                return <line key={i}
-                  x1={12 + r1 * Math.cos(a)} y1={12 + r1 * Math.sin(a)}
-                  x2={12 + r2 * Math.cos(a)} y2={12 + r2 * Math.sin(a)}
-                  stroke="#4b5563" strokeWidth={i % 3 === 0 ? 1.5 : 1} />;
-              })}
-            </svg>
+            <PressureGauge active={false} />
           </div>
-          <div className="flex flex-col mt-1">
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Presión Atmosférica</h2>
-            <p className="text-[9px] font-semibold uppercase tracking-widest text-alert">BMP280 · Sin conexión</p>
-            <div className="flex flex-col items-center justify-center p-3 text-center rounded-xl bg-alert/5 border border-alert/20 mt-1">
-              <span className="text-[9px] font-extrabold tracking-widest text-alert uppercase flex items-center gap-1">⚠️ ERROR DE SENSOR</span>
-              <p className="text-[8px] text-muted-foreground mt-0.5 leading-tight">Verifique la conexión I2C (SDA/SCL) de la placa BMP280.</p>
+          <div className="flex-1 flex flex-col mt-1">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Presión Atmosférica</h2>
+              <span className="text-[9px] font-bold text-alert tracking-wider">BMP280 · SIN CONEXIÓN</span>
+            </div>
+
+            <div className="flex items-end mb-2 mt-1">
+              <span className="font-digital text-5xl text-foreground opacity-30 tracking-wider">---.-</span>
+              <span className="mb-1 ml-2 text-lg font-bold text-muted-foreground/35">hPa</span>
+            </div>
+
+            {/* Error box */}
+            <div className="flex flex-col p-2.5 rounded-lg bg-alert/5 border border-alert/25 mb-3">
+              <span className="text-[9px] font-extrabold tracking-widest text-alert uppercase flex items-center gap-1">
+                ⚠️ ERROR DE SENSOR
+              </span>
+              <p className="text-[8.5px] text-muted-foreground mt-0.5 leading-snug">
+                Verifique la conexión I2C (SDA/SCL) de la placa BMP280.
+              </p>
+            </div>
+
+            {/* Rangos / tabla */}
+            <div className="grid grid-cols-3 gap-1 text-center border-t border-border/10 pt-2 mb-1">
+              <div className="flex flex-col">
+                <span className="text-[7.5px] font-extrabold uppercase text-muted-foreground/50 tracking-wider">Mínima</span>
+                <span className="text-[9.5px] font-bold text-muted-foreground/75 mt-0.5">-- hPa</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[7.5px] font-extrabold uppercase text-muted-foreground/50 tracking-wider">Máxima</span>
+                <span className="text-[9.5px] font-bold text-muted-foreground/75 mt-0.5">-- hPa</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[7.5px] font-extrabold uppercase text-muted-foreground/50 tracking-wider">Promedio</span>
+                <span className="text-[9.5px] font-bold text-muted-foreground/75 mt-0.5">-- hPa</span>
+              </div>
             </div>
           </div>
         </div>
-        <MiniArea data={[]} dataKey="pressure" color={accent} unit="hPa" />
+        <div className="mt-auto pt-2 border-t border-border/10">
+          <p className="text-center text-[8px] font-semibold text-muted-foreground/40">Historial no disponible</p>
+        </div>
       </Panel>
     )
   }
@@ -112,57 +344,36 @@ export function PressureCard({ data }: { data: WeatherData }) {
   const trendDir = calcTrend(history, 'pressure', 0.3)
 
   return (
-    <Panel className="flex flex-col justify-between overflow-hidden relative">
-      <div className="flex items-start gap-3 mb-1 z-10 relative">
-        <div className="shrink-0 flex items-center justify-center" style={{ width: 96, height: 96 }}>
-          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="none" strokeLinecap="round" strokeLinejoin="round">
-            <defs>
-              <radialGradient id="gaugeGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#c084fc" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-            <circle cx="12" cy="12" r="10" fill="url(#gaugeGlow)" stroke="#a855f7" strokeWidth="1.5" opacity="0.4" />
-            <path d="M3.34 19a10 10 0 1 1 17.32 0" stroke="#c084fc" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M12 12 L17 7" stroke="#c084fc" strokeWidth="2" strokeLinecap="round"
-              style={{ filter: 'drop-shadow(0 0 6px #c084fc)' }} />
-            <circle cx="12" cy="12" r="1.5" fill="#c084fc"
-              style={{ filter: 'drop-shadow(0 0 4px #c084fc)' }} />
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => {
-              const a = ((i / 12) * 240 - 210) * Math.PI / 180;
-              const r1 = i % 3 === 0 ? 7 : 8, r2 = 9;
-              return <line key={i}
-                x1={12 + r1 * Math.cos(a)} y1={12 + r1 * Math.sin(a)}
-                x2={12 + r2 * Math.cos(a)} y2={12 + r2 * Math.sin(a)}
-                stroke={i % 3 === 0 ? '#c084fc' : '#6b21a8'} strokeWidth={i % 3 === 0 ? 1.5 : 1} />;
-            })}
-          </svg>
+    <Panel className={cn("flex flex-col justify-between overflow-hidden relative", className)}>
+      <div className="flex items-start gap-2.5 mb-1 z-10 relative">
+        <div className="shrink-0 flex items-center justify-center" style={{ width: 80, height: 80 }}>
+          <PressureGauge value={value} active={true} />
         </div>
         <div className="flex flex-col mt-1">
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Presión Atmosférica</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Presión Atmosférica</h2>
           <p className="text-[9px] font-semibold uppercase tracking-widest text-pressure/70">BMP280</p>
         </div>
       </div>
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
-        <img src="/svg/presión atmosferica.svg" alt="" width={200} height={200} className="object-contain" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
+        <img src="/svg/presión atmosferica.svg" alt="" width={180} height={180} className="object-contain" />
       </div>
 
       <div className="flex flex-col items-center justify-center relative z-10">
         <div className="flex items-end justify-center">
-          <span className="font-digital text-5xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{value.toFixed(1)}</span>
-          <span className="mb-1.5 ml-2 text-lg font-bold text-pressure drop-shadow-[0_0_8px_var(--color-pressure)]">hPa</span>
+          <span className="font-digital text-5xl text-foreground tracking-wider">{value.toFixed(1)}</span>
+          <span className="mb-1.5 ml-2 text-lg font-bold text-pressure">hPa</span>
         </div>
         <p className="text-center text-[9px] font-semibold text-muted-foreground/60 mt-0.5">Rango normal: 1008.0 - 1020.0 hPa</p>
       </div>
 
       <div className="mt-1 flex items-center justify-end gap-2 relative z-10">
         <TrendBadge trend={trendDir} color="var(--color-pressure)" />
-        <span className="flex items-center gap-1 rounded-md border border-pressure/40 bg-pressure/15 px-2 py-1 text-xs font-bold text-pressure">
-          {trendDir === 'up' ? <TrendingUp className="size-3.5" /> : trendDir === 'down' ? <TrendingDown className="size-3.5" /> : <Minus className="size-3.5" />}
+        <span className="flex items-center gap-1 rounded-md border border-pressure/40 bg-pressure/15 px-1.5 py-0.5 text-xs font-bold text-pressure">
+          {trendDir.direction === 'up' ? <TrendingUp className="size-3" /> : trendDir.direction === 'down' ? <TrendingDown className="size-3" /> : <Minus className="size-3" />}
           {trend > 0 ? "+" : ""}{trend.toFixed(1)} hPa
         </span>
-        <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">TENDENCIA</span>
+        <span className="text-[9px] font-medium uppercase tracking-widest text-muted-foreground">TENDENCIA</span>
       </div>
       <MiniArea data={history} dataKey="pressure" color={accent} unit="hPa" />
     </Panel>
@@ -180,27 +391,41 @@ function getAQLevel(value: number): AQLevel {
   return { label: 'Muy mala', desc: 'Evitar exposición', color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.4)' }
 }
 
-export function AirQualityCard({ data }: { data: WeatherData }) {
+export function AirQualityCard({ data, className }: { data: WeatherData; className?: string }) {
   const { calidadAire: value, history, estadoMQ135, conexionESP32 } = data
   const isConnected = conexionESP32 === 'conectado' && estadoMQ135 === 'operativo'
 
   if (!isConnected) {
     return (
-      <Panel className="flex flex-col justify-between overflow-hidden relative min-h-[160px]">
-        <div className="flex items-start mb-1 z-10 relative">
-          <div className="absolute top-3 left-3 z-10 pointer-events-none" style={{ width: 44, height: 44 }}>
-            <Wind className="w-full h-full text-alert opacity-30 grayscale" />
+      <Panel className={cn("flex flex-col justify-between overflow-hidden relative", className)}>
+        <div className="flex items-start gap-3 mb-1 z-10 relative">
+          <div className="shrink-0 flex items-center justify-center opacity-20" style={{ width: 96, height: 96 }}>
+            <Wind className="w-16 h-16 text-alert grayscale" />
           </div>
-          <div className="flex flex-col pl-16 pt-1">
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Calidad del Aire</h2>
-            <p className="text-[9px] font-semibold uppercase tracking-widest text-alert">MQ135 · Sin conexión</p>
-            <div className="flex flex-col items-center justify-center p-3 text-center rounded-xl bg-alert/5 border border-alert/20 mt-1">
-              <span className="text-[9px] font-extrabold tracking-widest text-alert uppercase flex items-center gap-1">⚠️ ERROR DE SENSOR</span>
-              <p className="text-[8px] text-muted-foreground mt-0.5 leading-tight">Verifique el cableado analógico/VCC del sensor MQ135.</p>
+          <div className="flex-1 flex flex-col mt-1">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Calidad del Aire</h2>
+              <span className="text-[9px] font-bold text-alert tracking-wider">MQ135 · SIN CONEXIÓN</span>
+            </div>
+
+            <div className="flex items-end mb-2 mt-1">
+              <span className="font-digital text-6xl leading-none text-foreground opacity-30 tracking-wider">— —</span>
+            </div>
+
+            {/* Error box */}
+            <div className="flex flex-col p-2.5 rounded-lg bg-alert/5 border border-alert/25 mb-3">
+              <span className="text-[9px] font-extrabold tracking-widest text-alert uppercase flex items-center gap-1">
+                ⚠️ ERROR DE SENSOR
+              </span>
+              <p className="text-[8.5px] text-muted-foreground mt-0.5 leading-snug">
+                No se reciben mediciones del MQ135. Revise alimentación, conexión VCC y salida analógica.
+              </p>
             </div>
           </div>
         </div>
-        <MiniArea data={[]} dataKey="airQuality" color="#2dd4bf" unit="" />
+        <div className="mt-auto pt-2 border-t border-border/10">
+          <p className="text-center text-[8px] font-semibold text-muted-foreground/40">Historial no disponible</p>
+        </div>
       </Panel>
     )
   }
@@ -210,31 +435,31 @@ export function AirQualityCard({ data }: { data: WeatherData }) {
   const isBad = value >= 1800
 
   return (
-    <Panel className="flex flex-col justify-between overflow-hidden relative">
+    <Panel className={cn("flex flex-col justify-between overflow-hidden relative", className)}>
       <div className="flex items-start mb-1 z-10 relative">
         <div className="absolute top-3 left-3 z-10 pointer-events-none" style={{ width: 44, height: 44 }}>
           <Wind className="w-full h-full text-teal-400 opacity-70" />
         </div>
-        <div className="flex flex-col pl-16 pt-1">
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Calidad del Aire</h2>
+        <div className="flex flex-col pl-16 pt-1.5">
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Calidad del Aire</h2>
           <p className="text-[9px] font-semibold uppercase tracking-widest text-teal-400/70">MQ135 · Índice relativo</p>
         </div>
       </div>
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
-        <Wind style={{ width: 160, height: 160 }} className="text-foreground" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.025] pointer-events-none">
+        <Wind style={{ width: 140, height: 140 }} className="text-foreground" />
       </div>
 
-      <div className="flex flex-col items-center justify-center py-0 relative z-10">
-        <span className="font-digital text-6xl text-foreground drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] tracking-wider">{Math.round(value)}</span>
-        <p className="text-center text-[9px] uppercase font-bold tracking-widest text-muted-foreground mt-0.5 mb-0.5">Valor relativo</p>
-        <p className="text-center text-[9px] font-semibold text-muted-foreground/60 mb-2">Rango saludable: 0 - 600</p>
+      <div className="flex flex-col items-center justify-center py-1 relative z-10">
+        <span className="font-digital text-6xl text-foreground tracking-wider">{Math.round(value)}</span>
+        <p className="text-center text-[9px] uppercase font-bold tracking-widest text-muted-foreground mt-0 mb-0.5">Valor relativo</p>
+        <p className="text-center text-[9px] font-semibold text-muted-foreground/60 mb-1">Rango saludable: 0 - 600</p>
       </div>
 
       {/* Level badge + description */}
       <div className="mb-1 flex flex-col items-center gap-0.5 relative z-10">
         <span
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest transition-all duration-300"
+          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-300"
           style={{
             color: level.color,
             backgroundColor: level.bg,
@@ -254,7 +479,7 @@ export function AirQualityCard({ data }: { data: WeatherData }) {
         <TrendBadge trend={trendDir} color={level.color} />
       </div>
 
-      <MiniArea data={isConnected ? history : []} dataKey="airQuality" color="#2dd4bf" unit="" />
+      <MiniArea data={history} dataKey="airQuality" color="#2dd4bf" unit="" height={100} />
     </Panel>
   )
 }

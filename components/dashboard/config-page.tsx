@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Panel, PanelHeader } from "./panel"
-import { Save, RefreshCw, Server, Moon, Sun, Monitor, Wifi, WifiOff, AlertTriangle, CheckCircle2, Cpu } from "lucide-react"
+import { Save, RefreshCw, Server, Moon, Sun, Monitor, Wifi, WifiOff, AlertTriangle, CheckCircle2, CheckCircle, Info, Cpu } from "lucide-react"
 import { weatherService, AppConfig } from "@/services/weatherService"
 import { useWeather } from "@/hooks/useWeather"
 import { useTheme } from "next-themes"
@@ -102,7 +102,6 @@ export function ConfigPage() {
           </div>
         </Panel>
 
-        {/* ── SINCRONIZACIÓN ── */}
         <Panel>
           <PanelHeader icon={<RefreshCw className="size-4 text-emerald-500" />} title="Sincronización" subtitle="Frecuencia de lectura de datos" accent="var(--color-emerald-500)" />
           <div className="mt-4 flex flex-col gap-3">
@@ -110,8 +109,8 @@ export function ConfigPage() {
               <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Intervalo de Actualización</label>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-foreground">{config.interval} ms</span>
-                {config.interval === 1000 && (
-                  <span className="text-[10px] font-semibold text-emerald-500 border border-emerald-500/30 bg-emerald-500/10 rounded-md px-1.5 py-0.5">Recomendado</span>
+                {config.interval >= 1000 && config.interval <= 2000 && (
+                  <span className="text-[10px] font-semibold text-emerald-500 border border-emerald-500/30 bg-emerald-500/10 rounded-md px-1.5 py-0.5">✓ Recomendado</span>
                 )}
               </div>
             </div>
@@ -128,23 +127,78 @@ export function ConfigPage() {
               <span>Rápido (200ms)</span>
               <span>Lento (10s)</span>
             </div>
-            {config.interval < 500 && (
-              <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
-                <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-                <span>Intervalos muy bajos pueden aumentar el tráfico de red.</span>
-              </div>
-            )}
 
-            {/* ── System Read Statistics (replaces battery impact) ── */}
+            {/* ── Contextual hints by zone ── */}
+            {(() => {
+              const iv = config.interval
+              if (iv < 500) return (
+                <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/8 px-3 py-2.5 text-xs text-red-400">
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5 text-red-400" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold uppercase tracking-wide">⚡ Frecuencia muy alta</span>
+                    <span className="text-muted-foreground">El ESP32 puede saturarse con peticiones tan frecuentes. Puede causar pérdida de paquetes, retrasos y calentamiento del módulo WiFi. Se recomienda mínimo 500 ms.</span>
+                  </div>
+                </div>
+              )
+              if (iv >= 500 && iv < 1000) return (
+                <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/8 px-3 py-2.5 text-xs text-warning">
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold uppercase tracking-wide">⚠ Alta frecuencia</span>
+                    <span className="text-muted-foreground">Puede incrementar el tráfico de red y el consumo del ESP32. Funcional para monitoreo intensivo, pero puede generar inestabilidad en redes saturadas.</span>
+                  </div>
+                </div>
+              )
+              if (iv >= 1000 && iv <= 2000) return (
+                <div className="flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/8 px-3 py-2.5 text-xs text-emerald-400">
+                  <CheckCircle className="size-4 shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold uppercase tracking-wide">✓ Zona óptima ({iv === 1000 ? '1 s · ideal' : `${iv} ms`})</span>
+                    <span className="text-muted-foreground">Balance perfecto entre actualización en tiempo real y estabilidad del sistema. Recomendado para uso continuo y monitoreo cotidiano.</span>
+                  </div>
+                </div>
+              )
+              if (iv > 2000 && iv <= 5000) return (
+                <div className="flex items-start gap-2 rounded-xl border border-sky-500/30 bg-sky-500/8 px-3 py-2.5 text-xs text-sky-400">
+                  <Info className="size-4 shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold uppercase tracking-wide">ℹ Frecuencia moderada</span>
+                    <span className="text-muted-foreground">Adecuado para condiciones climáticas estables o para reducir el consumo de red. Los cambios bruscos de temperatura o lluvia pueden tardar más en reflejarse.</span>
+                  </div>
+                </div>
+              )
+              if (iv > 5000 && iv <= 8000) return (
+                <div className="flex items-start gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/8 px-3 py-2.5 text-xs text-indigo-400">
+                  <Info className="size-4 shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold uppercase tracking-wide">↓ Frecuencia baja</span>
+                    <span className="text-muted-foreground">Útil en condiciones muy estables o en redes con ancho de banda muy limitado. El historial y las gráficas tendrán menos resolución de datos.</span>
+                  </div>
+                </div>
+              )
+              return (
+                <div className="flex items-start gap-2 rounded-xl border border-muted/40 bg-muted/10 px-3 py-2.5 text-xs text-muted-foreground">
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-bold uppercase tracking-wide text-foreground/70">↓↓ Frecuencia muy baja ({iv / 1000}s)</span>
+                    <span>El dashboard se actualizará muy esporádicamente. No recomendado para monitoreo activo. Las alertas críticas pueden llegar con retraso significativo.</span>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* ── System Read Statistics ── */}
             {(() => {
               const perMin  = Math.floor(60_000 / config.interval)
               const perHour = Math.floor(3_600_000 / config.interval)
               const perDay  = Math.floor(86_400_000 / config.interval)
+              const iv = config.interval
+              const zoneSub = iv < 500 ? "⚡ Muy alta frecuencia" : iv < 1000 ? "Alta frecuencia" : iv <= 2000 ? "✓ Zona recomendada" : iv <= 5000 ? "Frecuencia moderada" : iv <= 8000 ? "Baja frecuencia" : "⚠ Muy baja frecuencia"
               const stats = [
-                { label: "Intervalo actual",  value: `${config.interval} ms`,                   sub: config.interval <= 500 ? "Alta frecuencia" : config.interval <= 2000 ? "Recomendado" : "Baja frecuencia" },
-                { label: "Lecturas / minuto", value: perMin.toLocaleString(),                  sub: "req/min" },
-                { label: "Lecturas / hora",   value: perHour.toLocaleString(),                 sub: "req/h" },
-                { label: "Lecturas / día",    value: perDay.toLocaleString(),                  sub: "req/día" },
+                { label: "Intervalo actual",  value: `${config.interval} ms`, sub: zoneSub },
+                { label: "Lecturas / minuto", value: perMin.toLocaleString(),  sub: "req/min" },
+                { label: "Lecturas / hora",   value: perHour.toLocaleString(), sub: "req/h" },
+                { label: "Lecturas / día",    value: perDay.toLocaleString(),  sub: "req/día" },
               ]
               return (
                 <div className="mt-1.5 grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -160,6 +214,7 @@ export function ConfigPage() {
             })()}
           </div>
         </Panel>
+
 
         {/* ── RECONEXIÓN AUTOMÁTICA ── */}
         <Panel>
