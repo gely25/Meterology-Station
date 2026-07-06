@@ -40,7 +40,12 @@ class WeatherService {
   constructor() {
     this.config = this.loadConfig();
     this.currentData = this.getInitialData();
-    this.start();
+    // Solo arrancar el polling en el navegador. En el servidor (SSR de Next.js)
+    // este singleton también se instancia al importar el módulo, y sin este guard
+    // dispararía fetch()/setInterval() en el servidor innecesariamente.
+    if (typeof window !== 'undefined') {
+      this.start();
+    }
   }
 
   // --- Configuration ---
@@ -504,6 +509,8 @@ class WeatherService {
   }
 
   public start() {
+    if (typeof window === 'undefined') return; // nunca ejecutar polling en el servidor
+
     if (this.timer) clearInterval(this.timer);
     
     // Ejecutar una petición inicial inmediata para evitar retraso al arrancar o guardar

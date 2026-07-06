@@ -18,6 +18,8 @@ export function Panel({
         // Base structure
         "relative rounded-xl transition-all duration-300",
         "p-2 md:p-2.5",
+        // Nunca dejar que el contenido interno se desborde fuera del borde redondeado
+        "overflow-hidden",
         // flatter card background
         "bg-card/90",
         // Border: clean and simple

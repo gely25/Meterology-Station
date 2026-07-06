@@ -85,18 +85,18 @@
   color-scheme: dark;
   --background: oklch(0.08 0.015 258);
   /* Nivel 0: Background principal (oscuro) */
-  --sidebar: oklch(0.11 0.020 255);
+  --sidebar: oklch(0.12 0.020 255);
   /* Nivel 1: Navbar (un poco más claro) */
-  --panel: oklch(0.14 0.024 255);
+  --panel: oklch(0.145 0.024 255);
   /* Nivel 2: Centro de Monitoreo */
-  --card: oklch(0.17 0.028 255);
-  /* Nivel 3: Cards del dashboard (más claro) */
+  --card: oklch(0.19 0.028 255);
+  /* Nivel 3: Cards del dashboard (más claro, más separado del panel) */
   --foreground: oklch(0.96 0.006 240);
   --card-foreground: oklch(0.96 0.006 240);
-  --border: oklch(1 0 0 / 6%);
-  /* Bordes por defecto sumamente sutiles / casi invisibles */
-  --muted: oklch(0.18 0.022 255);
-  --muted-foreground: oklch(0.58 0.016 255);
+  --border: oklch(1 0 0 / 11%);
+  /* Bordes con más presencia para separar tarjetas visualmente */
+  --muted: oklch(0.20 0.022 255);
+  --muted-foreground: oklch(0.62 0.016 255);
 
   --temp: oklch(0.7 0.16 22);
   --humidity: oklch(0.78 0.14 242);

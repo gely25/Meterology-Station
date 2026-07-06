@@ -42,9 +42,9 @@ export function MonitoringCenter({ data, onNavigate }: { data: WeatherData; onNa
   const latencyText = data.conexionESP32 === "desconectado" ? "—" : `${latency} ms`
 
   return (
-    <div className="rounded-xl border border-border/20 bg-panel/75 px-4 py-2.5 shadow-sm select-none transition-all">
+    <div className="rounded-xl border border-border/20 bg-panel/75 px-5 py-4 shadow-sm select-none transition-all">
       {/* Executive Header Row */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 pb-2.5 border-b border-border/10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-4 border-b border-border/10">
         <div className="flex items-center gap-2">
           <Cpu className="size-5.5 text-sky-500 shrink-0" />
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -63,7 +63,7 @@ export function MonitoringCenter({ data, onNavigate }: { data: WeatherData; onNa
       </div>
 
       {/* Grid of indicators - Cohesive single panel feel, separated by vertical dividers */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-y-2 gap-x-1 pt-2.5">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-y-4 gap-x-1 pt-4">
 
         {/* 1. Estado General (Takes 2 cols) */}
         <div className="col-span-2 flex flex-col justify-center pr-4 border-r border-border/10">

@@ -22,7 +22,7 @@ export default function Page() {
   if (!data) return null;
 
   return (
-    <div className="h-screen overflow-hidden bg-background p-1 flex flex-col">
+    <div className="h-dvh overflow-hidden bg-background p-1 flex flex-col">
       <div className="mx-auto flex flex-col w-full h-full overflow-hidden rounded-3xl border border-border bg-card/40">
         <TopNavigation
           data={data}
@@ -42,15 +42,15 @@ export default function Page() {
                 {/* Full-height flex column — rows share the available space */}
                 <div className="flex-1 flex flex-col gap-3.5 min-h-0">
 
-                  {/* Row 1: Estado del Clima · Temperatura · Humedad  (~56%) */}
-                  <div className="flex-[5.6] min-h-0 grid grid-cols-1 gap-3.5 lg:grid-cols-3">
+                  {/* Row 1: Estado del Clima · Temperatura · Humedad  (~48%) */}
+                  <div className="flex-[4.8] min-h-0 grid grid-cols-1 gap-3.5 lg:grid-cols-3">
                     <ConditionCard data={data} className="h-full" />
                     <TemperatureCard data={data} className="h-full" />
                     <HumidityCard data={data} />
                   </div>
 
-                  {/* Row 2: Lluvia · Presión · Calidad del Aire · Sistema  (~44%) */}
-                  <div className="flex-[4.4] min-h-0 grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+                  {/* Row 2: Lluvia · Presión · Calidad del Aire · Sistema  (~52%) */}
+                  <div className="flex-[5.2] min-h-0 grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
                     <RainCard data={data} />
                     <PressureCard data={data} />
                     <AirQualityCard data={data} className="h-full" />

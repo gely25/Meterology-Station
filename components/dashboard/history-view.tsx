@@ -12,10 +12,10 @@ type MetricKey = "temperature" | "humidity" | "pressure" | "rain" | "airQuality"
 
 const METRICS = {
   temperature: { label: "Temperatura", color: "var(--color-temp)", unit: "°C", sensor: "Sensor AHT10" },
-  humidity:    { label: "Humedad",      color: "var(--color-humidity)", unit: "%",   sensor: "Sensor AHT10" },
-  pressure:    { label: "Presión",      color: "var(--color-pressure)", unit: "hPa", sensor: "Sensor BMP280" },
-  rain:        { label: "Lluvia",       color: "var(--color-rain)",     unit: "%",   sensor: "Sensor de lluvia" },
-  airQuality:  { label: "Calidad del aire", color: "var(--color-altitude)", unit: "ppm", sensor: "Sensor MQ135" },
+  humidity: { label: "Humedad", color: "var(--color-humidity)", unit: "%", sensor: "Sensor AHT10" },
+  pressure: { label: "Presión", color: "var(--color-pressure)", unit: "hPa", sensor: "Sensor BMP280" },
+  rain: { label: "Lluvia", color: "var(--color-rain)", unit: "%", sensor: "Sensor de lluvia" },
+  airQuality: { label: "Calidad del aire", color: "var(--color-altitude)", unit: "ppm", sensor: "Sensor MQ135" },
 }
 
 const PERIODS = ["30S", "1M", "5M", "15M", "1H", "6H", "12H", "24H", "7D"]
@@ -57,14 +57,14 @@ function CustomTooltip({ active, payload, label, metricKey }: any) {
   const todayStr = new Date().toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })
 
   return (
-    <div className="rounded-xl border border-border bg-card/95 backdrop-blur-sm px-4 py-3 shadow.lg text-left flex flex-col gap-1.5 min-w-[180px]">
+    <div className="rounded-xl border border-border bg-card/95 backdrop-blur-sm px-4 py-3 shadow-lg text-left flex flex-col gap-1.5 min-w-[180px]">
       <div className="flex items-center justify-between border-b border-border/50 pb-1.5">
         <span className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
           <Clock className="size-3" /> {label}
         </span>
         <span className="text-[9px] font-semibold text-muted-foreground/60">{todayStr}</span>
       </div>
-      
+
       <div className="flex flex-col gap-0.5">
         <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{metricInfo.label}</span>
         <span className="text-2xl font-bold tracking-wider font-digital leading-none" style={{ color: val.color }}>
@@ -88,22 +88,22 @@ export function HistoryView({ data }: { data: WeatherData }) {
 
   // ── Filter history by selected period ────────────────────────────────────
   let filteredHistory = history
-  if (activePeriod === "30S")  filteredHistory = history.slice(-30)
-  else if (activePeriod === "1M")  filteredHistory = history.slice(-60)
-  else if (activePeriod === "5M")  filteredHistory = history.slice(-300)
+  if (activePeriod === "30S") filteredHistory = history.slice(-30)
+  else if (activePeriod === "1M") filteredHistory = history.slice(-60)
+  else if (activePeriod === "5M") filteredHistory = history.slice(-300)
   else if (activePeriod === "15M") filteredHistory = history.slice(-900)
-  else if (activePeriod === "1H")  filteredHistory = history.slice(-3600)
-  else if (activePeriod === "6H")  filteredHistory = history.slice(-21600)
+  else if (activePeriod === "1H") filteredHistory = history.slice(-3600)
+  else if (activePeriod === "6H") filteredHistory = history.slice(-21600)
   else if (activePeriod === "12H") filteredHistory = history.slice(-43200)
   else if (activePeriod === "24H") filteredHistory = history.slice(-86400)
-  else if (activePeriod === "7D")  filteredHistory = history.slice(-604800)
+  else if (activePeriod === "7D") filteredHistory = history.slice(-604800)
 
   const vals = filteredHistory.map(h => h[activeMetric])
   const currentVal = vals[vals.length - 1] || 0
   const minVal = vals.length ? Math.min(...vals) : 0
   const maxVal = vals.length ? Math.max(...vals) : 0
   const avgVal = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
-  
+
   // Calculate variation from previous reading
   const prevVal = vals.length > 1 ? vals[vals.length - 2] : currentVal
   const variation = vals.length > 1 ? currentVal - prevVal : 0
@@ -203,11 +203,11 @@ export function HistoryView({ data }: { data: WeatherData }) {
           </div>
 
           <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide pb-1 lg:pb-0">
-            <StatBox label="Actual"    value={currentVal} unit={metricInfo.unit} color={metricInfo.color} />
+            <StatBox label="Actual" value={currentVal} unit={metricInfo.unit} color={metricInfo.color} />
             <StatBox label="Variación" value={variation} unit={metricInfo.unit} color={variation > 0 ? "text-red-400" : variation < 0 ? "text-emerald-400" : "text-muted-foreground"} showPlus={true} />
-            <StatBox label="Mínimo"    value={minVal}     unit={metricInfo.unit} />
-            <StatBox label="Máximo"    value={maxVal}     unit={metricInfo.unit} />
-            <StatBox label="Promedio"  value={avgVal}     unit={metricInfo.unit} />
+            <StatBox label="Mínimo" value={minVal} unit={metricInfo.unit} />
+            <StatBox label="Máximo" value={maxVal} unit={metricInfo.unit} />
+            <StatBox label="Promedio" value={avgVal} unit={metricInfo.unit} />
             <div className="flex flex-col pl-5 border-l border-border/50">
               <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Última act.</span>
               <span className="text-xs font-bold text-foreground mt-0.5">{ultimaActualizacion}</span>
@@ -234,7 +234,7 @@ export function HistoryView({ data }: { data: WeatherData }) {
               <AreaChart data={filteredHistory} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id={`gradient-hist-${activeMetric}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor={metricInfo.color} stopOpacity={0.6} />
+                    <stop offset="0%" stopColor={metricInfo.color} stopOpacity={0.6} />
                     <stop offset="100%" stopColor={metricInfo.color} stopOpacity={0.0} />
                   </linearGradient>
                   <filter id={`glow-hist-${activeMetric}`} x="-20%" y="-20%" width="140%" height="140%">
@@ -296,3 +296,4 @@ function StatBox({ label, value, unit, color, showPlus = false }: { label: strin
     </div>
   )
 }
+

@@ -62,70 +62,40 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
     { icon: BellRing,          name: "Buzzer",     statusInfo: getStatusInfo(data.estadoBuzzer) },
   ]
 
+  const allDevices = [...hardware, ...peripherals]
+
   const rssiLabel = data.wifiCalidad || 'Sin conexión'
 
   return (
-    <Panel className={cn("flex flex-col justify-between", className)}>
-      <div>
-        <h2 className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Estado del Sistema</h2>
-        
-        <div className="flex flex-col gap-3">
-          {/* Hardware block */}
-          <div>
-            <h3 className="mb-1.5 text-[8px] font-extrabold uppercase tracking-wider text-muted-foreground/60">Hardware</h3>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-              {hardware.map((row) => {
-                const Icon = row.icon
-                return (
-                  <li
-                    key={row.name}
-                    className="flex items-center justify-between rounded-lg border border-border bg-panel/60 px-2 py-0.5"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Icon className="size-3.5 text-muted-foreground" />
-                      <span className="text-[11px] font-semibold text-foreground">{row.name}</span>
-                    </span>
-                    <span className={cn("flex items-center gap-1.5 text-[10px] font-bold", row.statusInfo.textClass)}>
-                      {row.statusInfo.label}
-                      <span className={cn("size-1.5 rounded-full", row.statusInfo.dotClass)} />
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
+    <Panel className={cn("flex flex-col h-full", className)}>
+      <h2 className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">Estado del Sistema</h2>
 
-          {/* Peripherals block */}
-          <div>
-            <h3 className="mb-1.5 text-[8px] font-extrabold uppercase tracking-wider text-muted-foreground/60">Periféricos</h3>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-              {peripherals.map((row) => {
-                const Icon = row.icon
-                return (
-                  <li
-                    key={row.name}
-                    className="flex items-center justify-between rounded-lg border border-border bg-panel/60 px-2 py-0.5"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Icon className="size-3.5 text-muted-foreground" />
-                      <span className="text-[11px] font-semibold text-foreground">{row.name}</span>
-                    </span>
-                    <span className={cn("flex items-center gap-1.5 text-[10px] font-bold", row.statusInfo.textClass)}>
-                      {row.statusInfo.label}
-                      <span className={cn("size-1.5 rounded-full", row.statusInfo.dotClass)} />
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        </div>
-      </div>
+      {/* Lista de hardware + periféricos en una sola grilla compacta de 2 columnas */}
+      <ul className="grid grid-cols-2 gap-1 shrink-0">
+        {allDevices.map((row) => {
+          const Icon = row.icon
+          return (
+            <li
+              key={row.name}
+              className="flex items-center justify-between rounded-lg border border-border bg-panel/60 px-2 py-1"
+            >
+              <span className="flex items-center gap-1.5 min-w-0">
+                <Icon className="size-3.5 text-muted-foreground shrink-0" />
+                <span className="text-[10px] font-semibold text-foreground truncate">{row.name}</span>
+              </span>
+              <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", row.statusInfo.textClass)}>
+                {row.statusInfo.label}
+                <span className={cn("size-1.5 rounded-full shrink-0", row.statusInfo.dotClass)} />
+              </span>
+            </li>
+          )
+        })}
+      </ul>
 
       {/* Connectivity metrics */}
-      <div className="mt-2 pt-2 border-t border-border grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-        <div className="flex flex-col rounded-lg border border-border bg-panel/60 px-2 py-1.5">
-          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
+      <div className="mt-1.5 pt-1.5 border-t border-border grid grid-cols-3 gap-1.5 shrink-0">
+        <div className="flex flex-col rounded-lg border border-border bg-panel/60 px-2 py-1">
+          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
             <Wifi className="size-3" /> WiFi RSSI
           </span>
           <div className="flex items-center gap-2">
@@ -135,16 +105,16 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
           <span className="text-[8px] text-muted-foreground mt-0.5">{rssiLabel}</span>
         </div>
 
-        <div className="flex flex-col rounded-lg border border-border bg-panel/60 px-2 py-1.5">
-          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
+        <div className="flex flex-col rounded-lg border border-border bg-panel/60 px-2 py-1">
+          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
             <Clock className="size-3" /> Uptime ESP32
           </span>
           <span className="text-[11px] font-bold text-foreground font-digital">{data.uptime || 'N/D'}</span>
           <span className="text-[8px] text-muted-foreground mt-0.5">{esp32Connected ? 'Desde ' + data.hora : 'Sin conexión'}</span>
         </div>
 
-        <div className="flex flex-col rounded-lg border border-border bg-panel/60 px-2 py-1.5">
-          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1">
+        <div className="flex flex-col rounded-lg border border-border bg-panel/60 px-2 py-1">
+          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
             <Activity className="size-3" /> Latencia
           </span>
           <span className="text-[11px] font-bold text-foreground">
@@ -155,8 +125,8 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
       </div>
 
       {/* ── Visual status legend ── */}
-      <div className="mt-2 pt-2 border-t border-border/40 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="text-[7.5px] font-extrabold uppercase tracking-wider text-muted-foreground/50 mr-1">Estado:</span>
+      <div className="mt-1.5 pt-1.5 border-t border-border/40 flex flex-wrap items-center gap-x-2.5 gap-y-1 shrink-0">
+        <span className="text-[7px] font-extrabold uppercase tracking-wider text-muted-foreground/50 mr-0.5">Estado:</span>
         {[
           { label: 'Operativo',         dot: 'bg-success shadow-[0_0_4px] shadow-success' },
           { label: 'Esperando lectura', dot: 'bg-sky-400 shadow-[0_0_4px] shadow-sky-400' },
@@ -165,7 +135,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
         ].map(s => (
           <span key={s.label} className="flex items-center gap-1">
             <span className={cn("size-1.5 rounded-full shrink-0", s.dot)} />
-            <span className="text-[7.5px] font-semibold text-muted-foreground/60">{s.label}</span>
+            <span className="text-[7px] font-semibold text-muted-foreground/60">{s.label}</span>
           </span>
         ))}
       </div>
