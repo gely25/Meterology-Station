@@ -85,11 +85,11 @@
   color-scheme: dark;
   --background: oklch(0.08 0.015 258);
   /* Nivel 0: Background principal (oscuro) */
-  --sidebar: oklch(0.12 0.020 255);
-  /* Nivel 1: Navbar (un poco más claro) */
-  --panel: oklch(0.145 0.024 255);
-  /* Nivel 2: Centro de Monitoreo */
-  --card: oklch(0.19 0.028 255);
+  --sidebar: oklch(0.095 0.017 255);
+  /* Nivel 1: Navbar — cercano al fondo, se lee como "marco" de la app, no como contenido */
+  --panel: oklch(0.155 0.026 255);
+  /* Nivel 2: Centro de Monitoreo — salto claro respecto al nav */
+  --card: oklch(0.20 0.028 255);
   /* Nivel 3: Cards del dashboard (más claro, más separado del panel) */
   --foreground: oklch(0.96 0.006 240);
   --card-foreground: oklch(0.96 0.006 240);

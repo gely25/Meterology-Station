@@ -62,7 +62,7 @@ export function TopNavigation({
   const [notifOpen, setNotifOpen] = useState(false)
 
   return (
-    <header className="flex flex-col xl:flex-row items-center justify-between gap-1.5 border-b border-border px-4 py-1 bg-sidebar">
+    <header className="flex flex-col xl:flex-row items-center justify-between gap-1.5 border-b border-border/60 px-4 py-1 bg-sidebar shadow-[0_6px_18px_-6px_rgba(0,0,0,0.55)] relative z-10">
       {/* Branding */}
       <div className="flex items-center gap-2 w-full xl:w-auto justify-between xl:justify-start">
         <div className="flex items-center gap-2">

@@ -42,28 +42,11 @@ export function MonitoringCenter({ data, onNavigate }: { data: WeatherData; onNa
   const latencyText = data.conexionESP32 === "desconectado" ? "—" : `${latency} ms`
 
   return (
-    <div className="rounded-xl border border-border/20 bg-panel/75 px-5 py-4 shadow-sm select-none transition-all">
-      {/* Executive Header Row */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-4 border-b border-border/10">
-        <div className="flex items-center gap-2">
-          <Cpu className="size-5.5 text-sky-500 shrink-0" />
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h3 className="text-base font-extrabold uppercase tracking-wide text-foreground">Centro de Monitoreo</h3>
-            <span className="text-[10px] text-muted-foreground/60">Resumen de telemetría y estado de hardware en tiempo real</span>
-          </div>
-        </div>
-        {onNavigate && (
-          <button
-            onClick={() => onNavigate("configuracion")}
-            className="text-[10px] font-bold text-sky-500 hover:text-sky-400 uppercase tracking-widest hover:underline underline-offset-2 flex items-center gap-1 self-end md:self-auto"
-          >
-            Ver detalles &rsaquo;
-          </button>
-        )}
-      </div>
+    <div className="rounded-xl border border-border bg-panel/90 px-4 py-2.5 shadow-md select-none transition-all">
+    
 
       {/* Grid of indicators - Cohesive single panel feel, separated by vertical dividers */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-y-4 gap-x-1 pt-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-y-2 gap-x-1 pt-2.5">
 
         {/* 1. Estado General (Takes 2 cols) */}
         <div className="col-span-2 flex flex-col justify-center pr-4 border-r border-border/10">
