@@ -252,7 +252,7 @@ export function TemperatureCard({ data, className }: { data: WeatherData; classN
             <span className="mb-0.5 ml-1 text-xl font-bold text-temp">°C</span>
           </div>
           <p className="text-[9px] font-semibold text-muted-foreground/60 mb-2">Rango: 18.00 - 27.00 °C</p>
-          <div className="flex items-center gap-3 text-[10px] font-semibold">
+          <div className="flex items-center gap-3 text-[10px] font-semibold mb-2">
             <span className="flex items-center gap-1 text-muted-foreground">
               <TriangleAlert className="size-3 text-warning" /> MIN <b className="text-foreground">{min.toFixed(2)}°C</b>
             </span>
@@ -260,7 +260,7 @@ export function TemperatureCard({ data, className }: { data: WeatherData; classN
               <TriangleAlert className="size-3 text-warning" /> MAX <b className="text-foreground">{max.toFixed(2)}°C</b>
             </span>
           </div>
-          <div className="mt-1">
+          <div className="flex items-center gap-1.5 bg-temp/10 border border-temp/25 px-2.5 py-1 rounded-lg w-fit">
             <TrendBadge trend={trend} color={accent} />
           </div>
         </div>
@@ -303,22 +303,39 @@ export function HumidityCard({ data }: { data: WeatherData }) {
 
   const angle = -90 + (value / 100) * 180
   const trend = calcTrend(history, 'humidity', 0.5)
+
+  // Interpretación de confort
+  let comfortLabel = "Confort ideal"
+  let comfortColor = "text-emerald-500"
+  if (value < 40) {
+    comfortLabel = "Ambiente seco"
+    comfortColor = "text-amber-500"
+  } else if (value > 75) {
+    comfortLabel = "Humedad alta"
+    comfortColor = "text-sky-500"
+  }
+
   return (
     <Panel className="flex flex-col overflow-hidden relative">
-      {/* Header row: icon + title in one row, no absolute positioning */}
-      <div className="flex items-center gap-2 z-10 relative shrink-0">
-        <div className="shrink-0" style={{ width: 32, height: 32 }}>
-          <img
-            src="/svg/humedad.svg"
-            alt=""
-            className="object-contain select-none w-full h-full"
-            style={{ filter: TINT.humidity }}
-          />
+      {/* Header row */}
+      <div className="flex items-center justify-between z-10 relative shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="shrink-0" style={{ width: 32, height: 32 }}>
+            <img
+              src="/svg/humedad.svg"
+              alt=""
+              className="object-contain select-none w-full h-full"
+              style={{ filter: TINT.humidity }}
+            />
+          </div>
+          <div>
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground leading-none">Humedad</h2>
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-humidity/70 mt-0.5">AHT10</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground leading-none">Humedad</h2>
-          <p className="text-[9px] font-semibold uppercase tracking-widest text-humidity/70 mt-0.5">AHT10</p>
-        </div>
+        <span className={cn("text-[9px] font-extrabold uppercase tracking-wider bg-background/50 border border-border px-2 py-0.5 rounded-md", comfortColor)}>
+          {comfortLabel}
+        </span>
       </div>
 
       {/* Background watermark */}
@@ -326,7 +343,7 @@ export function HumidityCard({ data }: { data: WeatherData }) {
         <img src="/svg/humedad.svg" alt="" width={180} height={180} className="object-contain" />
       </div>
 
-      {/* Gauge — value embedded inside SVG, no overflow */}
+      {/* Gauge */}
       <div className="relative flex-1 flex items-center justify-center z-10 min-h-0 px-4">
         <svg viewBox="0 0 200 130" className="w-full max-h-[130px]">
           {/* Track */}
@@ -351,13 +368,13 @@ export function HumidityCard({ data }: { data: WeatherData }) {
             y2={110 + 66 * Math.sin((angle * Math.PI) / 180)}
             stroke="var(--color-humidity)" strokeWidth="2.5" strokeLinecap="round" opacity="0.9" />
           <circle cx="100" cy="110" r="5" fill="var(--color-humidity)" opacity="0.85" />
-          {/* Value embedded inside SVG — no overflow */}
-          <text x="100" y="96" textAnchor="middle" dominantBaseline="middle"
-            style={{ fontFamily: 'DSEG7Classic, monospace', fontSize: '34px', fill: 'currentColor', letterSpacing: '2px' }}>
-            {Math.round(value)}
+          {/* Value embedded inside SVG */}
+          <text x="92" y="92" textAnchor="middle" dominantBaseline="middle"
+            style={{ fontFamily: 'DSEG7Classic, monospace', fontSize: '24px', fill: 'currentColor', letterSpacing: '1px' }}>
+            {value.toFixed(2)}
           </text>
-          <text x="136" y="84" textAnchor="start" dominantBaseline="middle"
-            style={{ fontFamily: 'sans-serif', fontSize: '14px', fontWeight: 'bold', fill: 'var(--color-humidity)' }}>
+          <text x="146" y="84" textAnchor="start" dominantBaseline="middle"
+            style={{ fontFamily: 'sans-serif', fontSize: '12px', fontWeight: 'bold', fill: 'var(--color-humidity)' }}>
             %
           </text>
           {/* Comfort range */}
@@ -368,7 +385,7 @@ export function HumidityCard({ data }: { data: WeatherData }) {
         </svg>
       </div>
 
-      {/* Footer: scale + trend */}
+      {/* Footer */}
       <div className="flex items-center justify-between px-3 pb-1 shrink-0 z-10 relative">
         <div className="flex text-[10px] font-medium text-muted-foreground gap-2">
           <span>0</span><span>50</span><span>100</span>
@@ -385,10 +402,25 @@ export function HumidityCard({ data }: { data: WeatherData }) {
 }
 
 // ─── Rain ─────────────────────────────────────────────────────────────────────
+import { useState, useEffect } from "react"
+
 export function RainCard({ data }: { data: WeatherData }) {
-  const accent = "var(--color-rain)"
-  const { nivelLluvia: value, estadoLluvia, estadoSensorLluvia, conexionESP32 } = data
+  const { nivelLluvia: value, estadoSensorLluvia, conexionESP32 } = data
   const isConnected = conexionESP32 === 'conectado' && estadoSensorLluvia === 'operativo'
+
+  const [lastState, setLastState] = useState<boolean | null>(null)
+  const [lastChangeTime, setLastChangeTime] = useState<string | null>(null)
+
+  const isRaining = value >= 20
+
+  useEffect(() => {
+    if (isConnected) {
+      if (lastState !== isRaining) {
+        setLastState(isRaining)
+        setLastChangeTime(new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+      }
+    }
+  }, [value, isConnected, isRaining, lastState])
 
   if (!isConnected) {
     return (
@@ -412,89 +444,58 @@ export function RainCard({ data }: { data: WeatherData }) {
     )
   }
 
-  const rainSvg =
-    value >= 70 ? '/svg/Lluvia intensa.svg'
-      : value > 20 ? '/svg/Lluvia detectada.svg'
-        : '/svg/intensidad de lluvia.svg'
+  const rainSvg = isRaining ? '/svg/Lluvia detectada.svg' : '/svg/intensidad de lluvia.svg'
 
   return (
-    <Panel className="flex flex-col justify-between overflow-hidden relative">
-      {/* Icon — absolute, top-left, small */}
+    <Panel className={cn(
+      "flex flex-col justify-between overflow-hidden relative transition-all duration-500",
+      isRaining ? "border-sky-500/40 bg-sky-500/5 shadow-[0_0_15px_rgba(14,165,233,0.1)]" : ""
+    )}>
+      {/* Icon */}
       <div className="absolute top-3 left-3 z-10 pointer-events-none" style={{ width: 52, height: 52 }}>
-        <img src={rainSvg} alt="" className="object-contain select-none w-full h-full" />
+        <img
+          src={rainSvg}
+          alt=""
+          className={cn("object-contain select-none w-full h-full", isRaining ? "animate-pulse" : "opacity-60")}
+        />
       </div>
 
       {/* Header text */}
       <div className="flex flex-col pl-16 pt-1.5 z-10 relative">
         <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Detección de Lluvia</h2>
-        <p className="text-[9px] font-semibold uppercase tracking-widest text-rain/70">SENSOR DE LLUVIA</p>
+        <p className="text-[9px] font-semibold uppercase tracking-widest text-rain/70">SENSOR BINARIO</p>
       </div>
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
+      {/* Watermark */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none">
         <img src={rainSvg} alt="" width={200} height={200} className="object-contain" />
       </div>
-      <div className="flex flex-col items-center justify-center py-1.5 relative z-10">
-        <span className="font-bold text-2xl tracking-widest text-foreground uppercase">
-          {value >= 20 ? 'Lluvia detectada' : 'Sin lluvia'}
+
+      {/* Binary Status */}
+      <div className="flex flex-col items-center justify-center py-4 relative z-10">
+        <span className={cn(
+          "font-extrabold text-3xl tracking-widest uppercase transition-all duration-300",
+          isRaining ? "text-sky-400 animate-pulse" : "text-emerald-400"
+        )}>
+          {isRaining ? '🌧️ LLUVIA DETECTADA' : '🌤️ SIN LLUVIA'}
         </span>
-        <p className="text-[9px] font-semibold text-muted-foreground/60 mt-0.5">Umbral seco: 0 - 20%</p>
+        <span className="text-[10px] text-muted-foreground font-semibold mt-1">
+          {isRaining ? 'Sensor húmedo' : 'Sensor seco'}
+        </span>
       </div>
-      <div className="relative">
-        <div
-          className="h-3 w-full rounded-full"
-          style={{
-            background:
-              "linear-gradient(90deg, #A7F3D0 0%, #A7F3D0 25%, #FDE68A 45%, #FDBA74 65%, #FCA5A5 85%, #FCA5A5 100%)",
-          }}
-        />
-        <span className="absolute top-1/2 size-4 -translate-y-1/2 rounded-full border-2 border-background bg-alert shadow"
-          style={{ left: `calc(${value}% - 8px)` }} />
+
+      {/* Info change log */}
+      <div className="border-t border-border/10 pt-2 flex items-center justify-between text-[9.5px] font-semibold text-muted-foreground relative z-10 px-1">
+        <span>ÚLTIMA EVALUACIÓN</span>
+        <span className="text-foreground uppercase bg-background/40 px-2 py-0.5 rounded border border-border">
+          {isRaining ? `Inicio: ${lastChangeTime || '--:--:--'}` : `Último cambio: ${lastChangeTime || '--:--:--'}`}
+        </span>
       </div>
-      <div className="mt-2 flex justify-between text-[11px] font-semibold">
-        <span style={{ color: '#A7F3D0' }}>SIN LLUVIA</span>
-        <span style={{ color: '#FCA5A5' }}>LLUVIA DETECTADA</span>
-      </div>
-      <p className="mt-1 text-center text-[9px] text-muted-foreground/70 relative z-10">Estado detectado por el sensor de lluvia.</p>
     </Panel>
   )
 }
 
-// ─── Condition Card (HERO — Estado del Clima) ─────────────────────────────────
-type WeatherState = 'clear' | 'humid' | 'rain' | 'heavy-rain'
-
-export function deriveWeatherState(data: WeatherData): WeatherState {
-  const { nivelLluvia, humedad } = data
-  if (nivelLluvia >= 70) return 'heavy-rain'
-  if (nivelLluvia > 20) return 'rain'
-  if (humedad > 70) return 'humid'
-  return 'clear'
-}
-
-const STATE_CONFIG: Record<WeatherState, {
-  svgSrc: string; label: string; subtitle: string; labelColor: string; bgGradient: string
-}> = {
-  clear: {
-    svgSrc: '/svg/Ambiente despejado.svg', label: 'AMBIENTE DESPEJADO',
-    subtitle: 'Sin lluvia · Humedad normal', labelColor: 'text-yellow-500 dark:text-yellow-400',
-    bgGradient: 'from-yellow-500/5 via-transparent to-transparent',
-  },
-  humid: {
-    svgSrc: '/svg/Ambiente húmedo.svg', label: 'AMBIENTE HÚMEDO',
-    subtitle: 'Sin lluvia · Humedad alta', labelColor: 'text-sky-500 dark:text-sky-400',
-    bgGradient: 'from-sky-500/5 via-transparent to-transparent',
-  },
-  rain: {
-    svgSrc: '/svg/Lluvia detectada.svg', label: 'LLUVIA DETECTADA',
-    subtitle: 'Lluvia leve o moderada', labelColor: 'text-blue-500 dark:text-blue-400',
-    bgGradient: 'from-blue-500/8 via-transparent to-transparent',
-  },
-  'heavy-rain': {
-    svgSrc: '/svg/Lluvia intensa.svg', label: 'LLUVIA INTENSA',
-    subtitle: 'Alarma activa · Revisar entorno', labelColor: 'text-red-500 dark:text-red-400',
-    bgGradient: 'from-red-500/8 via-transparent to-transparent',
-  },
-}
-
+// ─── Condition Card (HERO — Resumen Ambiental) ─────────────────────────────────
 export function ConditionCard({ data, className }: { data: WeatherData; className?: string }) {
   const isAHT10Connected = data.estadoAHT10 === 'operativo'
   const isRainConnected = data.estadoSensorLluvia === 'operativo'
@@ -503,88 +504,123 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
   if (!isConnected || (!isAHT10Connected && !isRainConnected)) {
     return (
       <Panel variant="hero" className={cn(`flex flex-col justify-between overflow-hidden relative bg-gradient-to-b from-muted/5 via-transparent to-transparent p-4 pb-3`, className)}>
-        {/* Background watermark */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none grayscale">
           <img src="/svg/Ambiente despejado.svg" alt="" width={300} height={300} className="object-contain" />
         </div>
 
-        {/* Header */}
         <div className="w-full flex items-center justify-between z-10 relative">
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Estado del Clima</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Resumen Ambiental</h2>
           <span className="text-[8px] font-bold tracking-wider text-muted-foreground/45">ACT: {data.hora}</span>
         </div>
 
-        {/* Center Group */}
         <div className="flex flex-col items-center my-auto z-10 relative">
           <div className="relative my-2 opacity-20 grayscale">
-            <img src="/svg/Ambiente despejado.svg" alt="Desconectado" width={130} height={130} className="object-contain select-none transition-all duration-500" />
+            <img src="/svg/Ambiente despejado.svg" alt="Desconectado" width={130} height={130} className="object-contain select-none" />
           </div>
-
           <div className="text-center mt-1">
-            <p className="text-xl font-extrabold tracking-widest text-muted-foreground transition-colors duration-500">SISTEMA OFFLINE</p>
+            <p className="text-xl font-extrabold tracking-widest text-muted-foreground">SISTEMA OFFLINE</p>
             <p className="mt-0.5 text-xs font-semibold text-alert">Esperando conexión de sensores...</p>
           </div>
-
-          <div className="mt-2.5 flex items-center gap-3.5 text-[10px] font-bold text-muted-foreground/50 bg-background/35 px-3 py-1 rounded-full border border-border/10">
-            <span>🌡 --.--°C</span>
-            <span>💧 --%</span>
-            <span>🌧 N/D</span>
-          </div>
         </div>
-
-        <p className="z-10 text-center text-[9px] text-muted-foreground/40 max-w-[85%] mx-auto mt-1 leading-normal">
-          Historial y métricas no disponibles.
-        </p>
       </Panel>
     )
   }
 
-  const state = deriveWeatherState(data)
-  const cfg = STATE_CONFIG[state]
+  // Lógica de Estado dinámico general
+  const isRaining = data.nivelLluvia >= 20
+  const isRainHeavy = data.nivelLluvia >= 70
+  const isAirBad = data.calidadAire >= 1400
+  const isAirDangerous = data.calidadAire >= 1800
+  const isTempExtreme = data.temperatura > 28 || data.temperatura < 19
+  const isHumExtreme = data.humedad > 75 || data.humedad < 40
+
+  let stateLabel = "SISTEMA ESTABLE"
+  let stateSubtitle = "Condiciones normales de operación"
+  let labelColor = "text-emerald-400"
+  let bgGradient = "from-emerald-500/5 via-transparent to-transparent animate-pulse-slow"
+  let svgSrc = "/svg/Ambiente despejado.svg"
+
+  if (isRainHeavy || isAirDangerous) {
+    stateLabel = "ALERTA ACTIVA"
+    stateSubtitle = "Parámetros fuera de rango crítico"
+    labelColor = "text-red-400"
+    bgGradient = "from-red-500/10 via-transparent to-transparent animate-pulse"
+    svgSrc = "/svg/Lluvia intensa.svg"
+  } else if (isRaining) {
+    stateLabel = "LLUVIA DETECTADA"
+    stateSubtitle = "Precipitación activa sobre los sensores"
+    labelColor = "text-sky-400"
+    bgGradient = "from-sky-500/8 via-transparent to-transparent"
+    svgSrc = "/svg/Lluvia detectada.svg"
+  } else if (isAirBad) {
+    stateLabel = "CALIDAD DE AIRE MALA"
+    stateSubtitle = "Concentración de gas moderada/alta"
+    labelColor = "text-amber-400"
+    bgGradient = "from-amber-500/8 via-transparent to-transparent"
+    svgSrc = "/svg/Ambiente húmedo.svg"
+  }
+
   return (
-    <Panel variant="hero" className={cn(`flex flex-col justify-between overflow-hidden relative bg-gradient-to-b ${cfg.bgGradient} p-4 pb-3`, className)}>
+    <Panel variant="hero" className={cn(`flex flex-col justify-between overflow-hidden relative bg-gradient-to-b ${bgGradient} p-4 pb-3`, className)}>
       {/* Background watermark */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.025] pointer-events-none">
-        <img src={cfg.svgSrc} alt="" width={280} height={280} className="object-contain" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none">
+        <img src={svgSrc} alt="" width={280} height={280} className="object-contain" />
       </div>
 
       {/* Header */}
       <div className="w-full flex items-center justify-between z-10 relative">
-        <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Estado del Clima</h2>
-        <span className="text-[8px] font-bold tracking-wider text-muted-foreground/45">ACT: {data.hora}</span>
+        <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Resumen Ambiental</h2>
+        <span className="text-[8px] font-bold tracking-wider text-muted-foreground/45">SINC: {data.hora}</span>
       </div>
 
-      {/* Center Group (Illustration + State Label + Summary) */}
-      <div className="flex flex-col items-center my-auto z-10 relative">
-        {/* Large illustration */}
-        <div className="relative my-2">
+      {/* Center Layout: split into dynamic illustration and checklist */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-auto z-10 relative items-center py-2">
+        {/* Dynamic illustration */}
+        <div className="flex flex-col items-center justify-center">
           <img
-            src={cfg.svgSrc}
-            alt={cfg.label}
-            width={130}
-            height={130}
-            className="object-contain select-none drop-shadow-md opacity-90 transition-all duration-500"
+            src={svgSrc}
+            alt={stateLabel}
+            width={110}
+            height={110}
+            className="object-contain select-none drop-shadow-[0_4px_10px_rgba(255,255,255,0.05)] opacity-90 transition-all duration-500"
           />
+          <div className="text-center mt-2">
+            <p className={`text-base font-extrabold tracking-widest ${labelColor} transition-colors duration-500`}>{stateLabel}</p>
+            <p className="text-[9.5px] font-semibold text-muted-foreground mt-0.5">{stateSubtitle}</p>
+          </div>
         </div>
 
-        {/* State label */}
-        <div className="text-center mt-1">
-          <p className={`text-xl font-extrabold tracking-widest ${cfg.labelColor} transition-colors duration-500`}>{cfg.label}</p>
-          <p className="mt-0.5 text-xs font-semibold text-muted-foreground">{cfg.subtitle}</p>
-        </div>
+        {/* Industrial Checklist */}
+        <div className="flex flex-col gap-1.5 border-l border-border/10 pl-4">
+          <span className="text-[8.5px] font-extrabold tracking-widest uppercase text-muted-foreground/60 mb-1">Diagnóstico Rápido</span>
+          
+          <div className="flex items-center gap-2 text-[10.5px] font-semibold text-foreground">
+            <span className={cn("text-xs", isRaining ? "text-sky-400" : "text-emerald-400")}>●</span>
+            <span>{isRaining ? "Lluvia detectada" : "Sin precipitación"}</span>
+          </div>
 
-        {/* Current conditions summary */}
-        <div className="mt-2.5 flex items-center gap-3.5 text-[10px] font-bold text-muted-foreground bg-background/35 px-3 py-1 rounded-full border border-border/10">
-          <span>🌡 {data.temperatura.toFixed(1)}°C</span>
-          <span>💧 {Math.round(data.humedad)}%</span>
-          <span>🌧 {data.nivelLluvia >= 20 ? 'Lluvia' : 'Sin lluvia'}</span>
+          <div className="flex items-center gap-2 text-[10.5px] font-semibold text-foreground">
+            <span className={cn("text-xs", isAirDangerous ? "text-red-400" : isAirBad ? "text-amber-400" : "text-emerald-400")}>●</span>
+            <span>{isAirDangerous ? "Calidad de aire: Crítica" : isAirBad ? "Calidad de aire: Mala" : "Calidad de aire: Limpio"}</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[10.5px] font-semibold text-foreground">
+            <span className={cn("text-xs", isTempExtreme ? "text-amber-400" : "text-emerald-400")}>●</span>
+            <span>{isTempExtreme ? `Temperatura: Extrema (${data.temperatura.toFixed(1)}°C)` : `Temperatura: Estable (${data.temperatura.toFixed(1)}°C)`}</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[10.5px] font-semibold text-foreground">
+            <span className={cn("text-xs", isHumExtreme ? "text-amber-400" : "text-emerald-400")}>●</span>
+            <span>{isHumExtreme ? "Humedad: Fuera de rango" : "Humedad: Rango confortable"}</span>
+          </div>
         </div>
       </div>
 
-      {/* Footer info restored */}
+      {/* Footer */}
       <p className="z-10 text-center text-[9px] text-muted-foreground/50 max-w-[85%] mx-auto mt-1 leading-normal">
-        Humedad del aire medida por el sensor AHT10.
+        Monitoreo activo procesando datos en tiempo real desde el ESP32.
       </p>
     </Panel>
   )
 }
+

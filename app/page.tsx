@@ -68,7 +68,7 @@ export default function Page() {
                 <EventsView data={data} />
               </div>
             ) : activeView === 'configuracion' ? (
-              <div className="flex-1">
+              <div className="flex-1 overflow-y-auto pr-1">
                 <ConfigPage />
               </div>
             ) : null}

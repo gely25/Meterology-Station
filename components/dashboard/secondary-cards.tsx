@@ -380,15 +380,51 @@ export function PressureCard({ data, className }: { data: WeatherData; className
   )
 }
 
-// ─── Air Quality ──────────────────────────────────────────────────────────────
-type AQLevel = { label: string; desc: string; color: string; bg: string; border: string }
+type AQLevel = { label: string; desc: string; action: string; color: string; bg: string; border: string; glow: string }
 
 function getAQLevel(value: number): AQLevel {
-  if (value < 600) return { label: 'Excelente', desc: 'Aire limpio', color: '#2dd4bf', bg: 'rgba(45,212,191,0.12)', border: 'rgba(45,212,191,0.4)' }
-  if (value < 1000) return { label: 'Buena', desc: 'Calidad aceptable', color: '#86efac', bg: 'rgba(134,239,172,0.12)', border: 'rgba(134,239,172,0.4)' }
-  if (value < 1400) return { label: 'Moderada', desc: 'Ligera contaminación', color: '#facc15', bg: 'rgba(250,204,21,0.12)', border: 'rgba(250,204,21,0.4)' }
-  if (value < 1800) return { label: 'Mala', desc: 'Poco recomendable', color: '#fb923c', bg: 'rgba(251,146,60,0.12)', border: 'rgba(251,146,60,0.4)' }
-  return { label: 'Muy mala', desc: 'Evitar exposición', color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.4)' }
+  if (value < 600) {
+    return {
+      label: 'EXCELENTE',
+      desc: 'Aire limpio',
+      action: 'Respirar es seguro',
+      color: '#2dd4bf',
+      bg: 'rgba(45,212,191,0.06)',
+      border: 'rgba(45,212,191,0.25)',
+      glow: 'shadow-[0_0_15px_rgba(45,212,191,0.15)] border-[#2dd4bf]/40'
+    }
+  }
+  if (value < 1200) {
+    return {
+      label: 'MODERADA',
+      desc: 'Calidad aceptable',
+      action: 'Normal para personas sanas',
+      color: '#facc15',
+      bg: 'rgba(250,204,21,0.06)',
+      border: 'rgba(250,204,21,0.25)',
+      glow: 'shadow-[0_0_15px_rgba(250,204,21,0.12)] border-[#facc15]/30'
+    }
+  }
+  if (value < 1800) {
+    return {
+      label: 'MALA',
+      desc: 'Poco recomendable',
+      action: 'Evite exposición prolongada',
+      color: '#fb923c',
+      bg: 'rgba(251,146,60,0.06)',
+      border: 'rgba(251,146,60,0.25)',
+      glow: 'shadow-[0_0_15px_rgba(251,146,60,0.15)] border-[#fb923c]/40'
+    }
+  }
+  return {
+    label: 'PELIGROSA',
+    desc: 'Aire contaminado',
+    action: 'Utilice protección respiratoria',
+    color: '#f87171',
+    bg: 'rgba(248,113,113,0.1)',
+    border: 'rgba(248,113,113,0.4)',
+    glow: 'shadow-[0_0_20px_rgba(248,113,113,0.35)] border-[#f87171]/60 animate-pulse'
+  }
 }
 
 export function AirQualityCard({ data, className }: { data: WeatherData; className?: string }) {
@@ -432,54 +468,51 @@ export function AirQualityCard({ data, className }: { data: WeatherData; classNa
 
   const level = getAQLevel(value)
   const trendDir = calcTrend(history, 'airQuality', 20)
-  const isBad = value >= 1800
 
   return (
-    <Panel className={cn("flex flex-col justify-between overflow-hidden relative", className)}>
-      <div className="flex items-start mb-1 z-10 relative">
-        <div className="absolute top-3 left-3 z-10 pointer-events-none" style={{ width: 44, height: 44 }}>
-          <Wind className="w-full h-full text-teal-400 opacity-70" />
+    <Panel className={cn(
+      "flex flex-col justify-between overflow-hidden relative transition-all duration-300",
+      level.glow,
+      className
+    )}>
+      {/* Header and State */}
+      <div className="flex items-start justify-between z-10 relative px-2 pt-2">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Calidad del Aire</span>
+          <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60">MQ135 · Módulo</span>
         </div>
-        <div className="flex flex-col pl-16 pt-1.5">
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Calidad del Aire</h2>
-          <p className="text-[9px] font-semibold uppercase tracking-widest text-teal-400/70">MQ135 · Índice relativo</p>
-        </div>
+        <Wind className="size-5 opacity-70" style={{ color: level.color }} />
       </div>
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.025] pointer-events-none">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none">
         <Wind style={{ width: 140, height: 140 }} className="text-foreground" />
       </div>
 
-      <div className="flex flex-col items-center justify-center py-1 relative z-10">
-        <span className="font-digital text-6xl text-foreground tracking-wider">{Math.round(value)}</span>
-        <p className="text-center text-[9px] uppercase font-bold tracking-widest text-muted-foreground mt-0 mb-0.5">Valor relativo</p>
-        <p className="text-center text-[9px] font-semibold text-muted-foreground/60 mb-1">Rango saludable: 0 - 600</p>
-      </div>
-
-      {/* Level badge + description */}
-      <div className="mb-1 flex flex-col items-center gap-0.5 relative z-10">
-        <span
-          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-300"
-          style={{
-            color: level.color,
-            backgroundColor: level.bg,
-            border: `1px solid ${level.border}`,
-            boxShadow: isBad ? `0 0 12px ${level.color}33` : 'none',
-            animation: isBad ? 'pulse 2s ease-in-out infinite' : 'none',
-          }}
-        >
-          {isBad && <span className="text-sm">⚠️</span>}
+      {/* Main State display (State & Desc) */}
+      <div className="flex flex-col items-center justify-center py-2 relative z-10 text-center">
+        <h3 className="text-3xl font-extrabold tracking-widest uppercase transition-colors duration-300 leading-none mb-1" style={{ color: level.color }}>
           {level.label}
-        </span>
-        <span className="text-[8px] text-muted-foreground font-medium italic">{level.desc}</span>
+        </h3>
+        <p className="text-sm font-bold text-foreground leading-tight">{level.desc}</p>
+        <p className="text-[10px] text-muted-foreground/80 font-medium mt-0.5">{level.action}</p>
       </div>
 
-      {/* Trend */}
-      <div className="flex justify-center mb-1 z-10 relative">
-        <TrendBadge trend={trendDir} color={level.color} />
+      {/* Value secondary display */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-background/30 rounded-lg border border-border/10 z-10 relative mb-1 mx-2">
+        <div className="flex flex-col">
+          <span className="text-[8px] font-extrabold tracking-widest uppercase text-muted-foreground">Valor del Sensor</span>
+          <span className="font-digital text-xl text-foreground tracking-wider leading-none mt-0.5">{Math.round(value)}</span>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-[8px] font-extrabold tracking-widest uppercase text-muted-foreground">Tendencia</span>
+          <div className="mt-0.5">
+            <TrendBadge trend={trendDir} color={level.color} />
+          </div>
+        </div>
       </div>
 
-      <MiniArea data={history} dataKey="airQuality" color="#2dd4bf" unit="" height={100} />
+      <MiniArea data={history} dataKey="airQuality" color={level.color} unit="" height={85} />
     </Panel>
   )
 }
+

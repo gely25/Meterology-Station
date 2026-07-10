@@ -1,112 +1,180 @@
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <Adafruit_BMP280.h>
 #include <Adafruit_AHTX0.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3C
-
-#define LED_PIN 2
-#define LLUVIA_PIN 35
-#define BUZZER_PIN 4
-#define LED_VERDE_PIN 27   // LED verde de "sensores funcionando"
-#define MQ135_PIN 33       // Sensor de calidad de aire (analógico)
-
-#define BMP_ADDRESS 0x76
-#define AHT_ADDRESS 0x38
-
-const char* ssid = "HONOR X5c";
-const char* password = "samira25#";
+// ---------- WiFi credentials ----------
+const char* ssid = "Dani";
+const char* password = "daniela14";
 
 WebServer server(80);
 
-// IMPORTANTE:
-// Si tu buzzer suena cuando pones HIGH, usa:
-// #define BUZZER_ON HIGH
-// #define BUZZER_OFF LOW
-// Si tu buzzer suena cuando pones LOW, usa esto:
-#define BUZZER_ON LOW
-#define BUZZER_OFF HIGH
+// ---------- Pins ----------
+#define PIN_RAIN     4      // Rain sensor (digital) - HL-83 + HL-01 comparator
+#define PIN_MQ135    34     // MQ-135 gas sensor (analog, ADC1)
+#define PIN_BUZZER   25
+#define PIN_LED_RED  26
+#define PIN_LED_BLUE 2      // Cambiado de 27 a 2 (confirmado que este sí enciende en tu placa)
 
-// Umbral para considerar "aire malo" (ajusta esto después de calibrar
-// con tus propias lecturas normales en tu ambiente)
-#define UMBRAL_GAS_MALO 1800
-
+// ---------- OLED display ----------
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET   -1
+#define SCREEN_ADDRESS 0x3C
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// ---------- MQ135 warm-up ----------
+const unsigned long MQ135_WARMUP_MS = 60000UL; // 60 s de precalentamiento (subir a 3-5 min para mayor precisión)
+unsigned long bootTime = 0;
+bool mq135Ready = false;
+
+// ---------- MQ135 calibration ----------
+int mq135Baseline = 0;          // valor de "aire limpio" medido al arrancar
+
+// ---------- Umbrales de clasificación (relativos al baseline calibrado) ----------
+const int MARGIN_MODERADO = 200;   // aire limpio hasta aquí
+const int MARGIN_MALO     = 500;   // moderado hasta aquí
+const int MARGIN_PELIGROSO = 900;  // malo hasta aquí, más de esto = peligroso
+
+// ---------- Suavizado (media móvil) ----------
+const int MQ135_SAMPLES = 10;
+int mq135Buffer[MQ135_SAMPLES];
+int mq135Index = 0;
+long mq135Sum = 0;
+bool mq135BufferFilled = false;
+
+// ---------- Sensor status ----------
+bool bmpOK = false;
+bool ahtOK = false;
 Adafruit_BMP280 bmp;
 Adafruit_AHTX0 aht;
 
-unsigned long tiempoAnterior = 0;
-int pantallaActual = 0; // 0 = lluvia, 1 = BMP280, 2 = AHT10, 3 = MQ135
-unsigned long tiempoInicioBuzzer = 0;
-bool buzzerActivo = false;
-bool lluviaAnterior = false;
+// ---------- Buzzer control (non-blocking) ----------
+bool buzzerActive = false;
+unsigned long buzzerStartTime = 0;
+const unsigned long BUZZER_DURATION = 4000; // 4 segundos y se apaga
 
-unsigned long tiempoChequeoSensores = 0;
-bool bmpOK = false;
-bool ahtOK = false;
+// ---------- LED de aire: control de parpadeo no-bloqueante ----------
+unsigned long lastBlinkTime = 0;
+bool ledState = false;
 
-int valorGas = 0;
+// ---------- OLED screen rotation (non-blocking) ----------
+unsigned long lastScreenChange = 0;
+const unsigned long SCREEN_INTERVAL = 3000; // 3 seconds per screen
+int currentScreen = 0;
+const int TOTAL_SCREENS = 3;
 
-// Hace un "ping" I2C a una dirección para ver si el dispositivo responde
-bool verificarI2C(uint8_t address) {
-Wire.beginTransmission(address);
-return (Wire.endTransmission() == 0);
+// Store latest sensor values globally so the display function can use them
+bool g_isRaining = false;
+int g_airValue = 0;
+String g_airLevel = "Aire limpio";
+float g_pressure = 0;
+float g_tempBMP = 0;
+float g_tempAHT = 0;
+float g_humidity = 0;
+
+// ---------- Helpers MQ135 ----------
+int readMQ135Smoothed() {
+  int raw = analogRead(PIN_MQ135);
+
+  mq135Sum -= mq135Buffer[mq135Index];
+  mq135Buffer[mq135Index] = raw;
+  mq135Sum += raw;
+  mq135Index = (mq135Index + 1) % MQ135_SAMPLES;
+  if (mq135Index == 0) mq135BufferFilled = true;
+
+  int count = mq135BufferFilled ? MQ135_SAMPLES : (mq135Index == 0 ? MQ135_SAMPLES : mq135Index);
+  return mq135Sum / count;
 }
 
-//enviar datos para la web
-
-void enviarDatos() {
-  double tempVal = 0.0;
-  double humVal = 0.0;
-  double presVal = 0.0;
-
-  if (ahtOK) {
-    sensors_event_t humedad, temperatura;
-    aht.getEvent(&humedad, &temperatura);
-    tempVal = temperatura.temperature;
-    humVal = humedad.relative_humidity;
+void calibrateMQ135Baseline() {
+  long sum = 0;
+  const int N = 20;
+  for (int i = 0; i < N; i++) {
+    sum += readMQ135Smoothed();
+    delay(50);
   }
+  mq135Baseline = sum / N;
+  Serial.print("MQ135 baseline calibrado: ");
+  Serial.println(mq135Baseline);
+}
 
-  if (bmpOK) {
-    presVal = bmp.readPressure() / 100.0;
-    if (!ahtOK) {
-      tempVal = bmp.readTemperature();
+// Clasifica el valor del sensor en una categoría de calidad de aire,
+// según qué tan por encima del baseline calibrado esté
+String clasificarAire(int valor) {
+  int delta = valor - mq135Baseline;
+  if (delta < MARGIN_MODERADO) return "Aire limpio";
+  else if (delta < MARGIN_MALO) return "Calidad moderada";
+  else if (delta < MARGIN_PELIGROSO) return "Calidad mala";
+  else return "Peligroso";
+}
+
+// Controla el LED según el nivel: apagado / parpadeo lento / parpadeo rapido / fijo
+void controlarLEDAire(String nivel) {
+  unsigned long now = millis();
+
+  if (nivel == "Aire limpio") {
+    digitalWrite(PIN_LED_BLUE, LOW);
+  }
+  else if (nivel == "Calidad moderada") {
+    if (now - lastBlinkTime >= 800) { // parpadeo lento
+      ledState = !ledState;
+      digitalWrite(PIN_LED_BLUE, ledState);
+      lastBlinkTime = now;
     }
   }
+  else if (nivel == "Calidad mala") {
+    if (now - lastBlinkTime >= 250) { // parpadeo rapido
+      ledState = !ledState;
+      digitalWrite(PIN_LED_BLUE, ledState);
+      lastBlinkTime = now;
+    }
+  }
+  else { // Peligroso
+    digitalWrite(PIN_LED_BLUE, HIGH); // fijo encendido
+  }
+}
 
+// ---------- Web server handler ----------
+void enviarDatos() {
   StaticJsonDocument<768> doc;
 
-  bool hayLluvia = digitalRead(LLUVIA_PIN) == LOW;
+  // Selecciona la temperatura del AHT10 si está disponible, si no usa la del BMP280
+  double tempVal = ahtOK ? g_tempAHT : g_tempBMP;
 
-  // Sensores
   doc["temperatura"] = tempVal;
-  doc["humedad"] = humVal;
-  doc["presion"] = presVal;
-  doc["calidadAire"] = valorGas;
-  doc["nivelLluvia"] = hayLluvia ? 100 : 0;
+  doc["humedad"] = ahtOK ? g_humidity : 0.0;
+  doc["presion"] = bmpOK ? g_pressure : 0.0;
+  doc["calidadAire"] = g_airValue;
+  doc["nivelLluvia"] = g_isRaining ? 100 : 0;
 
-// WiFi
-doc["wifiRSSI"] = WiFi.RSSI();
-doc["conexionESP32"] = "conectado";
+  // WiFi
+  doc["wifiRSSI"] = WiFi.RSSI();
+  doc["conexionESP32"] = "conectado";
 
-// Estados
-doc["estadoAHT10"] = ahtOK ? "operativo" : "desconectado";
-doc["estadoBMP280"] = bmpOK ? "operativo" : "desconectado";
-doc["estadoMQ135"] = valorGas > 0 ? "operativo" : "desconectado";
-//doc["estadoMQ135"] = "operativo";
-doc["estadoSensorLluvia"] = "operativo";
-doc["estadoOLED"] = "operativo";
-  doc["estadoLedVerde"] = "operativo";
+  // Uptime
+  unsigned long totalSegundos = millis() / 1000;
+  unsigned long horas = totalSegundos / 3600;
+  unsigned long minutos = (totalSegundos % 3600) / 60;
+  char uptimeStr[16];
+  snprintf(uptimeStr, sizeof(uptimeStr), "%luh %lum", horas, minutos);
+  doc["uptime"] = uptimeStr;
+
+  // Estados de hardware y actuadores
+  doc["estadoAHT10"] = ahtOK ? "operativo" : "desconectado";
+  doc["estadoBMP280"] = bmpOK ? "operativo" : "desconectado";
+  doc["estadoMQ135"] = mq135Ready ? "operativo" : "desconectado";
+  doc["estadoSensorLluvia"] = "operativo";
+  doc["estadoOLED"] = "operativo";
+  doc["estadoLedVerde"] = "desconectado"; // ya no se usa en esta placa/lógica
   doc["estadoLedRojo"] = "operativo";
   doc["estadoBuzzer"] = "operativo";
+  doc["estadoCalidadAire"] = g_airLevel;
 
   String json;
   serializeJson(doc, json);
@@ -118,222 +186,224 @@ doc["estadoOLED"] = "operativo";
   server.send(200, "application/json", json);
 }
 
+void manejarPreflight() {
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  server.sendHeader("Access-Control-Allow-Headers", "*");
+  server.send(204);
+}
+
 void setup() {
-Serial.begin(115200);
-Wire.begin(21, 22);
+  Serial.begin(115200);
 
-pinMode(LED_PIN, OUTPUT);
-pinMode(LLUVIA_PIN, INPUT);
-pinMode(BUZZER_PIN, OUTPUT);
-pinMode(LED_VERDE_PIN, OUTPUT);
-// MQ135_PIN no necesita pinMode para lectura analógica
+  pinMode(PIN_RAIN, INPUT_PULLUP);  // pull-up para evitar lecturas falsas por ruido
+  pinMode(PIN_BUZZER, OUTPUT);
+  pinMode(PIN_LED_RED, OUTPUT);
+  pinMode(PIN_LED_BLUE, OUTPUT);
 
-digitalWrite(LED_PIN, LOW);
-digitalWrite(BUZZER_PIN, BUZZER_OFF);
-digitalWrite(LED_VERDE_PIN, LOW); // arranca apagado hasta confirmar sensores
+  digitalWrite(PIN_BUZZER, HIGH); // arreglo momento
+  digitalWrite(PIN_LED_RED, LOW);
+  digitalWrite(PIN_LED_BLUE, LOW);
 
-if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-Serial.println("No se encontro la OLED");
-while (true);
-}
+  analogReadResolution(12);
+  analogSetPinAttenuation(PIN_MQ135, ADC_11db);
 
-bmpOK = bmp.begin(BMP_ADDRESS);
-if (!bmpOK) {
-Serial.println("No se encontro el BMP280");
-}
+  for (int i = 0; i < MQ135_SAMPLES; i++) mq135Buffer[i] = 0;
 
-Serial.println("Iniciando AHT10...");
-ahtOK = aht.begin();
-if (!ahtOK) {
-  Serial.println("No se encontro el AHT10");
-} else {
-  Serial.println("AHT10 iniciado correctamente");
-}
+  Wire.begin();
 
-// Encendido inicial del LED verde si ambos sensores arrancaron bien
-digitalWrite(LED_VERDE_PIN, (bmpOK && ahtOK) ? HIGH : LOW);
+  bmpOK = bmp.begin(0x76);
+  if (!bmpOK) {
+    Serial.println("Error: BMP280 not detected");
+  }
 
-display.clearDisplay();
-display.setTextColor(SSD1306_WHITE);
-display.setTextSize(2);
-display.setCursor(0, 0);
-display.println("Grupo 6");
-display.display();
-delay(2000);
+  ahtOK = aht.begin();
+  if (!ahtOK) {
+    Serial.println("Error: AHT10 not detected");
+  }
 
-// Mensaje de calentamiento del MQ135
-display.clearDisplay();
-display.setTextSize(1);
-display.setCursor(0, 0);
-display.println("Calentando MQ135...");
-display.println("Espera 20-30 seg");
-display.display();
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println("Error: SSD1306 not detected");
+  } else {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+    display.println("Weather Station");
+    display.println("Calentando MQ135...");
+    display.display();
+  }
 
-Serial.println("Calentando MQ135 (20 segundos)...");
-for (int i = 0; i < 20; i++) {
-  delay(1000);
-  Serial.print(".");
-}
-Serial.println(" Listo!");
+  bootTime = millis();
 
-//nuevos terminos para la web
+  for (int i = 0; i < MQ135_SAMPLES; i++) {
+    readMQ135Smoothed();
+    delay(20);
+  }
 
-// ================= WIFI =================
-
-Serial.println();
-Serial.println("Conectando al WiFi...");
-
-WiFi.begin(ssid, password);
-
-
-unsigned long inicio = millis();
-
-while (WiFi.status() != WL_CONNECTED && millis() - inicio < 15000) {
-  delay(500);
-  Serial.print(".");
-}
-
-if (WiFi.status() == WL_CONNECTED) {
+  // ================= WiFi Connection =================
   Serial.println();
-  Serial.println("WiFi conectado");
-  Serial.print("IP: ");
-  Serial.println(WiFi.localIP());
-} else {
-  Serial.println();
-  Serial.println("No se pudo conectar al WiFi");
+  Serial.println("Conectando al WiFi...");
+  WiFi.setSleep(false); // Desactivar modo sleep para evitar desconexiones y timeouts
+  WiFi.begin(ssid, password);
+
+  unsigned long inicio = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - inicio < 15000) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println();
+    Serial.println("WiFi conectado con exito");
+    Serial.print("IP del ESP32: ");
+    Serial.println(WiFi.localIP());
+
+    server.on("/api/data", HTTP_GET, enviarDatos);
+    server.on("/api/data", HTTP_OPTIONS, manejarPreflight);
+    server.begin();
+    Serial.println("Servidor HTTP iniciado para el dashboard");
+  } else {
+    Serial.println();
+    Serial.println("Fallo al conectar al WiFi. Iniciando en modo local...");
+  }
 }
-
-
-
-
-// ================= SERVIDOR =================
-
-
-
-if (WiFi.status() == WL_CONNECTED) {
-
-  server.on("/api/data", HTTP_GET, enviarDatos);
-
-  server.begin();
-
-  Serial.println("Servidor HTTP iniciado");
-  Serial.print("Servidor escuchando en: http://");
-  Serial.print(WiFi.localIP());
-  Serial.println("/api/data");
-
-} else {
-  Serial.println("No se inició el servidor HTTP - WiFi no conectado");
-}
-
-}   // <-- ESTA LLAVE FALTA
 
 void loop() {
-
-if (WiFi.status() == WL_CONNECTED) {
+  // ---------- HTTP request handler ----------
+  if (WiFi.status() == WL_CONNECTED) {
     server.handleClient();
+  }
+
+  // ---------- Warm-up del MQ135 ----------
+  if (!mq135Ready) {
+    if (millis() - bootTime >= MQ135_WARMUP_MS) {
+      calibrateMQ135Baseline();
+      mq135Ready = true;
+    } else {
+      unsigned long remaining = (MQ135_WARMUP_MS - (millis() - bootTime)) / 1000;
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("Calentando MQ135...");
+      display.print("Faltan: ");
+      display.print(remaining);
+      display.println(" s");
+      display.display();
+      delay(200);
+      return;
+    }
+  }
+
+  // ---------- Rain sensor reading ----------
+  bool isRaining = (digitalRead(PIN_RAIN) == LOW);
+  Serial.print("GPIO4 = ");
+  Serial.print(digitalRead(PIN_RAIN));
+  Serial.print(" | isRaining = ");
+  Serial.println(isRaining);
+  digitalWrite(PIN_LED_RED, isRaining ? HIGH : LOW);
+
+  // ---------- Buzzer logic ----------
+  if (isRaining) {
+    if (!buzzerActive) {
+      buzzerActive = true;
+      buzzerStartTime = millis();
+      digitalWrite(PIN_BUZZER, LOW);   // <-- antes decía HIGH
+    } 
+    else if (millis() - buzzerStartTime >= BUZZER_DURATION) {
+      digitalWrite(PIN_BUZZER, HIGH);  // <-- antes decía LOW
+    }
+  } 
+  else {
+    digitalWrite(PIN_BUZZER, HIGH);    // <-- antes decía LOW
+    buzzerActive = false;
+  }
+
+  // ---------- MQ-135 reading con suavizado + clasificación por niveles ----------
+  int airValue = readMQ135Smoothed();
+  String airLevel = clasificarAire(airValue);
+  controlarLEDAire(airLevel);
+
+  // ---------- BMP280 and AHT10 reading ----------
+  float pressure = bmpOK ? bmp.readPressure() / 100.0F : 0; // hPa
+  float tempBMP = bmpOK ? bmp.readTemperature() : 0;
+
+  float tempAHT = 0;
+  float humidityVal = 0;
+  if (ahtOK) {
+    sensors_event_t humidity, temp;
+    aht.getEvent(&humidity, &temp);
+    tempAHT = temp.temperature;
+    humidityVal = humidity.relative_humidity;
+  }
+
+  // ---------- Update global values for OLED ----------
+  g_isRaining = isRaining;
+  g_airValue = airValue;
+  g_airLevel = airLevel;
+  g_pressure = pressure;
+  g_tempBMP = tempBMP;
+  g_tempAHT = tempAHT;
+  g_humidity = humidityVal;
+
+  // ---------- Serial monitor ----------
+  Serial.print("Rain: "); Serial.print(isRaining ? "YES" : "NO");
+  Serial.print(" | Air: "); Serial.print(airValue);
+  Serial.print(" (base "); Serial.print(mq135Baseline); Serial.print(")");
+  Serial.print(" | Nivel: "); Serial.print(airLevel);
+  Serial.print(" | Pressure: "); Serial.print(pressure);
+  Serial.print(" hPa | AHT10 Temp: "); Serial.print(tempAHT);
+  Serial.print(" C | Humidity: "); Serial.println(humidityVal);
+
+  // ---------- OLED screen rotation ----------
+  if (millis() - lastScreenChange >= SCREEN_INTERVAL) {
+    currentScreen = (currentScreen + 1) % TOTAL_SCREENS;
+    lastScreenChange = millis();
+  }
+  updateDisplay();
+
+  delay(200);
 }
 
-int estadoLluvia = digitalRead(LLUVIA_PIN);
-bool hayLluvia = (estadoLluvia == LOW);
+void updateDisplay() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
 
-Serial.print("Estado lluvia: ");
-Serial.print(estadoLluvia);
-Serial.print(" | Hay lluvia: ");
-Serial.println(hayLluvia ? "SI" : "NO");
+  switch (currentScreen) {
+    case 0: // Rain + Air status
+      display.println("== STATUS ==");
+      display.println();
+      display.print("Rain: ");
+      display.println(g_isRaining ? "YES" : "NO");
+      display.print("Air: ");
+      display.println(g_airLevel);
+      display.print("Air value: ");
+      display.println(g_airValue);
+      break;
 
-digitalWrite(LED_PIN, hayLluvia ? HIGH : LOW);
+    case 1: // BMP280 data
+      display.println("== BMP280 ==");
+      display.println();
+      display.print("Temp: ");
+      display.print(g_tempBMP);
+      display.println(" C");
+      display.print("Pressure: ");
+      display.print(g_pressure);
+      display.println(" hPa");
+      break;
 
-if (hayLluvia && !lluviaAnterior) {
-buzzerActivo = true;
-tiempoInicioBuzzer = millis();
-digitalWrite(BUZZER_PIN, BUZZER_ON);
-}
+    case 2: // AHT10 data
+      display.println("== AHT10 ==");
+      display.println();
+      display.print("Temp: ");
+      display.print(g_tempAHT);
+      display.println(" C");
+      display.print("Humidity: ");
+      display.print(g_humidity);
+      display.println(" %");
+      break;
+  }
 
-if (buzzerActivo && millis() - tiempoInicioBuzzer >= 4000) {
-buzzerActivo = false;
-digitalWrite(BUZZER_PIN, BUZZER_OFF);
-}
-
-if (!hayLluvia) {
-buzzerActivo = false;
-digitalWrite(BUZZER_PIN, BUZZER_OFF);
-}
-
-lluviaAnterior = hayLluvia;
-
-// Lectura del sensor de gas (cada ciclo, es rápido y no bloquea)
-valorGas = analogRead(MQ135_PIN);
-Serial.print("Calidad de aire (crudo): ");
-Serial.println(valorGas);
-
-// Cada 3 segundos, revisa si los sensores siguen respondiendo
-if (millis() - tiempoChequeoSensores >= 3000) {
-tiempoChequeoSensores = millis();
-bmpOK = verificarI2C(BMP_ADDRESS);
-ahtOK = verificarI2C(AHT_ADDRESS);
-
-
-bool todoOK = bmpOK && ahtOK;
-digitalWrite(LED_VERDE_PIN, todoOK ? HIGH : LOW);
-
-if (!todoOK) {
-  Serial.print("FALLO -> BMP280: ");
-  Serial.print(bmpOK ? "OK" : "DESCONECTADO");
-  Serial.print(" | AHT10: ");
-  Serial.println(ahtOK ? "OK" : "DESCONECTADO");
-}
-
-}
-
-if (millis() - tiempoAnterior >= 2500) {
-tiempoAnterior = millis();
-pantallaActual++;
-if (pantallaActual > 3) {
-pantallaActual = 0;
-}
-}
-
-display.clearDisplay();
-display.setTextSize(1);
-display.setCursor(0, 0);
-
-if (pantallaActual == 0) {
-display.setTextSize(2);
-display.println(hayLluvia ? "LLUVIA" : "Sin lluvia");
-display.setTextSize(1);
-display.setCursor(0, 30);
-display.println(hayLluvia ? "Alerta activada" : "Todo normal");
-} else if (pantallaActual == 1) {
-display.println("Presion / Temp");
-display.setCursor(0, 15);
-display.print("Temp: ");
-display.print(bmp.readTemperature());
-display.println(" C");
-display.setCursor(0, 30);
-display.print("Presion: ");
-display.print(bmp.readPressure() / 100.0F);
-display.println(" hPa");
-} else if (pantallaActual == 2) {
-sensors_event_t humedad, temperatura;
-aht.getEvent(&humedad, &temperatura);
-display.println("Temp / Humedad");
-display.setCursor(0, 15);
-display.print("Temp: ");
-display.print(temperatura.temperature);
-display.println(" C");
-display.setCursor(0, 30);
-display.print("Humedad: ");
-display.print(humedad.relative_humidity);
-display.println(" %");
-} else if (pantallaActual == 3) {
-display.println("Calidad de Aire");
-display.setCursor(0, 15);
-display.print("Valor: ");
-display.println(valorGas);
-display.setCursor(0, 30);
-display.println(valorGas > UMBRAL_GAS_MALO ? "Aire: MALO" : "Aire: OK");
-}
-
-display.display();
-delay(200);
+  display.display();
 }

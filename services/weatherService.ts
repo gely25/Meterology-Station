@@ -19,7 +19,7 @@ export interface AppConfig {
 }
 
 const DEFAULT_CONFIG: AppConfig = {
-  ip: '10.140.126.198',
+  ip: '10.190.197.198',
   port: '80',
   interval: 1000,
   autoReconnect: true,
@@ -36,7 +36,7 @@ class WeatherService {
   private lastFetchTime: number = Date.now();
   private isFetching: boolean = false;
   private consecutiveFailures: number = 0;
-  
+
   constructor() {
     this.config = this.loadConfig();
     this.currentData = this.getInitialData();
@@ -136,18 +136,18 @@ class WeatherService {
       history,
       events: [
         // ── Sistema (boot sequence) ────────────────────────────────────
-        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), type: 'success', message: 'Sistema iniciado — firmware v1.0', timestamp: Date.now() - 8000 },
-        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), type: 'success', message: 'LED verde activado — sistema en standby', timestamp: Date.now() - 7500 },
-        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), type: 'info',    message: 'Modo operativo: monitoreo continuo habilitado', timestamp: Date.now() - 7000 },
+        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), type: 'success', message: 'Sistema iniciado — firmware v1.0', timestamp: Date.now() - 8000 },
+        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), type: 'success', message: 'LED verde activado — sistema en standby', timestamp: Date.now() - 7500 },
+        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), type: 'info', message: 'Modo operativo: monitoreo continuo habilitado', timestamp: Date.now() - 7000 },
         // ── Conectividad ───────────────────────────────────────────────
-        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), type: 'info',    message: 'ESP32 conectado', timestamp: Date.now() - 6500 },
-        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), type: 'info',    message: 'WiFi conectado', timestamp: Date.now() - 6000 },
+        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), type: 'info', message: 'ESP32 conectado', timestamp: Date.now() - 6500 },
+        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), type: 'info', message: 'WiFi conectado', timestamp: Date.now() - 6000 },
         // ── Sensores ───────────────────────────────────────────────────
-        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), type: 'success', message: 'Sensor AHT10 inicializado correctamente', timestamp: Date.now() - 5500 },
-        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), type: 'success', message: 'Sensor BMP280 inicializado correctamente', timestamp: Date.now() - 5000 },
-        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), type: 'success', message: 'Sensor MQ135 inicializado correctamente', timestamp: Date.now() - 4500 },
-        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), type: 'success', message: 'Sensor de lluvia inicializado correctamente', timestamp: Date.now() - 4000 },
-        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), type: 'success', message: 'Calidad del aire: Buena — MQ135 en rango normal', timestamp: Date.now() - 3500 },
+        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), type: 'success', message: 'Sensor AHT10 inicializado correctamente', timestamp: Date.now() - 5500 },
+        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), type: 'success', message: 'Sensor BMP280 inicializado correctamente', timestamp: Date.now() - 5000 },
+        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), type: 'success', message: 'Sensor MQ135 inicializado correctamente', timestamp: Date.now() - 4500 },
+        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), type: 'success', message: 'Sensor de lluvia inicializado correctamente', timestamp: Date.now() - 4000 },
+        { id: generateId(), time: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }), type: 'success', message: 'Calidad del aire: Buena — MQ135 en rango normal', timestamp: Date.now() - 3500 },
       ],
     };
   }
@@ -169,7 +169,7 @@ class WeatherService {
 
   private async fetchRealData() {
     if (this.isFetching) return; // Prevent concurrent fetch requests from overlapping
-    
+
     if (!this.config.useSimulation) {
       this.isFetching = true;
       let response: Response;
@@ -183,14 +183,14 @@ class WeatherService {
       } catch (err: any) {
         clearTimeout(timeoutId);
         this.isFetching = false;
-        
+
         this.consecutiveFailures++;
         if (this.consecutiveFailures >= 3) {
           this.handleDisconnection();
         }
         return;
       }
-      
+
       if (!response.ok) {
         this.isFetching = false;
         this.consecutiveFailures++;
@@ -199,10 +199,10 @@ class WeatherService {
         }
         return;
       }
-      
+
       // Reset failures on successful fetch
       this.consecutiveFailures = 0;
-      
+
       let espData;
       try {
         espData = await response.json();
@@ -212,7 +212,7 @@ class WeatherService {
       }
       this.isFetching = false;
       const latency = Date.now() - startTime;
-      
+
       const now = new Date();
       this.lastFetchTime = Date.now();
       const hora = now.toLocaleTimeString('es-EC', {
@@ -231,7 +231,7 @@ class WeatherService {
 
       this.tick += 1;
       let history = this.currentData.history;
-      
+
       // Ventana deslizante: mantener solo los últimos 30 elementos
       const newPoint = {
         time: hora,
@@ -241,7 +241,7 @@ class WeatherService {
         rain: nivelLluvia / 10,
         airQuality: calidadAire,
       };
-      
+
       history = [...history.slice(history.length >= 3600 ? 1 : 0), newPoint];
 
       const intenso = nivelLluvia >= 70;
@@ -268,7 +268,7 @@ class WeatherService {
       } else if (nivelLluvia <= 20 && this.currentData.nivelLluvia > 20) {
         this.addEvent('Sensor de lluvia: precipitación finalizada', 'success');
       }
-      
+
       if (this.currentData.conexionESP32 === 'desconectado') {
         this.addEvent('ESP32 conectado', 'success');
         this.addEvent('WiFi conectado', 'success');
@@ -313,7 +313,7 @@ class WeatherService {
 
       // Sistema: hito de uptime cada 30 minutos (1800 ticks a 1 seg)
       const wifiCalidad = this.deriveWiFiQuality(wifiRSSI);
-      const uptimeMins  = Math.floor(this.tick / 60);
+      const uptimeMins = Math.floor(this.tick / 60);
       const uptime = `${Math.floor(uptimeMins / 60)}h ${uptimeMins % 60}m`;
       if (this.tick > 0 && this.tick % 1800 === 0) {
         this.addEvent(`Uptime: ${uptime} — sistema operando sin interrupciones`, 'success');
@@ -356,7 +356,7 @@ class WeatherService {
     this.tick += 1;
     const now = new Date();
     this.lastFetchTime = Date.now();
-    
+
     const hora = now.toLocaleTimeString('es-EC', {
       hour: '2-digit',
       minute: '2-digit',
@@ -372,7 +372,7 @@ class WeatherService {
     const wifiRSSI = clamp(this.currentData.wifiRSSI + (Math.random() - 0.5) * 2, -90, -30);
 
     let history = this.currentData.history;
-    
+
     // Ventana deslizante: mantener solo los últimos 30 elementos
     const newPoint = {
       time: hora,
@@ -382,14 +382,14 @@ class WeatherService {
       rain: nivelLluvia / 10,
       airQuality: calidadAire,
     };
-    
+
     history = [...history.slice(history.length >= 3600 ? 1 : 0), newPoint];
 
     const intenso = nivelLluvia >= 70;
     const estadoLluvia = intenso ? 'Intensa' : nivelLluvia >= 20 ? 'Ligera' : 'Seco';
     const alertaActiva = intenso ? 'LLUVIA INTENSA DETECTADA' : null;
     const estadoClima = this.deriveWeatherState(nivelLluvia, humedad);
-    
+
     // ── EVENT TRIGGERS ────────────────────────────────────────────────────────
 
     // Sistema: alarma + actuadores (buzzer, LED rojo)
@@ -447,8 +447,8 @@ class WeatherService {
 
     // Sistema: hito de uptime cada 30 minutos (1800 ticks a 1 seg)
     const wifiCalidad = this.deriveWiFiQuality(wifiRSSI);
-    const uptimeMins  = Math.floor(this.tick / 60);
-    const uptime      = `${Math.floor(uptimeMins / 60)}h ${uptimeMins % 60}m`;
+    const uptimeMins = Math.floor(this.tick / 60);
+    const uptime = `${Math.floor(uptimeMins / 60)}h ${uptimeMins % 60}m`;
     if (this.tick > 0 && this.tick % 1800 === 0) {
       this.addEvent(`Uptime: ${uptime} — sistema operando sin interrupciones`, 'success');
     }
@@ -489,7 +489,7 @@ class WeatherService {
   private handleDisconnection() {
     if (this.currentData.conexionESP32 !== 'desconectado') {
       this.addEvent('ESP32 desconectado', 'alert');
-      
+
       this.currentData = {
         ...this.currentData,
         conexionESP32: 'desconectado',
@@ -512,11 +512,11 @@ class WeatherService {
     if (typeof window === 'undefined') return; // nunca ejecutar polling en el servidor
 
     if (this.timer) clearInterval(this.timer);
-    
+
     // Ejecutar una petición inicial inmediata para evitar retraso al arrancar o guardar
     // fetchRealData ya maneja errores internamente — no lanza excepciones
     this.fetchRealData();
-    
+
     this.timer = setInterval(() => {
       this.fetchRealData();
     }, this.config.interval);
@@ -539,10 +539,10 @@ class WeatherService {
   private notify() {
     this.subscribers.forEach(cb => cb(this.currentData));
   }
-  
+
   public forceEvent(msg: string, type: EventType) {
-      this.addEvent(msg, type);
-      this.notify();
+    this.addEvent(msg, type);
+    this.notify();
   }
 }
 

@@ -82,11 +82,22 @@ export function MonitoringCenter({ data, onNavigate }: { data: WeatherData; onNa
             <AlertTriangle className="size-3.5 text-amber-500" />
             <span className="text-[9px] font-bold uppercase tracking-wider">Alertas</span>
           </div>
-          <span className={cn("text-base md:text-lg font-extrabold tracking-wide mt-1 leading-none", criticalCount > 0 ? "text-red-500" : "text-foreground")}>
-            {criticalCount} Crítica{criticalCount !== 1 && "s"}
+          <span className={cn(
+            "text-[13px] md:text-sm font-extrabold tracking-wider mt-1 leading-none uppercase",
+            criticalCount > 0 
+              ? "text-red-500 animate-pulse" 
+              : warningCount > 0 
+                ? "text-amber-500 animate-pulse-slow" 
+                : "text-emerald-500"
+          )}>
+            {criticalCount > 0 ? "ALERTA ACTIVA" : warningCount > 0 ? "ADVERTENCIA" : "SIN ALERTAS"}
           </span>
           <span className="text-[10px] text-muted-foreground/80 mt-1 leading-tight truncate">
-            {warningCount} Advertencia{warningCount !== 1 && "s"}
+            {criticalCount > 0 
+              ? `${criticalCount} crítica${criticalCount !== 1 ? 's' : ''}` 
+              : warningCount > 0 
+                ? `${warningCount} advertencia${warningCount !== 1 ? 's' : ''}` 
+                : "Parámetros en rango"}
           </span>
         </div>
 
