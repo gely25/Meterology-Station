@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { TriangleAlert, X, Bell, Info, CheckCircle2, Clock, ArrowRight, ExternalLink } from "lucide-react"
 import type { WeatherData, SystemEvent } from "@/types/weather"
 import { cn } from "@/lib/utils"
+import { THRESHOLDS } from "@/lib/thresholds"
 
 // ─── Derive active alerts from live data ──────────────────────────────────────
 interface DerivedAlert {
@@ -19,7 +20,29 @@ function deriveAlerts(data: WeatherData): DerivedAlert[] {
   const alerts: DerivedAlert[] = []
   const now = Date.now()
 
-  if (data.nivelLluvia >= 70) {
+  // 1. Alertas combinadas cruzadas (Mayor prioridad)
+  if (data.nivelLluvia >= THRESHOLDS.rain.detected && data.presion < THRESHOLDS.pressure.min) {
+    alerts.push({
+      title: 'Alerta de Tormenta Inminente',
+      description: `Baja presión (${data.presion.toFixed(1)} hPa) y lluvia detectada. Probable tormenta severa.`,
+      severity: 'critical',
+      module: 'dashboard',
+      icon: '⛈️🌪️',
+      timestamp: now,
+    })
+  } else if (data.temperatura > THRESHOLDS.temperature.max && data.humedad > THRESHOLDS.humidity.comfortMax) {
+    alerts.push({
+      title: 'Riesgo de Estrés Térmico Alto',
+      description: `Combinación de temperatura (${data.temperatura.toFixed(1)}°C) y humedad (${data.humedad.toFixed(0)}%) críticas para cultivos.`,
+      severity: 'warning',
+      module: 'dashboard',
+      icon: '🥵🔥',
+      timestamp: now,
+    })
+  }
+
+  // 2. Alertas individuales tradicionales
+  if (data.nivelLluvia >= THRESHOLDS.rain.heavy && !alerts.some(a => a.title.includes('Tormenta'))) {
     alerts.push({
       title: 'Lluvia intensa detectada',
       description: 'Buzzer y LED de alerta activos. Nivel: ' + data.nivelLluvia + '%',
@@ -30,7 +53,7 @@ function deriveAlerts(data: WeatherData): DerivedAlert[] {
     })
   }
 
-  if (data.calidadAire >= 1800) {
+  if (data.calidadAire >= THRESHOLDS.airQuality.bad) {
     alerts.push({
       title: 'Calidad del aire muy mala',
       description: 'MQ135: ' + data.calidadAire + ' ppm. Evitar exposición prolongada.',

@@ -6,11 +6,13 @@ import { PressureCard, AirQualityCard } from "@/components/dashboard/secondary-c
 import { SystemStatus } from "@/components/dashboard/system-status"
 import { HistoryView } from "@/components/dashboard/history-view"
 import { EventsView } from "@/components/dashboard/events-view"
+import { AnalysisCenterView } from "@/components/dashboard/analysis-center"
 
 import { AlertToast, useNotifications } from "@/components/dashboard/alert-system"
 import { useWeather } from "@/hooks/useWeather"
 import { ConfigPage } from "@/components/dashboard/config-page"
 import { useState, useEffect } from "react"
+import { cn } from "@/lib/utils"
 
 import { MonitoringCenter } from "@/components/dashboard/monitoring-center"
 
@@ -43,8 +45,14 @@ export default function Page() {
   if (!data) return null;
 
   return (
-    <div className="h-dvh overflow-hidden bg-background p-1 flex flex-col">
-      <div className="mx-auto flex flex-col w-full h-full overflow-hidden rounded-3xl border border-border bg-surface">
+    <div className={cn(
+      "h-dvh overflow-hidden p-1 flex flex-col transition-colors duration-300",
+      activeView === "decisiones" ? "bg-[#EEF3F8] dark:bg-background" : "bg-background"
+    )}>
+      <div className={cn(
+        "mx-auto flex flex-col w-full h-full overflow-hidden rounded-3xl border border-border transition-colors duration-300",
+        activeView === "decisiones" ? "bg-[#EEF3F8] dark:bg-surface" : "bg-surface"
+      )}>
         <TopNavigation
           data={data}
           active={activeView}
@@ -87,6 +95,10 @@ export default function Page() {
             ) : activeView === 'eventos' ? (
               <div className="flex-1 h-full min-h-0">
                 <EventsView data={data} />
+              </div>
+            ) : activeView === 'decisiones' ? (
+              <div className="flex-1 h-full min-h-0">
+                <AnalysisCenterView data={data} />
               </div>
             ) : activeView === 'configuracion' ? (
               <div className="flex-1 overflow-y-auto pr-1">

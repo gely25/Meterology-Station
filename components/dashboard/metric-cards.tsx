@@ -1,10 +1,12 @@
 "use client"
 
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
-import { TriangleAlert, TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { TriangleAlert } from "lucide-react"
 import { Panel } from "./panel"
-import { cn } from "@/lib/utils"
+import { cn, calcTrend } from "@/lib/utils"
+import type { TrendInfo } from "@/lib/utils"
 import type { WeatherData, HistoryPoint } from "@/types/weather"
+import { THRESHOLDS } from "@/lib/thresholds"
 
 // ─── Shared icon sizes ────────────────────────────────────────────────────────
 const ICON_SIZE = 96 // px — consistent across ALL cards
@@ -111,46 +113,7 @@ function Sparkline({ data, dataKey, color, unit = '', smoothing = true }: { data
   )
 }
 
-// ─── Trend helpers ────────────────────────────────────────────────────────────
-type TrendIntensity = 'none' | 'slight' | 'moderate' | 'strong'
-type TrendDirection = 'up' | 'down' | 'stable'
-
-interface TrendInfo {
-  direction: TrendDirection
-  intensity: TrendIntensity
-  magnitude: number
-}
-
-function calcTrend(history: HistoryPoint[], key: keyof HistoryPoint, baseThreshold = 0.3): TrendInfo {
-  if (history.length < 3) return { direction: 'stable', intensity: 'none', magnitude: 0 }
-
-  const recent = history.slice(-3).map(h => Number(h[key]))
-  const delta = recent[2] - recent[0]
-  const magnitude = Math.abs(delta)
-
-  // Calcular intensidad proporcional basada en el valor base
-  // Umbral leve: 0.3x, moderado: 1x, fuerte: 3x
-  const slightThreshold = baseThreshold
-  const moderateThreshold = baseThreshold * 3
-  const strongThreshold = baseThreshold * 10
-
-  let intensity: TrendIntensity = 'none'
-  if (magnitude >= strongThreshold) {
-    intensity = 'strong'
-  } else if (magnitude >= moderateThreshold) {
-    intensity = 'moderate'
-  } else if (magnitude >= slightThreshold) {
-    intensity = 'slight'
-  }
-
-  // Dirección solo si hay magnitud suficiente
-  let direction: TrendDirection = 'stable'
-  if (magnitude >= slightThreshold) {
-    direction = delta > 0 ? 'up' : 'down'
-  }
-
-  return { direction, intensity, magnitude }
-}
+import { TrendingUp, TrendingDown, Minus } from "lucide-react"
 
 function TrendBadge({ trend, color }: { trend: TrendInfo; color: string }) {
   const { direction, intensity } = trend
@@ -251,7 +214,39 @@ export function TemperatureCard({ data, className }: { data: WeatherData; classN
             <span className="font-digital text-6xl leading-none text-foreground tracking-wider">{value.toFixed(2)}</span>
             <span className="mb-0.5 ml-1 text-xl font-bold text-temp">°C</span>
           </div>
-          <p className="text-[9px] font-semibold text-muted-foreground/60 mb-2">Rango: 18.00 - 27.00 °C</p>
+          <p className={`text-[9px] font-semibold text-muted-foreground/60 mb-1`}>Rango: {THRESHOLDS.temperature.min.toFixed(2)} - {THRESHOLDS.temperature.max.toFixed(2)} °C</p>
+          
+          {/* Visual Range Position Bar */}
+          <div className="w-full h-1.5 bg-muted/40 rounded-full overflow-hidden mb-2 relative">
+            {(() => {
+              const minT = THRESHOLDS.temperature.min
+              const maxT = THRESHOLDS.temperature.max
+              // Rango extendido para visualizar valores fuera de límites (-5°C a +5°C del rango)
+              const extMin = minT - 5
+              const extMax = maxT + 5
+              const percentage = Math.max(0, Math.min(100, ((value - extMin) / (extMax - extMin)) * 100))
+              const idealStart = ((minT - extMin) / (extMax - extMin)) * 100
+              const idealEnd = ((maxT - extMin) / (extMax - extMin)) * 100
+              return (
+                <>
+                  {/* Ideal zone highlight */}
+                  <div 
+                    className="absolute h-full bg-emerald-500/20" 
+                    style={{ left: `${idealStart}%`, right: `${100 - idealEnd}%` }}
+                  />
+                  {/* Current value indicator dot */}
+                  <div 
+                    className={cn(
+                      "absolute top-0 -translate-x-1/2 size-1.5 rounded-full border border-background shadow-sm transition-all duration-300",
+                      (value < minT || value > maxT) ? "bg-red-500" : "bg-emerald-500"
+                    )}
+                    style={{ left: `${percentage}%` }}
+                  />
+                </>
+              )
+            })()}
+          </div>
+
           <div className="flex items-center gap-3 text-[10px] font-semibold mb-2">
             <span className="flex items-center gap-1 text-muted-foreground">
               <TriangleAlert className="size-3 text-warning" /> MIN <b className="text-foreground">{min.toFixed(2)}°C</b>
@@ -307,10 +302,10 @@ export function HumidityCard({ data }: { data: WeatherData }) {
   // Interpretación de confort
   let comfortLabel = "Confort ideal"
   let comfortColor = "text-emerald-500"
-  if (value < 40) {
+  if (value < THRESHOLDS.humidity.min) {
     comfortLabel = "Ambiente seco"
     comfortColor = "text-amber-500"
-  } else if (value > 75) {
+  } else if (value > THRESHOLDS.humidity.comfortMax) {
     comfortLabel = "Humedad alta"
     comfortColor = "text-sky-500"
   }
@@ -380,9 +375,37 @@ export function HumidityCard({ data }: { data: WeatherData }) {
           {/* Comfort range */}
           <text x="100" y="118" textAnchor="middle" dominantBaseline="middle"
             style={{ fontFamily: 'sans-serif', fontSize: '9px', fill: 'color-mix(in srgb, currentColor 50%, transparent)' }}>
-            Rango confortable: 40 - 70%
+            Rango confortable: {THRESHOLDS.humidity.min} - {THRESHOLDS.humidity.comfortMax}%
           </text>
         </svg>
+      </div>
+
+      {/* Visual Range Position Bar */}
+      <div className="px-5 mb-2 shrink-0">
+        <div className="w-full h-1.5 bg-muted/40 rounded-full overflow-hidden relative">
+          {(() => {
+            const minH = THRESHOLDS.humidity.min
+            const maxH = THRESHOLDS.humidity.comfortMax
+            const percentage = Math.max(0, Math.min(100, value))
+            return (
+              <>
+                {/* Comfort zone highlight */}
+                <div 
+                  className="absolute h-full bg-emerald-500/20" 
+                  style={{ left: `${minH}%`, right: `${100 - maxH}%` }}
+                />
+                {/* Current value indicator dot */}
+                <div 
+                  className={cn(
+                    "absolute top-0 -translate-x-1/2 size-1.5 rounded-full border border-background shadow-sm transition-all duration-300",
+                    (value < minH || value > maxH) ? "bg-red-500" : "bg-emerald-500"
+                  )}
+                  style={{ left: `${percentage}%` }}
+                />
+              </>
+            )
+          })()}
+        </div>
       </div>
 
       {/* Footer */}
@@ -411,7 +434,7 @@ export function RainCard({ data }: { data: WeatherData }) {
   const [lastState, setLastState] = useState<boolean | null>(null)
   const [lastChangeTime, setLastChangeTime] = useState<string | null>(null)
 
-  const isRaining = value >= 20
+  const isRaining = value >= THRESHOLDS.rain.detected
 
   useEffect(() => {
     if (isConnected) {
@@ -495,6 +518,8 @@ export function RainCard({ data }: { data: WeatherData }) {
   )
 }
 
+import { getRecommendations } from "@/lib/recommendations"
+
 // ─── Condition Card (HERO — Resumen Ambiental) ─────────────────────────────────
 export function ConditionCard({ data, className }: { data: WeatherData; className?: string }) {
   const isAHT10Connected = data.estadoAHT10 === 'operativo'
@@ -527,12 +552,12 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
   }
 
   // Lógica de Estado dinámico general
-  const isRaining = data.nivelLluvia >= 20
-  const isRainHeavy = data.nivelLluvia >= 70
-  const isAirBad = data.calidadAire >= 1400
-  const isAirDangerous = data.calidadAire >= 1800
-  const isTempExtreme = data.temperatura > 28 || data.temperatura < 19
-  const isHumExtreme = data.humedad > 75 || data.humedad < 40
+  const isRaining = data.nivelLluvia >= THRESHOLDS.rain.detected
+  const isRainHeavy = data.nivelLluvia >= THRESHOLDS.rain.heavy
+  const isAirBad = data.calidadAire >= THRESHOLDS.airQuality.regular
+  const isAirDangerous = data.calidadAire >= THRESHOLDS.airQuality.bad
+  const isTempExtreme = data.temperatura > THRESHOLDS.temperature.max || data.temperatura < THRESHOLDS.temperature.min
+  const isHumExtreme = data.humedad > THRESHOLDS.humidity.comfortMax || data.humedad < THRESHOLDS.humidity.min
 
   let stateLabel = "SISTEMA ESTABLE"
   let stateSubtitle = "Condiciones normales de operación"
@@ -559,6 +584,8 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
     bgGradient = "from-amber-500/8 via-transparent to-transparent"
     svgSrc = "/svg/Ambiente húmedo.svg"
   }
+
+  const recs = getRecommendations(data)
 
   return (
     <Panel variant="hero" className={cn(`flex flex-col justify-between overflow-hidden relative bg-gradient-to-b ${bgGradient} p-4 pb-3`, className)}>
@@ -590,29 +617,20 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
           </div>
         </div>
 
-        {/* Industrial Checklist */}
-        <div className="flex flex-col gap-1.5 border-l border-border/10 pl-4">
-          <span className="text-[8.5px] font-extrabold tracking-widest uppercase text-muted-foreground/60 mb-1">Diagnóstico Rápido</span>
-          
-          <div className="flex items-center gap-2 text-[10.5px] font-semibold text-foreground">
-            <span className={cn("text-xs", isRaining ? "text-sky-400" : "text-emerald-400")}>●</span>
-            <span>{isRaining ? "Lluvia detectada" : "Sin precipitación"}</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-[10.5px] font-semibold text-foreground">
-            <span className={cn("text-xs", isAirDangerous ? "text-red-400" : isAirBad ? "text-amber-400" : "text-emerald-400")}>●</span>
-            <span>{isAirDangerous ? "Calidad de aire: Crítica" : isAirBad ? "Calidad de aire: Mala" : "Calidad de aire: Limpio"}</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-[10.5px] font-semibold text-foreground">
-            <span className={cn("text-xs", isTempExtreme ? "text-amber-400" : "text-emerald-400")}>●</span>
-            <span>{isTempExtreme ? `Temperatura: Extrema (${data.temperatura.toFixed(1)}°C)` : `Temperatura: Estable (${data.temperatura.toFixed(1)}°C)`}</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-[10.5px] font-semibold text-foreground">
-            <span className={cn("text-xs", isHumExtreme ? "text-amber-400" : "text-emerald-400")}>●</span>
-            <span>{isHumExtreme ? "Humedad: Fuera de rango" : "Humedad: Rango confortable"}</span>
-          </div>
+        {/* Dynamic Recommendations list instead of static checklist */}
+        <div className="flex flex-col gap-2 border-l border-border/10 pl-4 h-full max-h-[170px] overflow-y-auto pr-1">
+          <span className="text-[8.5px] font-extrabold tracking-widest uppercase text-muted-foreground/60 mb-0.5">Asistente Agronómico</span>
+          {recs.map(rec => (
+            <div key={rec.id} className="flex flex-col gap-0.5">
+              <span className={cn(
+                "text-[10px] font-bold uppercase tracking-wide flex items-center gap-1",
+                rec.type === "warning" ? "text-amber-500" : rec.type === "success" ? "text-emerald-500" : "text-sky-500"
+              )}>
+                <span>●</span> {rec.title}
+              </span>
+              <p className="text-[9px] text-muted-foreground/80 leading-normal pl-2">{rec.message}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -623,4 +641,5 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
     </Panel>
   )
 }
+
 

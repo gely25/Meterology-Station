@@ -32,8 +32,8 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
     }
     if (status === 'operativo') return {
       label: 'Operativo',
-      textClass: 'text-success',
-      dotClass: 'bg-success shadow-[0_0_5px] shadow-success animate-pulse',
+      textClass: 'text-[#6ab187]',
+      dotClass: 'bg-[#6ab187] shadow-[0_0_5px_#6ab18755] animate-pulse',
     }
     if (status === 'error') return {
       label: 'Error',
@@ -64,9 +64,9 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
                 <Cpu className="size-3.5 text-muted-foreground shrink-0" />
                 <span className="text-[10px] font-semibold text-foreground truncate">ESP32</span>
               </span>
-              <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", esp32Connected ? 'text-success' : 'text-alert')}>
+              <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", esp32Connected ? 'text-[#6ab187]' : 'text-alert')}>
                 {esp32Connected ? 'Conectado' : 'Sin conexión'}
-                <span className={cn("size-1.5 rounded-full shrink-0", esp32Connected ? 'bg-success shadow-[0_0_5px] shadow-success animate-pulse' : 'bg-alert shadow-[0_0_5px] shadow-alert')} />
+                <span className={cn("size-1.5 rounded-full shrink-0", esp32Connected ? 'bg-[#6ab187] shadow-[0_0_5px_#6ab18755] animate-pulse' : 'bg-alert shadow-[0_0_5px] shadow-alert')} />
               </span>
             </div>
           </div>
@@ -163,7 +163,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
       <div className="mt-1.5 pt-1.5 border-t border-border/40 flex flex-wrap items-center gap-x-2.5 gap-y-1 shrink-0">
         <span className="text-[7px] font-extrabold uppercase tracking-wider text-muted-foreground/50 mr-0.5">Estado:</span>
         {[
-          { label: 'Operativo',         dot: 'bg-success shadow-[0_0_4px] shadow-success' },
+          { label: 'Operativo',         dot: 'bg-[#6ab187] shadow-[0_0_4px_#6ab18755]' },
           { label: 'Esperando lectura', dot: 'bg-sky-400 shadow-[0_0_4px] shadow-sky-400' },
           { label: 'Error',             dot: 'bg-warning shadow-[0_0_4px] shadow-warning' },
           { label: 'Sin conexión',      dot: 'bg-alert shadow-[0_0_4px] shadow-alert' },

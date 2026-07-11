@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import {
   Info, Clock, Wifi, Settings, Thermometer, Wind,
-  CloudRain, Gauge, Bell, Search, WifiOff, X, Filter, CalendarDays
+  CloudRain, Gauge, Bell, Search, WifiOff, X, Filter, CalendarDays,
+  TriangleAlert, BellRing, Activity, List, Download, ChevronDown, FileSpreadsheet, FileText
 } from "lucide-react"
 import { Panel } from "./panel"
 import type { WeatherData, SystemEvent } from "@/types/weather"
+import { weatherService } from "@/services/weatherService"
 import { cn } from "@/lib/utils"
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -155,6 +157,44 @@ function getEventDetails(message: string): { title: string; desc: string; orig: 
   return { title, desc, orig }
 }
 
+// Mini-tendencia de advertencias por hora, construida con los eventos reales
+function WarningSparkline({ events }: { events: SystemEvent[] }) {
+  const BUCKETS = 12
+  const now = Date.now()
+  const bucketMs = 3_600_000 // 1 hora
+
+  const counts = Array.from({ length: BUCKETS }, (_, i) => {
+    const bucketStart = now - (BUCKETS - i) * bucketMs
+    const bucketEnd = bucketStart + bucketMs
+    return events.filter(e => {
+      if (e.type !== "warning") return false
+      const ts = (e.timestamp != null && e.timestamp > 0) ? e.timestamp : now
+      return ts >= bucketStart && ts < bucketEnd
+    }).length
+  })
+
+  const max = Math.max(1, ...counts)
+  const w = 64, h = 20
+  const points = counts.map((c, i) => {
+    const x = (i / (BUCKETS - 1)) * w
+    const y = h - (c / max) * h
+    return `${x},${y}`
+  }).join(" ")
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="flex-shrink-0 overflow-visible">
+      <polyline
+        points={points}
+        fill="none"
+        className="stroke-amber-500 dark:stroke-amber-400"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export function EventsView({ data }: { data: WeatherData }) {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("todos")
@@ -165,6 +205,20 @@ export function EventsView({ data }: { data: WeatherData }) {
   const [dateTo,         setDateTo]         = useState("")
   const [currentPage,    setCurrentPage]    = useState(1)
   const [pageSize,       setPageSize]       = useState(15)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [isExporting,    setIsExporting]    = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+
+  // Cierra el menú de exportación al hacer clic fuera de él
+  useEffect(() => {
+    function onClickOutside(ev: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(ev.target as Node)) {
+        setExportMenuOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside)
+    return () => document.removeEventListener("mousedown", onClickOutside)
+  }, [])
 
   const { events } = data
 
@@ -257,13 +311,140 @@ export function EventsView({ data }: { data: WeatherData }) {
   const criticalCount = events.filter(e => e.type === "alert").length
   const warningCount  = events.filter(e => e.type === "warning").length
 
+  // ── Filas compartidas para ambos formatos de exportación (respeta filtros activos) ──
+  const buildExportRows = useCallback(() => {
+    return filteredEvents.map(e => {
+      const cfg     = TYPE_CFG[e.type] ?? TYPE_CFG.info
+      const details = getEventDetails(e.message)
+      const ts      = (e.timestamp != null && e.timestamp > 0) ? e.timestamp : Date.now()
+      const d       = new Date(ts)
+      return {
+        fecha:    d.toLocaleDateString("es-EC", { day: "2-digit", month: "2-digit", year: "numeric" }),
+        hora:     e.time ?? d.toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }),
+        nivel:    cfg.label,
+        tipo:     e.type,
+        origen:   details.orig,
+        categoria: classifyCategory(e.message),
+        mensaje:  e.message,
+      }
+    })
+  }, [filteredEvents])
+
+  // ── CSV Export — datos crudos, ideal para importar a otro sistema ──────────────
+  const handleExportCSV = () => {
+    if (filteredEvents.length === 0) return
+    const rows = buildExportRows()
+    const csvRows: string[] = []
+    csvRows.push(["fecha", "hora", "nivel", "origen", "categoria", "mensaje"].join(","))
+    rows.forEach(r => {
+      const safeMsg = `"${r.mensaje.replace(/"/g, '""')}"`
+      csvRows.push([r.fecha, r.hora, r.nivel, r.origen, r.categoria, safeMsg].join(","))
+    })
+    // BOM al inicio: sin esto Excel interpreta el archivo como ANSI y rompe tildes/ñ/guiones (á, ñ, –)
+    const blob = new Blob(["\uFEFF" + csvRows.join("\n")], { type: "text/csv;charset=utf-8;" })
+    const url  = window.URL.createObjectURL(blob)
+    const a    = document.createElement("a")
+    a.setAttribute("hidden", "")
+    a.setAttribute("href", url)
+    a.setAttribute("download", `bitacora_eventos_${new Date().toISOString().slice(0, 10)}.csv`)
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+    weatherService.forceEvent(`Exportación CSV de bitácora realizada (${filteredEvents.length} eventos)`, "info")
+    setExportMenuOpen(false)
+  }
+
+  // ── Excel Export — archivo .xlsx real, con encabezado y color por nivel ────────
+  const handleExportExcel = async () => {
+    if (filteredEvents.length === 0) return
+    setIsExporting(true)
+    try {
+      const ExcelJS = (await import("exceljs")).default
+      const workbook = new ExcelJS.Workbook()
+      workbook.creator = "Estación Meteorológica IoT"
+      workbook.created = new Date()
+
+      const sheet = workbook.addWorksheet("Bitácora", {
+        views: [{ state: "frozen", ySplit: 1 }],
+      })
+
+      sheet.columns = [
+        { header: "Fecha",     key: "fecha",     width: 13 },
+        { header: "Hora",      key: "hora",      width: 12 },
+        { header: "Nivel",     key: "nivel",     width: 14 },
+        { header: "Origen",    key: "origen",    width: 12 },
+        { header: "Categoría", key: "categoria", width: 14 },
+        { header: "Mensaje",   key: "mensaje",   width: 55 },
+      ]
+
+      // Encabezado: negrita, fondo oscuro, texto blanco
+      const headerRow = sheet.getRow(1)
+      headerRow.eachCell(cell => {
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" } }
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } }
+        cell.alignment = { vertical: "middle", horizontal: "left" }
+        cell.border = { bottom: { style: "thin", color: { argb: "FF334155" } } }
+      })
+      headerRow.height = 20
+
+      // Colores de relleno por nivel — mismos tonos semánticos que usa el dashboard
+      const FILL_BY_TYPE: Record<string, string> = {
+        alert:   "FFFEE2E2", // rojo muy claro
+        warning: "FFFEF3C7", // ámbar muy claro
+        success: "FFD1FAE5", // esmeralda muy claro
+        info:    "FFE0F2FE", // celeste muy claro
+      }
+      const FONT_BY_TYPE: Record<string, string> = {
+        alert:   "FF991B1B",
+        warning: "FF92400E",
+        success: "FF065F46",
+        info:    "FF075985",
+      }
+
+      const rows = buildExportRows()
+      rows.forEach(r => {
+        const row = sheet.addRow({
+          fecha: r.fecha, hora: r.hora, nivel: r.nivel,
+          origen: r.origen, categoria: r.categoria, mensaje: r.mensaje,
+        })
+        const nivelCell = row.getCell("nivel")
+        nivelCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: FILL_BY_TYPE[r.tipo] ?? "FFF1F5F9" } }
+        nivelCell.font = { bold: true, color: { argb: FONT_BY_TYPE[r.tipo] ?? "FF475569" } }
+        nivelCell.alignment = { vertical: "middle", horizontal: "center" }
+        row.eachCell(cell => {
+          cell.border = { bottom: { style: "hair", color: { argb: "FFE2E8F0" } } }
+          if (cell !== nivelCell) cell.alignment = { vertical: "middle" }
+        })
+      })
+
+      sheet.autoFilter = { from: "A1", to: "F1" }
+
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+      const url  = window.URL.createObjectURL(blob)
+      const a    = document.createElement("a")
+      a.setAttribute("hidden", "")
+      a.setAttribute("href", url)
+      a.setAttribute("download", `bitacora_eventos_${new Date().toISOString().slice(0, 10)}.xlsx`)
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      weatherService.forceEvent(`Exportación Excel de bitácora realizada (${filteredEvents.length} eventos)`, "info")
+    } finally {
+      setIsExporting(false)
+      setExportMenuOpen(false)
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="h-full flex flex-col min-h-0">
       <Panel className="flex-1 min-h-0 flex flex-col p-0 overflow-hidden">
 
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
-        <div className="px-5 py-3 border-b border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-background/50 flex-shrink-0">
+        <div className="px-5 py-3 border-b border-border/50 flex items-center justify-between gap-3 bg-background/50 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center size-8 rounded-lg bg-card border border-border shadow-sm">
               <Bell className="size-3.5 text-muted-foreground" />
@@ -273,64 +454,131 @@ export function EventsView({ data }: { data: WeatherData }) {
               <p className="text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">Registro operativo del sistema</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span className="px-2 py-0.5 rounded border border-red-500/30 bg-red-500/8 text-[9px] font-extrabold text-red-600 dark:text-red-400 whitespace-nowrap">
-              {criticalCount} CRÍTICOS
-            </span>
-            <span className="px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/8 text-[9px] font-extrabold text-amber-600 dark:text-amber-400 whitespace-nowrap">
-              {warningCount} ADVERTENCIAS
-            </span>
-            <span className="px-2 py-0.5 rounded border border-border/40 bg-card/50 text-[9px] font-extrabold text-muted-foreground whitespace-nowrap">
-              {events.length} TOTAL
-            </span>
+
+          <div className="relative flex-shrink-0" ref={exportMenuRef}>
+            <button
+              onClick={() => setExportMenuOpen(o => !o)}
+              disabled={filteredEvents.length === 0 || isExporting}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors text-[10.5px] font-semibold text-foreground",
+                (filteredEvents.length === 0 || isExporting) && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <Download className="size-3.5" />
+              <span className="hidden sm:inline">{isExporting ? "Generando…" : "Exportar"}</span>
+              <ChevronDown className={cn("size-3 transition-transform", exportMenuOpen && "rotate-180")} />
+            </button>
+
+            {exportMenuOpen && (
+              <div className="absolute right-0 top-[calc(100%+4px)] z-20 w-52 rounded-lg border border-border bg-card shadow-lg overflow-hidden py-1">
+                <button
+                  onClick={handleExportExcel}
+                  className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-muted/50 transition-colors"
+                >
+                  <FileSpreadsheet className="size-3.5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>
+                    <span className="block text-[11px] font-semibold text-foreground">Excel (.xlsx)</span>
+                    <span className="block text-[9px] text-muted-foreground">Con formato y color por nivel</span>
+                  </span>
+                </button>
+                <button
+                  onClick={handleExportCSV}
+                  className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-muted/50 transition-colors"
+                >
+                  <FileText className="size-3.5 text-sky-600 dark:text-sky-400 mt-0.5 flex-shrink-0" />
+                  <span>
+                    <span className="block text-[11px] font-semibold text-foreground">CSV</span>
+                    <span className="block text-[9px] text-muted-foreground">Datos crudos, sin formato</span>
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── SUMMARY CARDS ──────────────────────────────────────────────── */}
+        <div className="px-4 pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 flex-shrink-0">
+          {/* Críticos */}
+          <div className="rounded-xl border border-border/50 bg-card px-4 py-3 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center justify-center size-8 rounded-lg bg-red-500/10 border border-red-500/25">
+                <TriangleAlert className="size-4 text-red-600 dark:text-red-400" />
+              </span>
+              <span className="text-2xl font-extrabold font-mono text-red-600 dark:text-red-400 leading-none">{criticalCount}</span>
+            </div>
+            <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Críticos</span>
+          </div>
+
+          {/* Advertencias */}
+          <div className="rounded-xl border border-border/50 bg-card px-4 py-3 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center justify-center size-8 rounded-lg bg-amber-500/10 border border-amber-500/25 flex-shrink-0">
+                <BellRing className="size-4 text-amber-600 dark:text-amber-400" />
+              </span>
+              <span className="text-2xl font-extrabold font-mono text-amber-600 dark:text-amber-400 leading-none">{warningCount}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Advertencias</span>
+              <WarningSparkline events={events} />
+            </div>
+          </div>
+
+          {/* Total */}
+          <div className="rounded-xl border border-border/50 bg-card px-4 py-3 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center justify-center size-8 rounded-lg bg-sky-500/10 border border-sky-500/25">
+                <Activity className="size-4 text-sky-600 dark:text-sky-400" />
+              </span>
+              <span className="text-2xl font-extrabold font-mono text-foreground leading-none">{events.length}</span>
+            </div>
+            <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Total de eventos</span>
           </div>
         </div>
 
         {/* ── FILTER TOOLBAR ─────────────────────────────────────────────── */}
         <div className="px-4 py-2.5 border-b border-border/20 bg-background/15 flex flex-col gap-2 flex-shrink-0">
 
-          {/* Row 1: Search + Date filters + Clear button */}
+          {/* Row 1: Search (dominant) + Date quick-filters + Clear link */}
           <div className="flex flex-wrap gap-2 items-center">
-            {/* Search */}
-            <div className="relative min-w-[180px] flex-1 max-w-xs">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground/40 pointer-events-none" />
+            {/* Search — takes most of the row's width */}
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/40 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Buscar…"
+                placeholder="Buscar por mensaje, sensor u origen…"
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); resetPage() }}
-                className="w-full pl-7 pr-3 py-1 text-[11px] rounded border border-border/60 bg-background/80 text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
+                className="w-full pl-9 pr-3 py-1.5 text-[11px] rounded-lg border border-border/60 bg-background/80 text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
               />
             </div>
 
-            {/* Date quick-filters */}
-            <div className="flex items-center gap-0.5 bg-card/30 border border-border/40 rounded p-0.5">
-              <CalendarDays className="size-3 text-muted-foreground/40 ml-1.5 mr-1" />
+            {/* Date quick-filters — individual pill buttons */}
+            <div className="flex items-center gap-1 flex-shrink-0">
               {DATE_FILTERS.map(f => (
                 <button
                   key={f.id}
                   title={f.description}
                   onClick={() => { setQuickDate(f.id); resetPage() }}
                   className={cn(
-                    "px-2.5 py-0.5 text-[9px] font-bold rounded transition-all duration-150 tracking-wider",
+                    "px-2.5 py-1.5 text-[9.5px] font-bold rounded-lg border transition-all duration-150 tracking-wider whitespace-nowrap",
                     quickDate === f.id
-                      ? "bg-sky-500/20 text-sky-600 dark:text-sky-400 shadow-sm"
-                      : "text-muted-foreground/60 hover:text-foreground hover:bg-card/60"
+                      ? "bg-sky-500 border-sky-500 text-white shadow-sm"
+                      : "border-border/50 text-muted-foreground/70 hover:text-foreground hover:border-border"
                   )}
                 >{f.label}</button>
               ))}
             </div>
 
-            {/* Clear all button — visible only when filters active */}
+            {/* Clear all — plain text link, only meaningful once a filter is active */}
             <button
               onClick={clearAllFilters}
-              className={cn(
-                "flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold rounded border transition-all duration-150",
-                hasActiveFilters
-                  ? "border-red-500/30 bg-red-500/8 text-red-600 dark:text-red-400 hover:bg-red-500/15"
-                  : "border-border/30 bg-card/20 text-muted-foreground/40 cursor-default"
-              )}
               disabled={!hasActiveFilters}
+              className={cn(
+                "flex items-center gap-1 px-1.5 py-1 text-[10px] font-bold transition-colors duration-150 flex-shrink-0",
+                hasActiveFilters
+                  ? "text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
+                  : "text-muted-foreground/30 cursor-default"
+              )}
             >
               <X className="size-3" />
               Limpiar
@@ -355,58 +603,64 @@ export function EventsView({ data }: { data: WeatherData }) {
             </div>
           )}
 
-          {/* Row 2: Category chips + Clear */}
-          <div className="flex flex-wrap gap-1 items-center">
-            <span className="text-[8.5px] font-extrabold uppercase tracking-widest text-muted-foreground/45 mr-0.5 flex-shrink-0">Categoría:</span>
-            {CATEGORY_FILTERS.map(f => (
-              <button
-                key={f.id}
-                onClick={() => { setCategoryFilter(f.id); resetPage() }}
-                className={cn(
-                  "px-2 py-0.5 text-[9px] font-bold rounded border transition-all duration-150",
-                  categoryFilter === f.id
-                    ? "bg-foreground/10 border-foreground/30 text-foreground"
-                    : "border-border/40 bg-transparent text-muted-foreground/60 hover:text-foreground hover:border-border/70"
-                )}
-              >{f.label}</button>
-            ))}
-            {/* Inline clear for category */}
-            {categoryFilter !== "todos" && (
-              <button
-                onClick={() => { setCategoryFilter("todos"); resetPage() }}
-                className="ml-0.5 flex items-center gap-0.5 px-1.5 py-0.5 text-[8px] font-bold rounded border border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border"
-              >
-                <X className="size-2.5" />
-              </button>
-            )}
-          </div>
+          {/* Row 2: Category chips + Severity chips — merged into a single line */}
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 items-center">
+            {/* Category group */}
+            <div className="flex flex-wrap gap-1 items-center">
+              <span className="text-[8.5px] font-extrabold uppercase tracking-widest text-muted-foreground/45 mr-0.5 flex-shrink-0 flex items-center gap-1">
+                <List className="size-2.5" />Categoría
+              </span>
+              {CATEGORY_FILTERS.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => { setCategoryFilter(f.id); resetPage() }}
+                  className={cn(
+                    "px-2 py-0.5 text-[9px] font-bold rounded border transition-all duration-150",
+                    categoryFilter === f.id
+                      ? "bg-foreground/10 border-foreground/30 text-foreground"
+                      : "border-border/40 bg-transparent text-muted-foreground/60 hover:text-foreground hover:border-border/70"
+                  )}
+                >{f.label}</button>
+              ))}
+              {categoryFilter !== "todos" && (
+                <button
+                  onClick={() => { setCategoryFilter("todos"); resetPage() }}
+                  className="ml-0.5 flex items-center gap-0.5 px-1.5 py-0.5 text-[8px] font-bold rounded border border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border"
+                >
+                  <X className="size-2.5" />
+                </button>
+              )}
+            </div>
 
-          {/* Row 3: Severity chips + Clear */}
-          <div className="flex flex-wrap gap-1 items-center border-t border-border/10 pt-2">
-            <span className="text-[8.5px] font-extrabold uppercase tracking-widest text-muted-foreground/45 mr-0.5 flex-shrink-0 flex items-center gap-1">
-              <Filter className="size-2.5" />Nivel:
-            </span>
-            {SEVERITY_FILTERS.map(f => (
-              <button
-                key={f.id}
-                onClick={() => { setSeverityFilter(f.id); resetPage() }}
-                className={cn(
-                  "px-2 py-0.5 text-[9px] font-bold rounded border transition-all duration-150",
-                  severityFilter === f.id
-                    ? f.activeClass
-                    : cn("border-border/40 bg-transparent hover:border-border/70 hover:bg-card/30", f.inactiveColor)
-                )}
-              >{f.label}</button>
-            ))}
-            {/* Inline clear for severity */}
-            {severityFilter !== "todos" && (
-              <button
-                onClick={() => { setSeverityFilter("todos"); resetPage() }}
-                className="ml-0.5 flex items-center gap-0.5 px-1.5 py-0.5 text-[8px] font-bold rounded border border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border"
-              >
-                <X className="size-2.5" />
-              </button>
-            )}
+            {/* Divider */}
+            <div className="hidden sm:block h-4 w-px bg-border/25" />
+
+            {/* Severity group */}
+            <div className="flex flex-wrap gap-1 items-center">
+              <span className="text-[8.5px] font-extrabold uppercase tracking-widest text-muted-foreground/45 mr-0.5 flex-shrink-0 flex items-center gap-1">
+                <Filter className="size-2.5" />Nivel
+              </span>
+              {SEVERITY_FILTERS.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => { setSeverityFilter(f.id); resetPage() }}
+                  className={cn(
+                    "px-2 py-0.5 text-[9px] font-bold rounded border transition-all duration-150",
+                    severityFilter === f.id
+                      ? f.activeClass
+                      : cn("border-border/40 bg-transparent hover:border-border/70 hover:bg-card/30", f.inactiveColor)
+                  )}
+                >{f.label}</button>
+              ))}
+              {severityFilter !== "todos" && (
+                <button
+                  onClick={() => { setSeverityFilter("todos"); resetPage() }}
+                  className="ml-0.5 flex items-center gap-0.5 px-1.5 py-0.5 text-[8px] font-bold rounded border border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border"
+                >
+                  <X className="size-2.5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -439,17 +693,15 @@ export function EventsView({ data }: { data: WeatherData }) {
               {Object.keys(groupedEvents).map(groupKey => (
                 <div key={groupKey} className="space-y-1">
 
-                  {/* Day separator */}
-                  <div className="flex items-center gap-2 py-1 select-none">
-                    <div className="h-px flex-1 bg-border/15" />
-                    <span className="text-[8.5px] font-extrabold uppercase tracking-widest text-muted-foreground/45 bg-background border border-border/25 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                  {/* Day separator — solid bar, full width */}
+                  <div className="select-none rounded-md bg-card/60 border border-border/30 px-3 py-1.5 mb-1">
+                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-muted-foreground/60">
                       {groupKey}
                     </span>
-                    <div className="h-px flex-1 bg-border/15" />
                   </div>
 
                   {/* Col headers */}
-                  <div className="grid grid-cols-12 gap-2 px-3 py-1 text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/40">
+                  <div className="grid grid-cols-12 gap-2 px-3 py-1.5 mb-1 border-b border-border/20 text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/40">
                     <div className="col-span-3">Hora / Fecha</div>
                     <div className="col-span-2 text-center">Nivel</div>
                     <div className="col-span-1 text-center">Origen</div>
@@ -477,14 +729,9 @@ export function EventsView({ data }: { data: WeatherData }) {
                           )}
                         >
                           {/* 1. Time + Date */}
-                          <div className="col-span-3 flex items-center gap-2 min-w-0">
-                            <span className="flex items-center justify-center size-6 rounded bg-background/80 border border-border/40 flex-shrink-0">
-                              <EventIcon msg={event.message} type={event.type} />
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-bold font-mono text-foreground leading-none">{timeStr}</p>
-                              <p className="text-[9px] font-semibold text-muted-foreground/80 mt-0.5 truncate">{dateStr}</p>
-                            </div>
+                          <div className="col-span-3 min-w-0">
+                            <p className="text-[11px] font-bold font-mono text-foreground leading-none">{timeStr}</p>
+                            <p className="text-[9px] font-semibold text-muted-foreground/80 mt-0.5 truncate">{dateStr}</p>
                           </div>
 
                           {/* 2. Severity badge */}
@@ -495,8 +742,11 @@ export function EventsView({ data }: { data: WeatherData }) {
                           </div>
 
                           {/* 3. Origin */}
-                          <div className="col-span-1 text-center">
-                            <span className="text-[9px] font-bold text-foreground/65 tracking-wider">{details.orig}</span>
+                          <div className="col-span-1 flex flex-col items-center gap-0.5">
+                            <EventIcon msg={event.message} type={event.type} />
+                            <span className="text-[8.5px] font-semibold text-foreground/65">
+                              {details.orig.charAt(0) + details.orig.slice(1).toLowerCase()}
+                            </span>
                           </div>
 
                           {/* 4. Message */}
@@ -507,13 +757,8 @@ export function EventsView({ data }: { data: WeatherData }) {
 
                           {/* 5. Status + category */}
                           <div className="col-span-2 flex flex-col items-end gap-0.5 pr-1">
-                            <div className="flex items-center gap-1">
-                              <span className={cn("size-1.5 rounded-full flex-shrink-0",
-                                cfg.stateColor.replace("text-", "bg-").replace(/\s+dark:\S+/, "")
-                              )} />
-                              <span className={cn("text-[8px] font-bold uppercase", cfg.stateColor)}>{cfg.stateLabel}</span>
-                            </div>
-                            <span className="text-[7px] font-bold uppercase tracking-wider text-muted-foreground/45 border border-border/30 px-1 py-px rounded">
+                            <span className={cn("text-[9px] font-extrabold uppercase", cfg.stateColor)}>{cfg.stateLabel}</span>
+                            <span className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                               {category}
                             </span>
                           </div>

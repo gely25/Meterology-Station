@@ -1,4 +1,5 @@
 import { WeatherData, HistoryPoint, SystemEvent, EventType } from '../types/weather';
+import { THRESHOLDS } from '../lib/thresholds';
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -161,9 +162,9 @@ class WeatherService {
   }
 
   private deriveWeatherState(lluvia: number, humedad: number): string {
-    if (lluvia >= 70) return 'Lluvia intensa';
-    if (lluvia > 20) return 'Lluvia detectada';
-    if (humedad > 70) return 'Ambiente húmedo';
+    if (lluvia >= THRESHOLDS.rain.heavy) return 'Lluvia intensa';
+    if (lluvia >= THRESHOLDS.rain.detected) return 'Lluvia detectada';
+    if (humedad > THRESHOLDS.humidity.comfortMax) return 'Ambiente húmedo';
     return 'Ambiente despejado';
   }
 
@@ -244,8 +245,8 @@ class WeatherService {
 
       history = [...history.slice(history.length >= 3600 ? 1 : 0), newPoint];
 
-      const intenso = nivelLluvia >= 70;
-      const estadoLluvia = intenso ? 'Intensa' : nivelLluvia >= 20 ? 'Ligera' : 'Seco';
+      const intenso = nivelLluvia >= THRESHOLDS.rain.heavy;
+      const estadoLluvia = intenso ? 'Intensa' : nivelLluvia >= THRESHOLDS.rain.detected ? 'Ligera' : 'Seco';
       const alertaActiva = intenso ? 'LLUVIA INTENSA DETECTADA' : null;
       const estadoClima = this.deriveWeatherState(nivelLluvia, humedad);
 
@@ -263,9 +264,9 @@ class WeatherService {
       }
 
       // Sensores: transiciones de lluvia
-      if (nivelLluvia > 20 && this.currentData.nivelLluvia <= 20) {
+      if (nivelLluvia >= THRESHOLDS.rain.detected && this.currentData.nivelLluvia < THRESHOLDS.rain.detected) {
         this.addEvent('Sensor de lluvia: precipitación detectada', 'warning');
-      } else if (nivelLluvia <= 20 && this.currentData.nivelLluvia > 20) {
+      } else if (nivelLluvia < THRESHOLDS.rain.detected && this.currentData.nivelLluvia >= THRESHOLDS.rain.detected) {
         this.addEvent('Sensor de lluvia: precipitación finalizada', 'success');
       }
 
@@ -304,8 +305,8 @@ class WeatherService {
       }
 
       // Sensores: cambio de categoría de calidad del aire (MQ135)
-      const newAQCat = calidadAire < 600 ? 'Excelente' : calidadAire < 1000 ? 'Buena' : calidadAire < 1400 ? 'Moderada' : calidadAire < 1800 ? 'Mala' : 'Muy mala';
-      const oldAQCat = this.currentData.calidadAire < 600 ? 'Excelente' : this.currentData.calidadAire < 1000 ? 'Buena' : this.currentData.calidadAire < 1400 ? 'Moderada' : this.currentData.calidadAire < 1800 ? 'Mala' : 'Muy mala';
+      const newAQCat = calidadAire < THRESHOLDS.airQuality.excellent ? 'Excelente' : calidadAire < THRESHOLDS.airQuality.acceptable ? 'Buena' : calidadAire < THRESHOLDS.airQuality.regular ? 'Moderada' : calidadAire < THRESHOLDS.airQuality.bad ? 'Mala' : 'Muy mala';
+      const oldAQCat = this.currentData.calidadAire < THRESHOLDS.airQuality.excellent ? 'Excelente' : this.currentData.calidadAire < THRESHOLDS.airQuality.acceptable ? 'Buena' : this.currentData.calidadAire < THRESHOLDS.airQuality.regular ? 'Moderada' : this.currentData.calidadAire < THRESHOLDS.airQuality.bad ? 'Mala' : 'Muy mala';
       if (newAQCat !== oldAQCat) {
         const aqType = (newAQCat === 'Mala' || newAQCat === 'Muy mala') ? 'warning' as EventType : 'success' as EventType;
         this.addEvent(`Sensor MQ135: calidad del aire cambió a ${newAQCat}`, aqType);
@@ -385,8 +386,8 @@ class WeatherService {
 
     history = [...history.slice(history.length >= 3600 ? 1 : 0), newPoint];
 
-    const intenso = nivelLluvia >= 70;
-    const estadoLluvia = intenso ? 'Intensa' : nivelLluvia >= 20 ? 'Ligera' : 'Seco';
+    const intenso = nivelLluvia >= THRESHOLDS.rain.heavy;
+    const estadoLluvia = intenso ? 'Intensa' : nivelLluvia >= THRESHOLDS.rain.detected ? 'Ligera' : 'Seco';
     const alertaActiva = intenso ? 'LLUVIA INTENSA DETECTADA' : null;
     const estadoClima = this.deriveWeatherState(nivelLluvia, humedad);
 
@@ -404,9 +405,9 @@ class WeatherService {
     }
 
     // Sensores: transiciones de lluvia
-    if (nivelLluvia > 20 && this.currentData.nivelLluvia <= 20) {
+    if (nivelLluvia >= THRESHOLDS.rain.detected && this.currentData.nivelLluvia < THRESHOLDS.rain.detected) {
       this.addEvent('Sensor de lluvia: precipitación detectada', 'warning');
-    } else if (nivelLluvia <= 20 && this.currentData.nivelLluvia > 20) {
+    } else if (nivelLluvia < THRESHOLDS.rain.detected && this.currentData.nivelLluvia >= THRESHOLDS.rain.detected) {
       this.addEvent('Sensor de lluvia: precipitación finalizada', 'success');
     }
 
@@ -417,32 +418,32 @@ class WeatherService {
     }
 
     // Sensores: calidad del aire (MQ135)
-    const newAQCat = calidadAire < 100 ? 'Buena' : calidadAire < 200 ? 'Moderada' : 'Mala';
-    const oldAQCat = this.currentData.calidadAire < 100 ? 'Buena' : this.currentData.calidadAire < 200 ? 'Moderada' : 'Mala';
+    const newAQCat = calidadAire < THRESHOLDS.airQuality.excellent ? 'Excelente' : calidadAire < THRESHOLDS.airQuality.acceptable ? 'Moderada' : 'Mala';
+    const oldAQCat = this.currentData.calidadAire < THRESHOLDS.airQuality.excellent ? 'Excelente' : this.currentData.calidadAire < THRESHOLDS.airQuality.acceptable ? 'Moderada' : 'Mala';
     if (newAQCat !== oldAQCat) {
       const aqType: EventType = (newAQCat === 'Mala') ? 'warning' : 'success';
       this.addEvent(`Sensor MQ135: calidad del aire cambió a ${newAQCat}`, aqType);
     }
 
     // Sensores: umbrales de temperatura (AHT10)
-    if (temperatura > 28 && this.currentData.temperatura <= 28) {
-      this.addEvent('Sensor AHT10: temperatura superó 28 °C', 'warning');
-    } else if (temperatura < 19 && this.currentData.temperatura >= 19) {
-      this.addEvent('Sensor AHT10: temperatura bajo 19 °C', 'warning');
+    if (temperatura > THRESHOLDS.temperature.max && this.currentData.temperatura <= THRESHOLDS.temperature.max) {
+      this.addEvent(`Sensor AHT10: temperatura superó ${THRESHOLDS.temperature.max} °C`, 'warning');
+    } else if (temperatura < THRESHOLDS.temperature.min && this.currentData.temperatura >= THRESHOLDS.temperature.min) {
+      this.addEvent(`Sensor AHT10: temperatura bajo ${THRESHOLDS.temperature.min} °C`, 'warning');
     }
 
     // Sensores: umbrales de humedad (AHT10)
-    if (humedad > 85 && this.currentData.humedad <= 85) {
-      this.addEvent('Sensor AHT10: humedad superó 85%', 'warning');
-    } else if (humedad < 45 && this.currentData.humedad >= 45) {
-      this.addEvent('Sensor AHT10: humedad bajo 45%', 'warning');
+    if (humedad > THRESHOLDS.humidity.max && this.currentData.humedad <= THRESHOLDS.humidity.max) {
+      this.addEvent(`Sensor AHT10: humedad superó ${THRESHOLDS.humidity.max}%`, 'warning');
+    } else if (humedad < THRESHOLDS.humidity.min && this.currentData.humedad >= THRESHOLDS.humidity.min) {
+      this.addEvent(`Sensor AHT10: humedad bajo ${THRESHOLDS.humidity.min}%`, 'warning');
     }
 
     // Sensores: umbrales de presión (BMP280)
-    if (presion < 1000 && this.currentData.presion >= 1000) {
-      this.addEvent('Sensor BMP280: presión bajo 1000 hPa', 'warning');
-    } else if (presion > 1025 && this.currentData.presion <= 1025) {
-      this.addEvent('Sensor BMP280: presión superó 1025 hPa', 'info');
+    if (presion < THRESHOLDS.pressure.min && this.currentData.presion >= THRESHOLDS.pressure.min) {
+      this.addEvent(`Sensor BMP280: presión bajo ${THRESHOLDS.pressure.min} hPa`, 'warning');
+    } else if (presion > THRESHOLDS.pressure.max && this.currentData.presion <= THRESHOLDS.pressure.max) {
+      this.addEvent(`Sensor BMP280: presión superó ${THRESHOLDS.pressure.max} hPa`, 'info');
     }
 
     // Sistema: hito de uptime cada 30 minutos (1800 ticks a 1 seg)
@@ -465,7 +466,7 @@ class WeatherService {
       history,
       estadoLluvia,
       estadoClima,
-      estadoCalidadAire: calidadAire < 100 ? 'BUENA' : calidadAire < 200 ? 'MODERADA' : 'MALA',
+      estadoCalidadAire: calidadAire < THRESHOLDS.airQuality.excellent ? 'BUENA' : calidadAire < THRESHOLDS.airQuality.acceptable ? 'MODERADA' : 'MALA',
       alertaActiva,
       wifiRSSI,
       wifiCalidad,

@@ -2,285 +2,552 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Estación Meteorológica IoT — Modo Oscuro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitácora de Eventos · Estación Meteorológica IoT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+  :root{
+    --bg-deep:#0a0f1a;
+    --bg-body:#0e1524;
+    --surface:#131b2e;
+    --surface-raised:#1a2338;
+    --surface-hover:#1f2a45;
+    --border:#242f48;
+    --border-soft:#1c2740;
+    --text-primary:#e7ecf6;
+    --text-secondary:#9aa8c4;
+    --text-muted:#5f6d8c;
+    --accent-blue:#5b8def;
+    --accent-cyan:#3ecfc0;
+    --accent-amber:#f2a93b;
+    --accent-red:#f0555a;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
 
-:root{
-  --bg:#0A0A0B;
-  --bg-glow: none;
-  --panel:#141416;
-  --panel-2:#101012;
-  --line:#242427;
-  --line-soft:#1C1C1F;
-  --ink:#EDEDEF;
-  --ink-soft:#8A8A90;
-  --ink-dim:#57575C;
-  --accent:#5FE3C4;
-  --accent-soft:rgba(95,227,196,.12);
-  --good:#5FE3C4;
-  --warn:#F0B25E;
-  --bad:#F0716B;
-  --rain:#79ADEE;
-  --temp:#F0916B;
-  --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 10px 30px -14px rgba(0,0,0,.7);
-}
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{color-scheme:dark;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(91,141,239,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(62,207,192,0.07), transparent 55%),
+      var(--bg-body);
+    color:var(--text-primary);
+    font-family:var(--font-body);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(91,141,239,0.35);}
+  ::-webkit-scrollbar{width:10px; height:10px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border); border-radius:6px;}
+  ::-webkit-scrollbar-thumb:hover{background:#33405e;}
+  :focus-visible{outline:2px solid var(--accent-blue); outline-offset:2px; border-radius:4px;}
+  button{font-family:inherit; cursor:pointer;}
 
-*{box-sizing:border-box; margin:0; padding:0;}
-body{
-  background-color:var(--bg);
-  background-image:var(--bg-glow);
-  color:var(--ink);
-  font-family:'Space Grotesk', sans-serif;
-  padding:28px;
-}
+  /* ---------- Top nav ---------- */
+  .topbar{
+    display:flex; align-items:center; gap:28px;
+    padding:14px 28px;
+    background:rgba(10,15,26,0.85);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border-soft);
+    position:sticky; top:0; z-index:40;
+  }
+  .brand{display:flex; align-items:center; gap:12px; flex-shrink:0;}
+  .brand-mark{
+    width:38px; height:38px; border-radius:10px;
+    background:linear-gradient(145deg, var(--accent-blue), #3a5fc7);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 16px rgba(91,141,239,0.35);
+  }
+  .brand-mark svg{width:20px; height:20px;}
+  .brand-text .name{font-family:var(--font-display); font-weight:700; font-size:14.5px; letter-spacing:0.3px;}
+  .brand-text .group{font-size:10.5px; color:var(--accent-cyan); font-weight:600; letter-spacing:1.2px; font-family:var(--font-mono);}
 
-.topbar{
-  background:var(--panel); border:1px solid var(--line); border-radius:16px;
-  padding:14px 22px; display:flex; align-items:center; justify-content:space-between;
-  box-shadow:var(--shadow); margin-bottom:16px; flex-wrap:wrap; gap:12px;
-}
-.brand{display:flex; align-items:center; gap:12px;}
-.brand .icon{
-  width:38px; height:38px; border-radius:11px; background:var(--accent-soft);
-  display:flex; align-items:center; justify-content:center; font-size:19px;
-}
-.brand h1{font-size:15.5px; font-weight:700; letter-spacing:.01em;}
-.brand p{font-size:11px; color:var(--ink-soft); font-weight:500; letter-spacing:.03em;}
-.nav{display:flex; gap:4px;}
-.nav a{
-  font-size:12.5px; font-weight:600; color:var(--ink-soft); text-decoration:none;
-  padding:9px 15px; border-radius:9px;
-}
-.nav a.on{background:var(--accent-soft); color:var(--accent);}
-.status-chip{
-  display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700;
-  color:var(--good); background:var(--accent-soft); padding:6px 12px; border-radius:100px;
-}
-.status-chip i{width:7px; height:7px; border-radius:50%; background:var(--good); box-shadow:0 0 8px var(--good);}
-.clock{font-family:'JetBrains Mono'; font-size:15px; font-weight:700; letter-spacing:.03em;}
-.clock-sub{font-size:10px; color:var(--ink-dim); text-align:right;}
-.moon{
-  width:34px; height:34px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line);
-  display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer;
-}
+  .nav-tabs{display:flex; gap:2px; background:var(--surface); padding:4px; border-radius:12px; border:1px solid var(--border-soft); flex:1; max-width:560px;}
+  .nav-tab{
+    display:flex; align-items:center; gap:7px; padding:9px 14px; border-radius:9px; border:none; background:transparent;
+    color:var(--text-secondary); font-size:12.5px; font-weight:600; letter-spacing:0.3px; white-space:nowrap; flex:1; justify-content:center;
+    transition:background .15s, color .15s;
+  }
+  .nav-tab svg{width:15px; height:15px; opacity:.85;}
+  .nav-tab:hover{color:var(--text-primary); background:var(--surface-hover);}
+  .nav-tab.active{background:var(--accent-blue); color:#fff; box-shadow:0 2px 10px rgba(91,141,239,0.4);}
 
-.stats{
-  display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-bottom:16px;
-}
-.stat{
-  background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px;
-  box-shadow:var(--shadow);
-}
-.stat .lbl{display:flex; align-items:center; gap:6px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:700; margin-bottom:8px;}
-.stat .val{font-size:18.5px; font-weight:700; color:var(--good);}
-.stat .val.neutral{color:var(--ink);}
-.stat .sub{font-size:10.5px; color:var(--ink-dim); margin-top:3px;}
+  .top-status{display:flex; align-items:center; gap:14px; margin-left:auto; flex-shrink:0;}
+  .status-pill{
+    display:flex; align-items:center; gap:8px; padding:7px 12px; background:var(--surface); border:1px solid var(--border-soft); border-radius:10px;
+  }
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--accent-cyan); box-shadow:0 0 0 3px rgba(62,207,192,0.18);}
+  .dot.pulse{animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .status-pill .label{font-size:10px; font-weight:700; letter-spacing:0.5px;}
+  .status-pill .sub{font-size:9px; color:var(--text-muted); font-family:var(--font-mono);}
 
-.grid{
-  display:grid; grid-template-columns:1.05fr 1.3fr 1.3fr; gap:16px; margin-bottom:16px;
-}
-.card{
-  background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px;
-  box-shadow:var(--shadow);
-}
-.card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
-.card-head h3{font-size:11px; text-transform:uppercase; letter-spacing:.07em; font-weight:700; color:var(--ink-soft);}
-.card-head .tag{font-size:10px; color:var(--ink-dim); font-weight:600;}
-.card-head .tag.good{padding:4px 10px; border-radius:100px; background:var(--accent-soft); color:var(--good); font-weight:700;}
+  .clock{font-family:var(--font-mono); text-align:right;}
+  .clock .time{font-size:15px; font-weight:600; letter-spacing:1px;}
+  .clock .date{font-size:9.5px; color:var(--text-muted);}
 
-.summary-body{display:flex; align-items:center; gap:20px; height:150px;}
-.summary-body .emoji{font-size:56px; filter:drop-shadow(0 0 14px rgba(240,178,94,.25));}
-.summary-body ul{list-style:none; font-size:12.5px; color:var(--ink-soft); display:flex; flex-direction:column; gap:9px;}
-.summary-body ul li{display:flex; align-items:center; gap:8px;}
-.summary-body ul li::before{content:''; width:5px; height:5px; border-radius:50%; background:var(--accent);}
-.summary-state{
-  font-size:14.5px; font-weight:700; margin-top:14px; color:var(--good);
-  display:inline-flex; align-items:center; gap:7px;
-  padding:6px 14px; border-radius:100px; background:var(--accent-soft);
-}
-.summary-state.is-rain{ color:var(--rain); background:rgba(121,173,238,.14); }
-.summary-state i{width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 6px currentColor;}
-.summary-sub{font-size:11.5px; color:var(--ink-dim); margin-top:8px;}
+  .icon-btn{
+    width:36px; height:36px; border-radius:10px; border:1px solid var(--border-soft); background:var(--surface);
+    display:flex; align-items:center; justify-content:center; color:var(--text-secondary); position:relative;
+    transition:background .15s, color .15s;
+  }
+  .icon-btn:hover{background:var(--surface-hover); color:var(--text-primary);}
+  .icon-btn svg{width:16px; height:16px;}
+  .badge-notif{position:absolute; top:-3px; right:-3px; width:15px; height:15px; border-radius:50%; background:var(--accent-red); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg-body);}
 
-.metric-num{font-family:'JetBrains Mono'; font-size:52px; font-weight:700; display:flex; align-items:baseline; gap:8px;}
-.metric-num .unit{font-size:16px; font-weight:600; color:var(--ink-soft);}
-.metric-range{font-size:11.5px; color:var(--ink-dim); margin:8px 0 12px;}
-.metric-minmax{display:flex; gap:16px; font-size:11.5px; font-weight:600;}
-.metric-minmax .lbl-inline{color:var(--ink-dim); font-weight:500; margin-right:4px;}
-.pill{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:5px 11px; border-radius:100px; margin-top:12px;}
-.pill.temp{background:rgba(240,145,107,.14); color:var(--temp);}
-.pill.rain{background:rgba(121,173,238,.14); color:var(--rain);}
-.pill.neutral{background:var(--panel-2); color:var(--ink-soft); border:1px solid var(--line);}
+  @media (max-width: 980px){ .nav-tabs{display:none;} }
 
-.sparkline{height:50px; margin-top:14px;}
+  /* ---------- Page ---------- */
+  .page{max-width:1400px; margin:0 auto; padding:30px 28px 60px;}
 
-.bottom{
-  display:grid; grid-template-columns:1fr 1fr 1fr 1.2fr; gap:16px;
-}
-.mini-icon{font-size:30px; margin-bottom:10px; filter:drop-shadow(0 0 10px rgba(124,144,137,.2));}
-.mini-state{font-size:20px; font-weight:700; color:var(--good); margin:6px 0 2px;}
-.mini-sub{font-size:11.5px; color:var(--ink-dim);}
+  .page-header{display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:26px; flex-wrap:wrap;}
+  .page-header-left{display:flex; gap:16px; align-items:center;}
+  .header-icon{
+    width:52px; height:52px; border-radius:14px; background:var(--surface); border:1px solid var(--border-soft);
+    display:flex; align-items:center; justify-content:center; color:var(--accent-blue); flex-shrink:0;
+  }
+  .header-icon svg{width:24px; height:24px;}
+  .eyebrow{font-family:var(--font-mono); font-size:10.5px; letter-spacing:2px; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:4px;}
+  h1{font-family:var(--font-display); font-size:26px; font-weight:700; letter-spacing:-0.3px;}
 
-.sys-row{display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line-soft); font-size:12.5px; font-weight:600;}
-.sys-row:last-child{border-bottom:none;}
-.dot-ok{width:7px; height:7px; border-radius:50%; background:var(--good); box-shadow:0 0 6px var(--good); display:inline-block;}
-.sys-group{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); font-weight:700; margin:12px 0 4px;}
-.sys-group:first-child{margin-top:0;}
+  .export-btn{
+    display:flex; align-items:center; gap:8px; padding:11px 18px; background:var(--accent-blue); color:#fff; border:none; border-radius:11px;
+    font-size:13px; font-weight:600; box-shadow:0 4px 14px rgba(91,141,239,0.3); transition:transform .15s, box-shadow .15s;
+  }
+  .export-btn:hover{transform:translateY(-1px); box-shadow:0 6px 18px rgba(91,141,239,0.42);}
+  .export-btn svg{width:15px; height:15px;}
 
-@media(max-width:1100px){
-  .stats{grid-template-columns:repeat(3,1fr);}
-  .grid{grid-template-columns:1fr;}
-  .bottom{grid-template-columns:1fr 1fr;}
-}
+  /* ---------- Stat strip w/ signature waveform ---------- */
+  .stat-strip{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-bottom:22px;
+  }
+  .stat-card{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:16px; padding:18px 20px;
+    position:relative; overflow:hidden;
+  }
+  .stat-card .stat-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;}
+  .stat-num{font-family:var(--font-display); font-size:30px; font-weight:700; line-height:1;}
+  .stat-label{font-size:11px; color:var(--text-muted); font-weight:600; letter-spacing:0.6px; text-transform:uppercase; margin-top:6px;}
+  .stat-card.crit .stat-num{color:var(--accent-red);}
+  .stat-card.warn .stat-num{color:var(--accent-amber);}
+  .stat-card.total .stat-num{color:var(--text-primary);}
+  .stat-wave{position:absolute; bottom:0; left:0; width:100%; height:34px; opacity:0.55;}
+  .stat-icon{width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .stat-icon svg{width:15px; height:15px;}
+  .stat-card.crit .stat-icon{background:rgba(240,85,90,0.12); color:var(--accent-red);}
+  .stat-card.warn .stat-icon{background:rgba(242,169,59,0.12); color:var(--accent-amber);}
+  .stat-card.total .stat-icon{background:rgba(91,141,239,0.12); color:var(--accent-blue);}
+
+  @media (max-width:760px){ .stat-strip{grid-template-columns:1fr;} }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:16px; padding:16px; margin-bottom:18px;
+  }
+  .search-row{display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
+  .search-box{
+    flex:1; min-width:220px; display:flex; align-items:center; gap:10px; background:var(--bg-deep); border:1px solid var(--border-soft);
+    border-radius:10px; padding:10px 14px;
+  }
+  .search-box svg{width:15px; height:15px; color:var(--text-muted); flex-shrink:0;}
+  .search-box input{
+    background:none; border:none; outline:none; color:var(--text-primary); font-size:13px; width:100%; font-family:var(--font-body);
+  }
+  .search-box input::placeholder{color:var(--text-muted);}
+
+  .date-chips{display:flex; gap:6px; flex-wrap:wrap;}
+  .chip{
+    padding:9px 14px; border-radius:9px; border:1px solid var(--border-soft); background:var(--bg-deep); color:var(--text-secondary);
+    font-size:12px; font-weight:600; white-space:nowrap; transition:all .15s;
+  }
+  .chip:hover{color:var(--text-primary); border-color:#33405e;}
+  .chip.active{background:var(--accent-blue); border-color:var(--accent-blue); color:#fff;}
+  .chip.clear{display:flex; align-items:center; gap:5px; color:var(--text-muted); background:transparent; border:none;}
+  .chip.clear svg{width:12px; height:12px;}
+
+  .filter-row{display:flex; align-items:center; gap:22px; padding-top:14px; border-top:1px solid var(--border-soft); flex-wrap:wrap;}
+  .filter-group{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .filter-group .fg-label{font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text-muted); text-transform:uppercase; display:flex; align-items:center; gap:5px;}
+  .filter-group .fg-label svg{width:12px; height:12px;}
+  .pill-btn{
+    padding:6.5px 13px; border-radius:20px; border:1px solid var(--border-soft); background:var(--bg-deep); color:var(--text-secondary);
+    font-size:11.5px; font-weight:600; transition:all .15s;
+  }
+  .pill-btn:hover{color:var(--text-primary);}
+  .pill-btn.active{color:#fff; border-color:transparent;}
+  .pill-btn[data-level="all"].active{background:#3b4766;}
+  .pill-btn[data-level="critico"].active{background:var(--accent-red);}
+  .pill-btn[data-level="advertencia"].active{background:var(--accent-amber); color:#1a1305;}
+  .pill-btn[data-level="operativo"].active{background:var(--accent-cyan); color:#04211d;}
+  .pill-btn[data-level="config"].active{background:var(--accent-blue);}
+
+  /* ---------- Event list ---------- */
+  .list-panel{background:var(--surface); border:1px solid var(--border-soft); border-radius:16px; overflow:hidden;}
+  .day-divider{
+    text-align:center; padding:12px; font-family:var(--font-mono); font-size:10.5px; letter-spacing:1.5px; color:var(--text-muted);
+    background:var(--bg-deep); border-bottom:1px solid var(--border-soft); text-transform:uppercase; font-weight:600;
+  }
+  .list-head{
+    display:grid; grid-template-columns:150px 120px 110px 1fr 110px; gap:12px; padding:12px 22px;
+    font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text-muted); text-transform:uppercase;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .event-row{
+    display:grid; grid-template-columns:150px 120px 110px 1fr 110px; gap:12px; align-items:center;
+    padding:14px 22px; border-bottom:1px solid var(--border-soft); border-left:3px solid transparent;
+    transition:background .15s;
+  }
+  .event-row:last-child{border-bottom:none;}
+  .event-row:hover{background:var(--surface-hover);}
+  .event-row.lvl-operativo{border-left-color:var(--accent-cyan);}
+  .event-row.lvl-advertencia{border-left-color:var(--accent-amber);}
+  .event-row.lvl-critico{border-left-color:var(--accent-red);}
+  .event-row.lvl-config{border-left-color:var(--accent-blue);}
+
+  .ev-time{font-family:var(--font-mono); display:flex; flex-direction:column;}
+  .ev-time .hh{font-size:13px; font-weight:600;}
+  .ev-time .dd{font-size:10px; color:var(--text-muted);}
+
+  .lvl-badge{
+    display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:7px; font-size:10px; font-weight:700;
+    letter-spacing:0.5px; text-transform:uppercase; width:fit-content;
+  }
+  .lvl-badge::before{content:''; width:6px; height:6px; border-radius:50%;}
+  .lvl-badge.lvl-operativo{background:rgba(62,207,192,0.12); color:var(--accent-cyan);}
+  .lvl-badge.lvl-operativo::before{background:var(--accent-cyan);}
+  .lvl-badge.lvl-advertencia{background:rgba(242,169,59,0.12); color:var(--accent-amber);}
+  .lvl-badge.lvl-advertencia::before{background:var(--accent-amber);}
+  .lvl-badge.lvl-critico{background:rgba(240,85,90,0.12); color:var(--accent-red);}
+  .lvl-badge.lvl-critico::before{background:var(--accent-red);}
+  .lvl-badge.lvl-config{background:rgba(91,141,239,0.12); color:var(--accent-blue);}
+  .lvl-badge.lvl-config::before{background:var(--accent-blue);}
+
+  .ev-origin{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--text-secondary); font-weight:600;}
+  .ev-origin svg{width:14px; height:14px; opacity:.8; flex-shrink:0;}
+
+  .ev-msg .title{font-size:13px; font-weight:600; margin-bottom:2px;}
+  .ev-msg .desc{font-size:11.5px; color:var(--text-muted);}
+
+  .ev-status{text-align:right;}
+  .ev-status .st{font-size:11px; font-weight:700;}
+  .ev-status .st.ok{color:var(--accent-cyan);}
+  .ev-status .st.alert{color:var(--accent-amber);}
+  .ev-status .cat{font-size:9.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px;}
+
+  @media (max-width:900px){
+    .list-head{display:none;}
+    .event-row{grid-template-columns:1fr; gap:6px; padding:16px 18px;}
+    .ev-status{text-align:left; display:flex; gap:10px; align-items:center;}
+  }
+
+  .empty-state{padding:60px 20px; text-align:center; display:none;}
+  .empty-state.show{display:block;}
+  .empty-state svg{width:40px; height:40px; color:var(--text-muted); margin-bottom:14px;}
+  .empty-state .t{font-size:14px; font-weight:600; margin-bottom:4px;}
+  .empty-state .s{font-size:12px; color:var(--text-muted);}
+
+  .list-footer{display:flex; align-items:center; justify-content:space-between; padding:14px 22px; flex-wrap:wrap; gap:12px;}
+  .per-page{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--text-muted);}
+  .per-page select{background:var(--bg-deep); border:1px solid var(--border-soft); color:var(--text-primary); border-radius:7px; padding:5px 8px; font-size:11.5px;}
+  .page-nav{display:flex; align-items:center; gap:10px; font-size:11.5px; color:var(--text-muted); font-family:var(--font-mono);}
+  .page-nav button{
+    padding:6px 12px; border-radius:7px; border:1px solid var(--border-soft); background:var(--bg-deep); color:var(--text-secondary); font-size:11.5px; font-weight:600;
+  }
+  .page-nav button:disabled{opacity:.35; cursor:default;}
+  .page-nav button:not(:disabled):hover{color:var(--text-primary);}
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="brand">
-    <div class="icon">☀️</div>
-    <div>
-      <h1>ESTACIÓN METEOROLÓGICA IoT</h1>
-      <p>GRUPO 6</p>
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 14a4 4 0 1 1 1.2-7.8A5 5 0 0 1 17 8a3.5 3.5 0 0 1-.5 7H6z"/><path d="M9 18v2M12 18v3M15 18v2"/></svg>
+    </div>
+    <div class="brand-text">
+      <div class="name">ESTACIÓN METEOROLÓGICA IoT</div>
+      <div class="group">GRUPO 6</div>
     </div>
   </div>
-  <div class="nav">
-    <a class="on">Dashboard</a>
-    <a>Historial</a>
-    <a>Eventos</a>
-    <a>Configuración</a>
-  </div>
-  <div style="display:flex; align-items:center; gap:16px;">
-    <div class="status-chip"><i></i>ESP32 CONECTADO</div>
-    <div>
-      <div class="clock">22:43:18</div>
-      <div class="clock-sub">10 jul 2026 · hace 0s</div>
+
+  <nav class="nav-tabs">
+    <button class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Dashboard</button>
+    <button class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Historial</button>
+    <button class="nav-tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Eventos</button>
+    <button class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Análisis</button>
+    <button class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1z"/></svg>Config</button>
+  </nav>
+
+  <div class="top-status">
+    <div class="status-pill">
+      <span class="dot pulse"></span>
+      <div><div class="label">ESP32</div><div class="sub">CONECTADO</div></div>
     </div>
-    <div class="moon">🌙</div>
+    <div class="clock">
+      <div class="time" id="clockTime">01:17:54</div>
+      <div class="date">11 JUL 2026 · HACE 0S</div>
+    </div>
+    <button class="icon-btn" aria-label="Notificaciones">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="badge-notif">5</span>
+    </button>
+    <button class="icon-btn" aria-label="Cambiar tema">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+    </button>
   </div>
 </div>
 
-<div class="stats">
-  <div class="stat"><div class="lbl">Estado general</div><div class="val">OPERATIVO</div><div class="sub">Sistema operando normalmente</div></div>
-  <div class="stat"><div class="lbl">Sensores</div><div class="val neutral">4 / 4</div><div class="sub">Operativos</div></div>
-  <div class="stat"><div class="lbl">Alertas</div><div class="val">SIN ALERTAS</div><div class="sub">Parámetros en rango</div></div>
-  <div class="stat"><div class="lbl">Conectividad</div><div class="val neutral">EXCELENTE</div><div class="sub">-45.16 dBm</div></div>
-  <div class="stat"><div class="lbl">Uptime</div><div class="val neutral">0h 4m</div><div class="sub">Operando continuo</div></div>
-  <div class="stat"><div class="lbl">Última sincro</div><div class="val">Activo</div><div class="sub">22:43:18</div></div>
-</div>
+<div class="page">
 
-<div class="grid">
-  <div class="card">
-    <div class="card-head">
-      <h3>Resumen ambiental</h3>
-      <button class="pill neutral" style="cursor:pointer; margin:0;" onclick="toggleRain(this)">Previsualizar: lluvia</button>
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </div>
+      <div>
+        <div class="eyebrow">Registro operativo del sistema</div>
+        <h1>Bitácora de Eventos</h1>
+      </div>
     </div>
-    <div class="summary-body">
-      <div class="emoji" id="sumEmoji">☀️</div>
-      <ul id="sumList">
-        <li>Sin precipitación</li>
-        <li>Calidad de aire: Limpio</li>
-        <li>Temperatura estable (21.0°C)</li>
-        <li>Humedad: rango confortable</li>
-      </ul>
+    <button class="export-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+      Exportar CSV
+    </button>
+  </div>
+
+  <div class="stat-strip">
+    <div class="stat-card crit">
+      <div class="stat-top">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2.5 17a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+        <div class="stat-num" id="statCrit">0</div>
+      </div>
+      <div class="stat-label">Críticos</div>
     </div>
-    <div class="summary-state" id="sumState"><i></i>Sistema estable</div>
-    <div class="summary-sub" id="sumSub">Condiciones normales de operación</div>
-  </div>
-
-  <div class="card">
-    <div class="card-head"><h3>Temperatura · AHT10</h3></div>
-    <div class="metric-num" style="color:var(--temp)">21.02<span class="unit">°C</span></div>
-    <div class="metric-range">Rango: 18.00 – 27.00 °C</div>
-    <div class="metric-minmax"><div><span class="lbl-inline">MIN</span>20.42°C</div><div><span class="lbl-inline">MAX</span>26.30°C</div></div>
-    <div class="pill temp">↓ Bajando</div>
-    <svg class="sparkline" viewBox="0 0 300 50" preserveAspectRatio="none">
-      <polyline fill="none" stroke="var(--temp)" stroke-width="2" points="0,20 40,15 80,18 120,24 160,28 200,25 240,22 280,26 300,29"/>
-      <polygon fill="var(--temp)" fill-opacity="0.14" points="0,20 40,15 80,18 120,24 160,28 200,25 240,22 280,26 300,29 300,50 0,50"/>
-    </svg>
-  </div>
-
-  <div class="card">
-    <div class="card-head"><h3>Humedad · AHT10</h3><span class="tag good">Confort ideal</span></div>
-    <div class="metric-num" style="color:var(--rain)">74.08<span class="unit">%</span></div>
-    <div class="metric-range">Rango confortable: 40 – 70%</div>
-    <div class="pill rain">↑ Subiendo</div>
-    <svg class="sparkline" viewBox="0 0 300 50" preserveAspectRatio="none">
-      <polyline fill="none" stroke="var(--rain)" stroke-width="2" points="0,40 40,35 80,30 120,26 160,22 200,20 240,18 280,15 300,14"/>
-      <polygon fill="var(--rain)" fill-opacity="0.14" points="0,40 40,35 80,30 120,26 160,22 200,20 240,18 280,15 300,14 300,50 0,50"/>
-    </svg>
-  </div>
-</div>
-
-<div class="bottom">
-  <div class="card">
-    <div class="card-head"><h3>Detección de lluvia</h3><span class="tag">Sensor binario</span></div>
-    <div style="text-align:center; padding:12px 0;">
-      <div class="mini-icon">🌤️</div>
-      <div class="mini-state">Sin lluvia</div>
-      <div class="mini-sub">Sensor seco</div>
+    <div class="stat-card warn">
+      <div class="stat-top">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 8v5"/><circle cx="12" cy="16" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <div class="stat-num" id="statWarn">5</div>
+      </div>
+      <div class="stat-label">Advertencias</div>
+      <svg class="stat-wave" viewBox="0 0 300 34" preserveAspectRatio="none"><polyline points="0,20 20,20 26,6 32,30 38,14 44,20 70,20 76,10 82,26 88,20 120,20 126,4 132,32 138,20 170,20 176,12 182,24 188,20 220,20 226,8 232,28 238,20 270,20 276,10 282,26 288,20 300,20" fill="none" stroke="var(--accent-amber)" stroke-width="1.5"/></svg>
     </div>
-    <div style="font-size:11px; color:var(--ink-dim); text-align:center; margin-top:10px;">Último cambio: 10:43:14 p. m.</div>
-  </div>
-
-  <div class="card">
-    <div class="card-head"><h3>Presión atmosférica</h3><span class="tag">BMP280</span></div>
-    <div class="metric-num" style="font-size:38px;">1012.8<span class="unit">hPa</span></div>
-    <div class="metric-range">Rango normal: 1008.0 – 1020.0 hPa</div>
-    <div class="pill rain">+ 0.3 hPa tendencia</div>
-  </div>
-
-  <div class="card">
-    <div class="card-head"><h3>Calidad del aire</h3><span class="tag">MQ135</span></div>
-    <div style="font-size:22px; font-weight:700; color:var(--good);">Excelente</div>
-    <div class="mini-sub" style="margin-bottom:14px;">Respirar es seguro</div>
-    <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--ink-dim); font-weight:700; text-transform:uppercase;">
-      <span>Valor del sensor</span><span>Tendencia</span>
-    </div>
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <div class="metric-num" style="font-size:32px;">75</div>
-      <div class="pill neutral">— Estable</div>
+    <div class="stat-card total">
+      <div class="stat-top">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/></svg></div>
+        <div class="stat-num" id="statTotal">22</div>
+      </div>
+      <div class="stat-label">Total de eventos</div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-head"><h3>Estado del sistema</h3></div>
-    <div class="sys-group">Microcontrolador</div>
-    <div class="sys-row">ESP32 <span class="dot-ok"></span></div>
-    <div class="sys-group">Sensores</div>
-    <div class="sys-row">AHT10 <span class="dot-ok"></span></div>
-    <div class="sys-row">BMP280 <span class="dot-ok"></span></div>
-    <div class="sys-row">MQ135 <span class="dot-ok"></span></div>
-    <div class="sys-row">Sensor lluvia <span class="dot-ok"></span></div>
+  <div class="toolbar">
+    <div class="search-row">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" id="searchInput" placeholder="Buscar por mensaje, sensor u origen…">
+      </div>
+      <div class="date-chips" id="dateChips">
+        <button class="chip active" data-range="todos">Todos</button>
+        <button class="chip" data-range="reciente">Reciente</button>
+        <button class="chip" data-range="24h">24 h</button>
+        <button class="chip" data-range="7d">7 días</button>
+        <button class="chip" data-range="rango">Rango</button>
+        <button class="chip clear" id="clearBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>Limpiar</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-group" id="catGroup">
+        <span class="fg-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h6"/></svg>Categoría</span>
+        <button class="pill-btn active" data-cat="todos">Todos</button>
+        <button class="pill-btn" data-cat="sensores">Sensores</button>
+        <button class="pill-btn" data-cat="conectividad">Conectividad</button>
+        <button class="pill-btn" data-cat="sistema">Sistema</button>
+        <button class="pill-btn" data-cat="config">Config</button>
+      </div>
+      <div class="filter-group" id="levelGroup">
+        <span class="fg-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.5V19l4 2v-8.5z"/></svg>Nivel</span>
+        <button class="pill-btn active" data-level="all">Todos</button>
+        <button class="pill-btn" data-level="critico">Crítico</button>
+        <button class="pill-btn" data-level="advertencia">Advertencia</button>
+        <button class="pill-btn" data-level="operativo">Operativo</button>
+        <button class="pill-btn" data-level="config">Config / Info</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="list-panel">
+    <div class="day-divider">Hoy · 11 de julio de 2026</div>
+    <div class="list-head">
+      <div>Hora / Fecha</div><div>Nivel</div><div>Origen</div><div>Mensaje</div><div style="text-align:right">Estado / Cat.</div>
+    </div>
+    <div id="eventList"></div>
+    <div class="empty-state" id="emptyState">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <div class="t">Sin eventos para este filtro</div>
+      <div class="s">Ajusta la búsqueda o limpia los filtros activos.</div>
+    </div>
+    <div class="list-footer">
+      <div class="per-page">
+        <span>Mostrar</span>
+        <select id="perPage"><option>10</option><option selected>15</option><option>25</option></select>
+        <span id="rangeLabel">1–15 de 22</span>
+      </div>
+      <div class="page-nav">
+        <button id="prevBtn" disabled>‹ Anterior</button>
+        <span id="pageLabel">1 / 2</span>
+        <button id="nextBtn">Siguiente ›</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-let isRain = false;
-function toggleRain(btn){
-  isRain = !isRain;
-  const state = document.getElementById('sumState');
-  const emoji = document.getElementById('sumEmoji');
-  const sub = document.getElementById('sumSub');
-  const list = document.getElementById('sumList');
-  if(isRain){
-    state.className = 'summary-state is-rain';
-    state.innerHTML = '<i></i>Lluvia detectada';
-    emoji.textContent = '🌧️';
-    sub.textContent = 'Precipitación en curso — monitoreo activo';
-    list.innerHTML = '<li>Precipitación detectada</li><li>Calidad de aire: Limpio</li><li>Temperatura estable (21.0°C)</li><li>Humedad: en aumento</li>';
-    btn.textContent = 'Previsualizar: estable';
-  } else {
-    state.className = 'summary-state';
-    state.innerHTML = '<i></i>Sistema estable';
-    emoji.textContent = '☀️';
-    sub.textContent = 'Condiciones normales de operación';
-    list.innerHTML = '<li>Sin precipitación</li><li>Calidad de aire: Limpio</li><li>Temperatura estable (21.0°C)</li><li>Humedad: rango confortable</li>';
-    btn.textContent = 'Previsualizar: lluvia';
-  }
-}
-</script>
+const RAIN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 13v8M8 13v8M12 15v6"/><path d="M6 14a4 4 0 1 1 1.2-7.8A5 5 0 0 1 17 8a3.5 3.5 0 0 1-.5 7H6z"/></svg>';
+const WIFI_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.5a11 11 0 0 1 14 0M8.5 16a6 6 0 0 1 7 0"/><circle cx="12" cy="19.5" r=".8" fill="currentColor" stroke="none"/></svg>';
+const SYS_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>';
+const CFG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1z"/></svg>';
 
+const EVENTS = [
+  {t:'01:14 a. m.', lvl:'operativo', cat:'sensores', origin:'Lluvia', icon:RAIN_ICON, title:'Sensor de lluvia: precipitación finalizada', desc:'Acción operativa ejecutada por el firmware.', st:'OK'},
+  {t:'01:14 a. m.', lvl:'advertencia', cat:'sensores', origin:'Lluvia', icon:RAIN_ICON, title:'Sensor de lluvia: precipitación detectada', desc:'Acción operativa ejecutada por el firmware.', st:'ALERTA'},
+  {t:'01:14 a. m.', lvl:'operativo', cat:'sensores', origin:'Lluvia', icon:RAIN_ICON, title:'Sensor de lluvia: precipitación finalizada', desc:'Acción operativa ejecutada por el firmware.', st:'OK'},
+  {t:'01:14 a. m.', lvl:'advertencia', cat:'sensores', origin:'Lluvia', icon:RAIN_ICON, title:'Sensor de lluvia: precipitación detectada', desc:'Acción operativa ejecutada por el firmware.', st:'ALERTA'},
+  {t:'01:14 a. m.', lvl:'operativo', cat:'sensores', origin:'Lluvia', icon:RAIN_ICON, title:'Sensor de lluvia: precipitación finalizada', desc:'Acción operativa ejecutada por el firmware.', st:'OK'},
+  {t:'01:13 a. m.', lvl:'advertencia', cat:'sensores', origin:'Lluvia', icon:RAIN_ICON, title:'Sensor de lluvia: precipitación detectada', desc:'Acción operativa ejecutada por el firmware.', st:'ALERTA'},
+  {t:'01:12 a. m.', lvl:'operativo', cat:'sensores', origin:'Lluvia', icon:RAIN_ICON, title:'Sensor de lluvia: precipitación finalizada', desc:'Acción operativa ejecutada por el firmware.', st:'OK'},
+  {t:'01:12 a. m.', lvl:'advertencia', cat:'sensores', origin:'Lluvia', icon:RAIN_ICON, title:'Sensor de lluvia: precipitación detectada', desc:'Acción operativa ejecutada por el firmware.', st:'ALERTA'},
+  {t:'01:12 a. m.', lvl:'operativo', cat:'sensores', origin:'Lluvia', icon:RAIN_ICON, title:'Sensor de lluvia: precipitación finalizada', desc:'Acción operativa ejecutada por el firmware.', st:'OK'},
+  {t:'01:09 a. m.', lvl:'config', cat:'conectividad', origin:'ESP32', icon:WIFI_ICON, title:'Reconexión MQTT establecida', desc:'Latencia promedio: 42 ms tras reintento automático.', st:'INFO'},
+  {t:'01:05 a. m.', lvl:'operativo', cat:'sistema', origin:'Sistema', icon:SYS_ICON, title:'Ciclo de lectura completado', desc:'Todos los sensores respondieron dentro del margen esperado.', st:'OK'},
+  {t:'00:58 a. m.', lvl:'advertencia', cat:'sensores', origin:'Humedad', icon:SYS_ICON, title:'Humedad relativa fuera de rango', desc:'Lectura de 96% supera el umbral configurado de 90%.', st:'ALERTA'},
+  {t:'00:47 a. m.', lvl:'config', cat:'config', origin:'Panel', icon:CFG_ICON, title:'Umbral de temperatura actualizado', desc:'Valor máximo modificado de 34°C a 32°C por el operador.', st:'INFO'},
+  {t:'00:40 a. m.', lvl:'operativo', cat:'sensores', origin:'Viento', icon:SYS_ICON, title:'Anemómetro calibrado', desc:'Calibración automática completada sin desviaciones.', st:'OK'},
+  {t:'00:31 a. m.', lvl:'operativo', cat:'conectividad', origin:'ESP32', icon:WIFI_ICON, title:'Señal WiFi estable', desc:'Intensidad de señal: -52 dBm, calidad excelente.', st:'OK'},
+  {t:'00:22 a. m.', lvl:'advertencia', cat:'sistema', origin:'Sistema', icon:SYS_ICON, title:'Reinicio inesperado del microcontrolador', desc:'Watchdog timer forzó reinicio tras bloqueo de 8s.', st:'ALERTA'},
+  {t:'00:15 a. m.', lvl:'operativo', cat:'sensores', origin:'Presión', icon:SYS_ICON, title:'Lectura barométrica registrada', desc:'1013.2 hPa, dentro de parámetros normales.', st:'OK'},
+  {t:'00:08 a. m.', lvl:'config', cat:'config', origin:'Panel', icon:CFG_ICON, title:'Intervalo de muestreo modificado', desc:'Cambiado de 30s a 15s para mayor resolución.', st:'INFO'},
+  {t:'00:02 a. m.', lvl:'operativo', cat:'sensores', origin:'Temperatura', icon:SYS_ICON, title:'Temperatura ambiente registrada', desc:'24.6°C, sensor DHT22 respondiendo correctamente.', st:'OK'},
+  {t:'11:54 p. m.', lvl:'operativo', cat:'sistema', origin:'Sistema', icon:SYS_ICON, title:'Respaldo de datos completado', desc:'22 registros sincronizados con la base de datos remota.', st:'OK'},
+  {t:'11:47 p. m.', lvl:'advertencia', cat:'conectividad', origin:'ESP32', icon:WIFI_ICON, title:'Pérdida temporal de conexión', desc:'Reconexión automática lograda tras 6 segundos.', st:'ALERTA'},
+  {t:'11:40 p. m.', lvl:'operativo', cat:'sensores', origin:'Lluvia', icon:RAIN_ICON, title:'Sensor de lluvia inicializado', desc:'Autoprueba de arranque completada sin errores.', st:'OK'},
+];
+
+let state = { search:'', cat:'todos', level:'all', page:1, perPage:15 };
+
+const listEl = document.getElementById('eventList');
+const emptyEl = document.getElementById('emptyState');
+const rangeLabel = document.getElementById('rangeLabel');
+const pageLabel = document.getElementById('pageLabel');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function catMatchesLevel(ev){
+  if(state.level === 'all') return true;
+  return ev.lvl === state.level;
+}
+
+function getFiltered(){
+  return EVENTS.filter(ev=>{
+    const matchesSearch = (ev.title + ' ' + ev.desc + ' ' + ev.origin).toLowerCase().includes(state.search.toLowerCase());
+    const matchesCat = state.cat === 'todos' || ev.cat === state.cat;
+    const matchesLevel = catMatchesLevel(ev);
+    return matchesSearch && matchesCat && matchesLevel;
+  });
+}
+
+function render(){
+  const filtered = getFiltered();
+  const perPage = state.perPage;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  if(state.page > totalPages) state.page = totalPages;
+  const start = (state.page - 1) * perPage;
+  const pageItems = filtered.slice(start, start + perPage);
+
+  listEl.innerHTML = '';
+  if(pageItems.length === 0){
+    emptyEl.classList.add('show');
+  } else {
+    emptyEl.classList.remove('show');
+    pageItems.forEach(ev=>{
+      const row = document.createElement('div');
+      row.className = 'event-row lvl-' + ev.lvl;
+      const parts = ev.t.split(' ');
+      row.innerHTML = `
+        <div class="ev-time"><span class="hh">${ev.t}</span><span class="dd">11 jul 2026</span></div>
+        <div><span class="lvl-badge lvl-${ev.lvl}">${ev.lvl}</span></div>
+        <div class="ev-origin">${ev.icon}${ev.origin}</div>
+        <div class="ev-msg"><div class="title">${ev.title}</div><div class="desc">${ev.desc}</div></div>
+        <div class="ev-status"><div class="st ${ev.st==='OK'?'ok':'alert'}">${ev.st}</div><div class="cat">${ev.cat}</div></div>
+      `;
+      listEl.appendChild(row);
+    });
+  }
+
+  rangeLabel.textContent = filtered.length === 0 ? '0 de ' + EVENTS.length : `${start+1}–${Math.min(start+perPage, filtered.length)} de ${filtered.length}`;
+  pageLabel.textContent = `${state.page} / ${totalPages}`;
+  prevBtn.disabled = state.page <= 1;
+  nextBtn.disabled = state.page >= totalPages;
+}
+
+document.getElementById('searchInput').addEventListener('input', e=>{
+  state.search = e.target.value; state.page = 1; render();
+});
+
+document.querySelectorAll('#catGroup .pill-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#catGroup .pill-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.cat = btn.dataset.cat; state.page = 1; render();
+  });
+});
+
+document.querySelectorAll('#levelGroup .pill-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#levelGroup .pill-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.level = btn.dataset.level; state.page = 1; render();
+  });
+});
+
+document.querySelectorAll('#dateChips .chip[data-range]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#dateChips .chip[data-range]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  state = { search:'', cat:'todos', level:'all', page:1, perPage:state.perPage };
+  document.getElementById('searchInput').value = '';
+  document.querySelectorAll('.pill-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('#catGroup .pill-btn[data-cat="todos"]').classList.add('active');
+  document.querySelector('#levelGroup .pill-btn[data-level="all"]').classList.add('active');
+  document.querySelectorAll('#dateChips .chip[data-range]').forEach(b=>b.classList.remove('active'));
+  document.querySelector('#dateChips .chip[data-range="todos"]').classList.add('active');
+  render();
+});
+
+document.getElementById('perPage').addEventListener('change', e=>{
+  state.perPage = parseInt(e.target.value, 10); state.page = 1; render();
+});
+
+prevBtn.addEventListener('click', ()=>{ state.page = Math.max(1, state.page - 1); render(); });
+nextBtn.addEventListener('click', ()=>{ state.page += 1; render(); });
+
+// live clock
+function tick(){
+  const now = new Date();
+  document.getElementById('clockTime').textContent = now.toLocaleTimeString('es-EC', {hour12:false});
+}
+setInterval(tick, 1000);
+
+render();
+</script>
 </body>
 </html>

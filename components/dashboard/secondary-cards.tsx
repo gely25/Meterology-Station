@@ -1,10 +1,12 @@
 "use client"
 
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
-import { TrendingUp, TrendingDown, Minus, Wind } from "lucide-react"
+import { Wind } from "lucide-react"
 import { Panel } from "./panel"
 import type { WeatherData, HistoryPoint } from "@/types/weather"
-import { cn } from "@/lib/utils"
+import { cn, calcTrend } from "@/lib/utils"
+import type { TrendInfo } from "@/lib/utils"
+import { THRESHOLDS } from "@/lib/thresholds"
 
 // ─── Smooth data helper ───────────────────────────────────────────────────────
 // Suavizado mediante media móvil para eliminar ruido artificial
@@ -21,43 +23,7 @@ function smoothData(data: number[], windowSize: number = 3): number[] {
 }
 
 // ─── Trend helper ─────────────────────────────────────────────────────────────
-type TrendIntensity = 'none' | 'slight' | 'moderate' | 'strong'
-type TrendDirection = 'up' | 'down' | 'stable'
-
-interface TrendInfo {
-  direction: TrendDirection
-  intensity: TrendIntensity
-  magnitude: number
-}
-
-function calcTrend(history: HistoryPoint[], key: keyof HistoryPoint, baseThreshold = 0.5): TrendInfo {
-  if (history.length < 3) return { direction: 'stable', intensity: 'none', magnitude: 0 }
-
-  const recent = history.slice(-3).map(h => Number(h[key]))
-  const delta = recent[2] - recent[0]
-  const magnitude = Math.abs(delta)
-
-  // Calcular intensidad proporcional basada en el valor base
-  const slightThreshold = baseThreshold
-  const moderateThreshold = baseThreshold * 3
-  const strongThreshold = baseThreshold * 10
-
-  let intensity: TrendIntensity = 'none'
-  if (magnitude >= strongThreshold) {
-    intensity = 'strong'
-  } else if (magnitude >= moderateThreshold) {
-    intensity = 'moderate'
-  } else if (magnitude >= slightThreshold) {
-    intensity = 'slight'
-  }
-
-  let direction: TrendDirection = 'stable'
-  if (magnitude >= slightThreshold) {
-    direction = delta > 0 ? 'up' : 'down'
-  }
-
-  return { direction, intensity, magnitude }
-}
+import { TrendingUp, TrendingDown, Minus } from "lucide-react"
 
 function TrendBadge({ trend, color }: { trend: TrendInfo; color: string }) {
   const { direction, intensity } = trend
@@ -364,7 +330,38 @@ export function PressureCard({ data, className }: { data: WeatherData; className
           <span className="font-digital text-5xl text-foreground tracking-wider">{value.toFixed(1)}</span>
           <span className="mb-1.5 ml-2 text-lg font-bold text-pressure">hPa</span>
         </div>
-        <p className="text-center text-[9px] font-semibold text-muted-foreground/60 mt-0.5">Rango normal: 1008.0 - 1020.0 hPa</p>
+        <p className="text-center text-[9px] font-semibold text-muted-foreground/60 mt-0.5">Rango normal: {THRESHOLDS.pressure.min.toFixed(1)} - {THRESHOLDS.pressure.max.toFixed(1)} hPa</p>
+        
+        {/* Visual Range Position Bar */}
+        <div className="w-4/5 h-1.5 bg-muted/40 rounded-full overflow-hidden mt-1.5 relative">
+          {(() => {
+            const minP = THRESHOLDS.pressure.min
+            const maxP = THRESHOLDS.pressure.max
+            // Rango de visualización extendido
+            const extMin = minP - 15
+            const extMax = maxP + 15
+            const percentage = Math.max(0, Math.min(100, ((value - extMin) / (extMax - extMin)) * 100))
+            const idealStart = ((minP - extMin) / (extMax - extMin)) * 100
+            const idealEnd = ((maxP - extMin) / (extMax - extMin)) * 100
+            return (
+              <>
+                {/* Comfort/ideal range */}
+                <div 
+                  className="absolute h-full bg-emerald-500/20" 
+                  style={{ left: `${idealStart}%`, right: `${100 - idealEnd}%` }}
+                />
+                {/* Current indicator */}
+                <div 
+                  className={cn(
+                    "absolute top-0 -translate-x-1/2 size-1.5 rounded-full border border-background shadow-sm transition-all duration-300",
+                    (value < minP || value > maxP) ? "bg-red-500" : "bg-emerald-500"
+                  )}
+                  style={{ left: `${percentage}%` }}
+                />
+              </>
+            )
+          })()}
+        </div>
       </div>
 
       <div className="mt-1 flex items-center justify-end gap-2 relative z-10">
@@ -383,7 +380,7 @@ export function PressureCard({ data, className }: { data: WeatherData; className
 type AQLevel = { label: string; desc: string; action: string; color: string; bg: string; border: string; glow: string }
 
 function getAQLevel(value: number): AQLevel {
-  if (value < 600) {
+  if (value < THRESHOLDS.airQuality.excellent) {
     return {
       label: 'EXCELENTE',
       desc: 'Aire limpio',
@@ -394,9 +391,9 @@ function getAQLevel(value: number): AQLevel {
       glow: 'shadow-[0_0_15px_rgba(45,212,191,0.15)] border-[#2dd4bf]/40'
     }
   }
-  if (value < 1200) {
+  if (value < THRESHOLDS.airQuality.acceptable) {
     return {
-      label: 'MODERADA',
+      label: 'ACEPTABLE',
       desc: 'Calidad aceptable',
       action: 'Normal para personas sanas',
       color: '#facc15',
@@ -405,7 +402,18 @@ function getAQLevel(value: number): AQLevel {
       glow: 'shadow-[0_0_15px_rgba(250,204,21,0.12)] border-[#facc15]/30'
     }
   }
-  if (value < 1800) {
+  if (value < THRESHOLDS.airQuality.regular) {
+    return {
+      label: 'REGULAR',
+      desc: 'Calidad regular',
+      action: 'Sensibles pueden sentir molestias',
+      color: '#f97316',
+      bg: 'rgba(249,115,22,0.06)',
+      border: 'rgba(249,115,22,0.25)',
+      glow: 'shadow-[0_0_15px_rgba(249,115,22,0.12)] border-[#f97316]/30'
+    }
+  }
+  if (value < THRESHOLDS.airQuality.bad) {
     return {
       label: 'MALA',
       desc: 'Poco recomendable',
@@ -417,7 +425,7 @@ function getAQLevel(value: number): AQLevel {
     }
   }
   return {
-    label: 'PELIGROSA',
+    label: 'CRÍTICA',
     desc: 'Aire contaminado',
     action: 'Utilice protección respiratoria',
     color: '#f87171',
@@ -495,6 +503,35 @@ export function AirQualityCard({ data, className }: { data: WeatherData; classNa
         </h3>
         <p className="text-sm font-bold text-foreground leading-tight">{level.desc}</p>
         <p className="text-[10px] text-muted-foreground/80 font-medium mt-0.5">{level.action}</p>
+
+        {/* Visual Range Position Bar */}
+        <div className="w-4/5 h-1.5 bg-muted/40 rounded-full overflow-hidden mt-2 relative">
+          {(() => {
+            const val = Math.round(value)
+            // Límite de escala visual max 2000
+            const percentage = Math.max(0, Math.min(100, (val / 2000) * 100))
+            const excEnd = (THRESHOLDS.airQuality.excellent / 2000) * 100
+            const accEnd = (THRESHOLDS.airQuality.acceptable / 2000) * 100
+            const regEnd = (THRESHOLDS.airQuality.regular / 2000) * 100
+            const badEnd = (THRESHOLDS.airQuality.bad / 2000) * 100
+            return (
+              <>
+                {/* Zones */}
+                <div className="absolute h-full bg-[#2dd4bf]/20" style={{ left: '0%', width: `${excEnd}%` }} />
+                <div className="absolute h-full bg-[#facc15]/20" style={{ left: `${excEnd}%`, width: `${accEnd - excEnd}%` }} />
+                <div className="absolute h-full bg-[#f97316]/20" style={{ left: `${accEnd}%`, width: `${regEnd - accEnd}%` }} />
+                <div className="absolute h-full bg-[#fb923c]/20" style={{ left: `${regEnd}%`, width: `${badEnd - regEnd}%` }} />
+                <div className="absolute h-full bg-[#f87171]/20" style={{ left: `${badEnd}%`, right: '0%' }} />
+
+                {/* Dot */}
+                <div 
+                  className="absolute top-0 -translate-x-1/2 size-1.5 rounded-full border border-background shadow-sm transition-all duration-300"
+                  style={{ left: `${percentage}%`, backgroundColor: level.color }}
+                />
+              </>
+            )
+          })()}
+        </div>
       </div>
 
       {/* Value secondary display */}

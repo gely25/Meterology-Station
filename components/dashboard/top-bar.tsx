@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CloudSun, Wifi, WifiOff, Home, LineChart, Settings, Bell } from "lucide-react"
+import { CloudSun, Wifi, WifiOff, Home, LineChart, Settings, Bell, Shield } from "lucide-react"
 import type { WeatherData, SystemEvent } from "@/types/weather"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -11,6 +11,7 @@ const navItems = [
   { id: "dashboard", label: "DASHBOARD", icon: Home },
   { id: "historial", label: "HISTORIAL", icon: LineChart },
   { id: "eventos", label: "EVENTOS", icon: Bell },
+  { id: "decisiones", label: "ANÁLISIS", icon: Shield },
   { id: "configuracion", label: "CONFIGURACIÓN", icon: Settings },
 ]
 
@@ -101,13 +102,6 @@ export function TopNavigation({
 
       {/* Status */}
       <div className="flex items-center gap-3 w-full xl:w-auto justify-end">
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-card/80 px-3 py-1">
-          <span className={`size-2 rounded-full shadow-[0_0_8px] ${conexionESP32 === 'conectado' ? 'bg-success shadow-success' : 'bg-alert shadow-alert'}`} />
-          <div className="leading-tight">
-            <p className="text-[10px] font-bold text-foreground">ESP32</p>
-            <p className="text-[8px] font-medium tracking-wide text-muted-foreground uppercase">{conexionESP32}</p>
-          </div>
-        </div>
         <div className="text-right leading-tight hidden sm:block">
           <p className="font-mono text-lg font-bold tracking-widest text-foreground tabular-nums">{hora}</p>
           <p className="text-[9px] font-medium tracking-wide text-muted-foreground">{fecha}</p>

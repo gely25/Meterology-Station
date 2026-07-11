@@ -7,6 +7,7 @@ import { Panel } from "./panel"
 import type { WeatherData } from "@/types/weather"
 import { weatherService } from "@/services/weatherService"
 import { cn } from "@/lib/utils"
+import { THRESHOLDS } from "@/lib/thresholds"
 
 type MetricKey = "temperature" | "humidity" | "pressure" | "rain" | "airQuality"
 
@@ -22,26 +23,26 @@ const PERIODS = ["30S", "1M", "5M", "15M", "1H", "6H", "12H", "24H", "7D"]
 
 function getStatus(value: number, metric: MetricKey): { label: string; color: string } {
   if (metric === "temperature") {
-    if (value < 18) return { label: "Bajo", color: "text-sky-400" }
-    if (value > 27) return { label: "Alto", color: "text-red-400" }
+    if (value < THRESHOLDS.temperature.min) return { label: "Bajo", color: "text-sky-400" }
+    if (value > THRESHOLDS.temperature.max) return { label: "Alto", color: "text-red-400" }
     return { label: "Normal", color: "text-emerald-400" }
   }
   if (metric === "humidity") {
-    if (value < 40) return { label: "Bajo", color: "text-sky-400" }
-    if (value > 70) return { label: "Alto", color: "text-red-400" }
+    if (value < THRESHOLDS.humidity.min) return { label: "Bajo", color: "text-sky-400" }
+    if (value > THRESHOLDS.humidity.comfortMax) return { label: "Alto", color: "text-red-400" }
     return { label: "Normal", color: "text-emerald-400" }
   }
   if (metric === "pressure") {
-    if (value < 1008) return { label: "Bajo", color: "text-sky-400" }
-    if (value > 1020) return { label: "Alto", color: "text-red-400" }
+    if (value < THRESHOLDS.pressure.min) return { label: "Bajo", color: "text-sky-400" }
+    if (value > THRESHOLDS.pressure.max) return { label: "Alto", color: "text-red-400" }
     return { label: "Normal", color: "text-emerald-400" }
   }
   if (metric === "rain") {
-    if (value >= 20) return { label: "Alto", color: "text-red-400" }
+    if (value >= THRESHOLDS.rain.detected) return { label: "Alto", color: "text-red-400" }
     return { label: "Normal", color: "text-emerald-400" }
   }
   if (metric === "airQuality") {
-    if (value > 600) return { label: "Alto", color: "text-red-400" }
+    if (value >= THRESHOLDS.airQuality.acceptable) return { label: "Alto", color: "text-red-400" }
     return { label: "Normal", color: "text-emerald-400" }
   }
   return { label: "Normal", color: "text-emerald-400" }
@@ -80,6 +81,39 @@ function CustomTooltip({ active, payload, label, metricKey }: any) {
   )
 }
 
+import { calcTrend } from "@/lib/utils"
+import type { TrendInfo } from "@/lib/utils"
+import { TrendingUp, TrendingDown, Minus } from "lucide-react"
+
+// Estilos proporcionales según intensidad (reutilizado de metric-cards)
+function TrendBadge({ trend, color }: { trend: TrendInfo; color: string }) {
+  const { direction, intensity } = trend
+  const Icon = direction === 'up' ? TrendingUp : direction === 'down' ? TrendingDown : Minus
+  const label = direction === 'up' ? 'Subiendo' : direction === 'down' ? 'Bajando' : 'Estable'
+
+  const intensityStyles = {
+    none: { opacity: 0.5, iconSize: 'size-3', fontSize: 'text-[9px]', animation: '' },
+    slight: { opacity: 0.6, iconSize: 'size-3', fontSize: 'text-[9px]', animation: 'animate-pulse-slow' },
+    moderate: { opacity: 0.8, iconSize: 'size-3.5', fontSize: 'text-[9px]', animation: 'animate-pulse' },
+    strong: { opacity: 1, iconSize: 'size-4', fontSize: 'text-[10px]', animation: 'animate-pulse' }
+  }
+
+  const style = intensityStyles[intensity]
+  const colorStyle = intensity === 'none' ? 'text-muted-foreground' : ''
+
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-1 font-semibold uppercase tracking-wider",
+      style.fontSize,
+      colorStyle,
+      style.animation
+    )} style={{ opacity: style.opacity }}>
+      <Icon className={style.iconSize} style={{ color: intensity === 'none' ? undefined : color }} />
+      {label}
+    </span>
+  )
+}
+
 export function HistoryView({ data }: { data: WeatherData }) {
   const [activeMetric, setActiveMetric] = useState<MetricKey>("temperature")
   const [activePeriod, setActivePeriod] = useState("1H")
@@ -109,6 +143,7 @@ export function HistoryView({ data }: { data: WeatherData }) {
   const variation = vals.length > 1 ? currentVal - prevVal : 0
 
   const metricInfo = METRICS[activeMetric]
+  const trendDir = calcTrend(filteredHistory, activeMetric, activeMetric === "pressure" ? 0.3 : activeMetric === "airQuality" ? 20 : 0.05)
 
   // ── CSV Export ────────────────────────────────────────────────────────────
   const handleExportCSV = () => {
@@ -180,7 +215,7 @@ export function HistoryView({ data }: { data: WeatherData }) {
 
         {/* ── METRICS SELECTOR & STAT BOXES ───────────────────────────────── */}
         <div className="px-5 py-3 border-b border-border/30 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 items-center">
             {(Object.keys(METRICS) as MetricKey[]).map(key => {
               const isActive = activeMetric === key
               return (
@@ -203,6 +238,12 @@ export function HistoryView({ data }: { data: WeatherData }) {
           </div>
 
           <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide pb-1 lg:pb-0">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Tendencia</span>
+              <div className="mt-1 flex items-center gap-1 bg-muted/20 px-2 py-0.5 rounded border border-border/10">
+                <TrendBadge trend={trendDir} color={metricInfo.color} />
+              </div>
+            </div>
             <StatBox label="Actual" value={currentVal} unit={metricInfo.unit} color={metricInfo.color} />
             <StatBox label="Variación" value={variation} unit={metricInfo.unit} color={variation > 0 ? "text-red-400" : variation < 0 ? "text-emerald-400" : "text-muted-foreground"} showPlus={true} />
             <StatBox label="Mínimo" value={minVal} unit={metricInfo.unit} />
