@@ -233,9 +233,10 @@ class WeatherService {
       this.tick += 1;
       let history = this.currentData.history;
 
-      // Ventana deslizante: mantener solo los últimos 30 elementos
+      // Ventana deslizante: mantener solo los últimos 3600 elementos (buffer en memoria)
       const newPoint = {
         time: hora,
+        timestamp: Date.now(),
         temperature: temperatura,
         humidity: humedad,
         pressure: presion,
@@ -374,9 +375,10 @@ class WeatherService {
 
     let history = this.currentData.history;
 
-    // Ventana deslizante: mantener solo los últimos 30 elementos
+    // Ventana deslizante: mantener solo los últimos 3600 elementos (buffer en memoria)
     const newPoint = {
       time: hora,
+      timestamp: Date.now(),
       temperature: temperatura,
       humidity: humedad,
       pressure: presion,

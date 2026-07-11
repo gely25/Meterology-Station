@@ -1,5 +1,6 @@
 export interface HistoryPoint {
   time: string;
+  timestamp: number;
   temperature: number;
   humidity: number;
   pressure: number;
