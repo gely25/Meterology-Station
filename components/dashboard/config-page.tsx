@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Panel, PanelHeader } from "./panel"
-import { Save, RefreshCw, Server, Moon, Sun, Monitor, Wifi, WifiOff, AlertTriangle, CheckCircle2, CheckCircle, Info, Cpu } from "lucide-react"
+import { Save, RefreshCw, Server, Moon, Sun, Monitor, Wifi, WifiOff, AlertTriangle, CheckCircle2, CheckCircle, Info, Cpu, Palette } from "lucide-react"
 import { weatherService, AppConfig } from "@/services/weatherService"
 import { useWeather } from "@/hooks/useWeather"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
-export function ConfigPage() {
+export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: string; onAccentThemeChange: (theme: string) => void }) {
   const { theme, setTheme } = useTheme()
   const data = useWeather()
   const [config, setConfig] = useState<AppConfig>(weatherService.getConfig())
@@ -271,6 +271,55 @@ export function ConfigPage() {
               </button>
             ))}
           </div>
+        </Panel>
+
+        {/* ── COLOR DE ACENTO ── */}
+        <Panel className="border border-border/40 hover:border-accent/40 bg-card/90 shadow-sm transition-all duration-300">
+          <PanelHeader
+            icon={<Palette className="size-4 text-accent" />}
+            title="Color de Acento"
+            subtitle="Elige el tono del fondo — se aplica instantáneamente"
+            accent="var(--accent)"
+          />
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+            {[
+              { id: 'theme-aurora',  label: 'Aurora',     color: '#1E7F6B', desc: 'Teal/Menta' },
+              { id: 'theme-emerald', label: 'Esmeralda',  color: '#10B981', desc: 'Verde fresco' },
+              { id: 'theme-ocean',   label: 'Océano',     color: '#0EA5E9', desc: 'Azul cielo' },
+              { id: 'theme-sunset',  label: 'Atardecer',  color: '#F97316', desc: 'Naranja cálido' },
+              { id: 'theme-rose',    label: 'Rosa',       color: '#F43F5E', desc: 'Rojo suave' },
+              { id: 'theme-violet',  label: 'Violeta',    color: '#8B5CF6', desc: 'Morado' },
+              { id: 'theme-slate',   label: 'Pizarra',    color: '#64748B', desc: 'Gris neutro' },
+            ].map((themeOpt) => {
+              const isActive = accentTheme === themeOpt.id
+              return (
+                <button
+                  key={themeOpt.id}
+                  type="button"
+                  onClick={() => onAccentThemeChange(themeOpt.id)}
+                  className={cn(
+                    "relative flex flex-col items-center justify-start gap-1.5 rounded-xl border p-3 text-center transition-all duration-200 cursor-pointer",
+                    isActive
+                      ? "border-accent bg-accent/8 text-accent shadow-md scale-[1.03]"
+                      : "border-border bg-background/30 text-muted-foreground hover:bg-muted/40 hover:text-foreground hover:scale-[1.01]"
+                  )}
+                >
+                  {isActive && (
+                    <span className="absolute top-1.5 right-1.5 size-3.5 rounded-full bg-accent flex items-center justify-center">
+                      <CheckCircle2 className="size-2.5 text-white" />
+                    </span>
+                  )}
+                  <span className="size-5 rounded-full shadow border border-black/10 mt-0.5" style={{ backgroundColor: themeOpt.color }} />
+                  <span className="text-[11px] font-extrabold uppercase tracking-wide leading-none">{themeOpt.label}</span>
+                  <span className="text-[9px] font-medium leading-none text-muted-foreground/80">{themeOpt.desc}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-3 text-[10px] text-muted-foreground/60 font-medium flex items-center gap-1.5">
+            <CheckCircle2 className="size-3 text-emerald-500" />
+            El color de fondo y los acentos de toda la interfaz cambian al instante. No requiere guardar.
+          </p>
         </Panel>
 
         {/* ── INFORMACIÓN DEL SISTEMA ── */}

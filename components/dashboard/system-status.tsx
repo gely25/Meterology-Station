@@ -47,23 +47,6 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
     }
   }
 
-  const hardware = [
-    { icon: Cpu,               name: "ESP32",            statusInfo: { label: esp32Connected ? 'Conectado' : 'Sin conexión', textClass: esp32Connected ? 'text-success' : 'text-alert', dotClass: esp32Connected ? 'bg-success shadow-[0_0_5px] shadow-success animate-pulse' : 'bg-alert shadow-[0_0_5px] shadow-alert' } },
-    { icon: Thermometer,       name: "AHT10",            statusInfo: getStatusInfo(data.estadoAHT10) },
-    { icon: Gauge,             name: "BMP280",           statusInfo: getStatusInfo(data.estadoBMP280) },
-    { icon: Wind,              name: "MQ135",            statusInfo: getStatusInfo(data.estadoMQ135) },
-    { icon: CloudRain,         name: "Sensor de lluvia", statusInfo: getStatusInfo(data.estadoSensorLluvia) },
-  ]
-
-  const peripherals = [
-    { icon: MonitorSmartphone, name: "OLED",      statusInfo: getStatusInfo(data.estadoOLED) },
-    { icon: Lightbulb,         name: "LED Verde",  statusInfo: getStatusInfo(data.estadoLedVerde) },
-    { icon: Lightbulb,         name: "LED Rojo",   statusInfo: getStatusInfo(data.estadoLedRojo) },
-    { icon: BellRing,          name: "Buzzer",     statusInfo: getStatusInfo(data.estadoBuzzer) },
-  ]
-
-  const allDevices = [...hardware, ...peripherals]
-
   const rssiLabel = data.wifiCalidad || 'Sin conexión'
 
   return (
@@ -76,7 +59,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
         <div className="flex flex-col gap-1">
           <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/60 px-0.5">Microcontrolador</span>
           <div className="grid grid-cols-1 gap-1">
-            <div className="flex items-center justify-between rounded-lg border border-border bg-panel/60 px-2 py-1">
+            <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-1">
               <span className="flex items-center gap-1.5 min-w-0">
                 <Cpu className="size-3.5 text-muted-foreground shrink-0" />
                 <span className="text-[10px] font-semibold text-foreground truncate">ESP32</span>
@@ -101,7 +84,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
             ].map((row) => {
               const Icon = row.icon
               return (
-                <div key={row.name} className="flex items-center justify-between rounded-lg border border-border bg-panel/60 px-2 py-1">
+                <div key={row.name} className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-1">
                   <span className="flex items-center gap-1.5 min-w-0">
                     <Icon className="size-3.5 text-muted-foreground shrink-0" />
                     <span className="text-[10px] font-semibold text-foreground truncate">{row.name}</span>
@@ -128,7 +111,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
             ].map((row) => {
               const Icon = row.icon
               return (
-                <div key={row.name} className="flex items-center justify-between rounded-lg border border-border bg-panel/60 px-2 py-1">
+                <div key={row.name} className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-1">
                   <span className="flex items-center gap-1.5 min-w-0">
                     <Icon className="size-3.5 text-muted-foreground shrink-0" />
                     <span className="text-[10px] font-semibold text-foreground truncate">{row.name}</span>
@@ -146,7 +129,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
 
       {/* Connectivity metrics */}
       <div className="mt-1.5 pt-1.5 border-t border-border grid grid-cols-3 gap-1.5 shrink-0">
-        <div className="flex flex-col rounded-lg border border-border bg-panel/60 px-2 py-1">
+        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-1">
           <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
             <Wifi className="size-3" /> WiFi RSSI
           </span>
@@ -157,7 +140,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
           <span className="text-[8px] text-muted-foreground mt-0.5">{rssiLabel}</span>
         </div>
 
-        <div className="flex flex-col rounded-lg border border-border bg-panel/60 px-2 py-1">
+        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-1">
           <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
             <Clock className="size-3" /> Uptime ESP32
           </span>
@@ -165,7 +148,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
           <span className="text-[8px] text-muted-foreground mt-0.5">{esp32Connected ? 'Desde ' + data.hora : 'Sin conexión'}</span>
         </div>
 
-        <div className="flex flex-col rounded-lg border border-border bg-panel/60 px-2 py-1">
+        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-1">
           <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
             <Activity className="size-3" /> Latencia
           </span>

@@ -66,12 +66,12 @@ export function TopNavigation({
       {/* Branding */}
       <div className="flex items-center gap-2 w-full xl:w-auto justify-between xl:justify-start">
         <div className="flex items-center gap-2">
-          <span className="grid size-9 place-items-center rounded-xl bg-humidity/15 text-humidity">
+          <span className="grid size-9 place-items-center rounded-xl bg-accent-soft text-accent">
             <CloudSun className="size-5.5" />
           </span>
           <div>
             <h1 className="text-[15px] font-extrabold tracking-tight text-foreground">ESTACIÓN METEOROLÓGICA IoT</h1>
-            <p className="text-[10px] font-semibold tracking-widest text-humidity">GRUPO 6</p>
+            <p className="text-[10px] font-semibold tracking-widest text-accent">GRUPO 6</p>
           </div>
         </div>
       </div>
@@ -88,7 +88,7 @@ export function TopNavigation({
               className={cn(
                 "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-bold tracking-widest transition-all duration-200 whitespace-nowrap",
                 isActive
-                  ? "bg-humidity/20 text-humidity ring-1 ring-humidity/50 opacity-100 shadow-sm"
+                  ? "bg-accent-soft text-accent ring-1 ring-accent/30 opacity-100 shadow-sm"
                   : "text-muted-foreground/75 hover:bg-muted/40 hover:text-foreground opacity-60 hover:opacity-100"
               )}
             >

@@ -10,7 +10,7 @@ import { EventsView } from "@/components/dashboard/events-view"
 import { AlertToast, useNotifications } from "@/components/dashboard/alert-system"
 import { useWeather } from "@/hooks/useWeather"
 import { ConfigPage } from "@/components/dashboard/config-page"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 import { MonitoringCenter } from "@/components/dashboard/monitoring-center"
 
@@ -18,12 +18,33 @@ export default function Page() {
   const data = useWeather()
   const [activeView, setActiveView] = useState("dashboard")
   const notifications = useNotifications(data)
+  const [accentTheme, setAccentTheme] = useState<string>("theme-aurora")
+
+  useEffect(() => {
+    const saved = localStorage.getItem("agrosmart-color-theme") || "theme-aurora"
+    setAccentTheme(saved)
+    const themes = ["theme-aurora", "theme-emerald", "theme-ocean", "theme-sunset", "theme-rose", "theme-violet", "theme-slate"]
+    document.documentElement.classList.remove(...themes)
+    document.documentElement.classList.add(saved)
+    document.body.classList.remove(...themes)
+    document.body.classList.add(saved)
+  }, [])
+
+  const handleThemeChange = (newTheme: string) => {
+    setAccentTheme(newTheme)
+    localStorage.setItem("agrosmart-color-theme", newTheme)
+    const themes = ["theme-aurora", "theme-emerald", "theme-ocean", "theme-sunset", "theme-rose", "theme-violet", "theme-slate"]
+    document.documentElement.classList.remove(...themes)
+    document.documentElement.classList.add(newTheme)
+    document.body.classList.remove(...themes)
+    document.body.classList.add(newTheme)
+  }
 
   if (!data) return null;
 
   return (
     <div className="h-dvh overflow-hidden bg-background p-1 flex flex-col">
-      <div className="mx-auto flex flex-col w-full h-full overflow-hidden rounded-3xl border border-border bg-card/40">
+      <div className="mx-auto flex flex-col w-full h-full overflow-hidden rounded-3xl border border-border bg-surface">
         <TopNavigation
           data={data}
           active={activeView}
@@ -69,7 +90,7 @@ export default function Page() {
               </div>
             ) : activeView === 'configuracion' ? (
               <div className="flex-1 overflow-y-auto pr-1">
-                <ConfigPage />
+                <ConfigPage accentTheme={accentTheme} onAccentThemeChange={handleThemeChange} />
               </div>
             ) : null}
           </div>

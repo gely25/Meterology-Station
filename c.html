@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Estación Meteorológica IoT — Modo Oscuro</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root{
+  --bg:#0A0A0B;
+  --bg-glow: none;
+  --panel:#141416;
+  --panel-2:#101012;
+  --line:#242427;
+  --line-soft:#1C1C1F;
+  --ink:#EDEDEF;
+  --ink-soft:#8A8A90;
+  --ink-dim:#57575C;
+  --accent:#5FE3C4;
+  --accent-soft:rgba(95,227,196,.12);
+  --good:#5FE3C4;
+  --warn:#F0B25E;
+  --bad:#F0716B;
+  --rain:#79ADEE;
+  --temp:#F0916B;
+  --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 10px 30px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background-color:var(--bg);
+  background-image:var(--bg-glow);
+  color:var(--ink);
+  font-family:'Space Grotesk', sans-serif;
+  padding:28px;
+}
+
+.topbar{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  padding:14px 22px; display:flex; align-items:center; justify-content:space-between;
+  box-shadow:var(--shadow); margin-bottom:16px; flex-wrap:wrap; gap:12px;
+}
+.brand{display:flex; align-items:center; gap:12px;}
+.brand .icon{
+  width:38px; height:38px; border-radius:11px; background:var(--accent-soft);
+  display:flex; align-items:center; justify-content:center; font-size:19px;
+}
+.brand h1{font-size:15.5px; font-weight:700; letter-spacing:.01em;}
+.brand p{font-size:11px; color:var(--ink-soft); font-weight:500; letter-spacing:.03em;}
+.nav{display:flex; gap:4px;}
+.nav a{
+  font-size:12.5px; font-weight:600; color:var(--ink-soft); text-decoration:none;
+  padding:9px 15px; border-radius:9px;
+}
+.nav a.on{background:var(--accent-soft); color:var(--accent);}
+.status-chip{
+  display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700;
+  color:var(--good); background:var(--accent-soft); padding:6px 12px; border-radius:100px;
+}
+.status-chip i{width:7px; height:7px; border-radius:50%; background:var(--good); box-shadow:0 0 8px var(--good);}
+.clock{font-family:'JetBrains Mono'; font-size:15px; font-weight:700; letter-spacing:.03em;}
+.clock-sub{font-size:10px; color:var(--ink-dim); text-align:right;}
+.moon{
+  width:34px; height:34px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer;
+}
+
+.stats{
+  display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-bottom:16px;
+}
+.stat{
+  background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px;
+  box-shadow:var(--shadow);
+}
+.stat .lbl{display:flex; align-items:center; gap:6px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:700; margin-bottom:8px;}
+.stat .val{font-size:18.5px; font-weight:700; color:var(--good);}
+.stat .val.neutral{color:var(--ink);}
+.stat .sub{font-size:10.5px; color:var(--ink-dim); margin-top:3px;}
+
+.grid{
+  display:grid; grid-template-columns:1.05fr 1.3fr 1.3fr; gap:16px; margin-bottom:16px;
+}
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px;
+  box-shadow:var(--shadow);
+}
+.card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+.card-head h3{font-size:11px; text-transform:uppercase; letter-spacing:.07em; font-weight:700; color:var(--ink-soft);}
+.card-head .tag{font-size:10px; color:var(--ink-dim); font-weight:600;}
+.card-head .tag.good{padding:4px 10px; border-radius:100px; background:var(--accent-soft); color:var(--good); font-weight:700;}
+
+.summary-body{display:flex; align-items:center; gap:20px; height:150px;}
+.summary-body .emoji{font-size:56px; filter:drop-shadow(0 0 14px rgba(240,178,94,.25));}
+.summary-body ul{list-style:none; font-size:12.5px; color:var(--ink-soft); display:flex; flex-direction:column; gap:9px;}
+.summary-body ul li{display:flex; align-items:center; gap:8px;}
+.summary-body ul li::before{content:''; width:5px; height:5px; border-radius:50%; background:var(--accent);}
+.summary-state{
+  font-size:14.5px; font-weight:700; margin-top:14px; color:var(--good);
+  display:inline-flex; align-items:center; gap:7px;
+  padding:6px 14px; border-radius:100px; background:var(--accent-soft);
+}
+.summary-state.is-rain{ color:var(--rain); background:rgba(121,173,238,.14); }
+.summary-state i{width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 6px currentColor;}
+.summary-sub{font-size:11.5px; color:var(--ink-dim); margin-top:8px;}
+
+.metric-num{font-family:'JetBrains Mono'; font-size:52px; font-weight:700; display:flex; align-items:baseline; gap:8px;}
+.metric-num .unit{font-size:16px; font-weight:600; color:var(--ink-soft);}
+.metric-range{font-size:11.5px; color:var(--ink-dim); margin:8px 0 12px;}
+.metric-minmax{display:flex; gap:16px; font-size:11.5px; font-weight:600;}
+.metric-minmax .lbl-inline{color:var(--ink-dim); font-weight:500; margin-right:4px;}
+.pill{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:5px 11px; border-radius:100px; margin-top:12px;}
+.pill.temp{background:rgba(240,145,107,.14); color:var(--temp);}
+.pill.rain{background:rgba(121,173,238,.14); color:var(--rain);}
+.pill.neutral{background:var(--panel-2); color:var(--ink-soft); border:1px solid var(--line);}
+
+.sparkline{height:50px; margin-top:14px;}
+
+.bottom{
+  display:grid; grid-template-columns:1fr 1fr 1fr 1.2fr; gap:16px;
+}
+.mini-icon{font-size:30px; margin-bottom:10px; filter:drop-shadow(0 0 10px rgba(124,144,137,.2));}
+.mini-state{font-size:20px; font-weight:700; color:var(--good); margin:6px 0 2px;}
+.mini-sub{font-size:11.5px; color:var(--ink-dim);}
+
+.sys-row{display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line-soft); font-size:12.5px; font-weight:600;}
+.sys-row:last-child{border-bottom:none;}
+.dot-ok{width:7px; height:7px; border-radius:50%; background:var(--good); box-shadow:0 0 6px var(--good); display:inline-block;}
+.sys-group{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); font-weight:700; margin:12px 0 4px;}
+.sys-group:first-child{margin-top:0;}
+
+@media(max-width:1100px){
+  .stats{grid-template-columns:repeat(3,1fr);}
+  .grid{grid-template-columns:1fr;}
+  .bottom{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="icon">☀️</div>
+    <div>
+      <h1>ESTACIÓN METEOROLÓGICA IoT</h1>
+      <p>GRUPO 6</p>
+    </div>
+  </div>
+  <div class="nav">
+    <a class="on">Dashboard</a>
+    <a>Historial</a>
+    <a>Eventos</a>
+    <a>Configuración</a>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div class="status-chip"><i></i>ESP32 CONECTADO</div>
+    <div>
+      <div class="clock">22:43:18</div>
+      <div class="clock-sub">10 jul 2026 · hace 0s</div>
+    </div>
+    <div class="moon">🌙</div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="lbl">Estado general</div><div class="val">OPERATIVO</div><div class="sub">Sistema operando normalmente</div></div>
+  <div class="stat"><div class="lbl">Sensores</div><div class="val neutral">4 / 4</div><div class="sub">Operativos</div></div>
+  <div class="stat"><div class="lbl">Alertas</div><div class="val">SIN ALERTAS</div><div class="sub">Parámetros en rango</div></div>
+  <div class="stat"><div class="lbl">Conectividad</div><div class="val neutral">EXCELENTE</div><div class="sub">-45.16 dBm</div></div>
+  <div class="stat"><div class="lbl">Uptime</div><div class="val neutral">0h 4m</div><div class="sub">Operando continuo</div></div>
+  <div class="stat"><div class="lbl">Última sincro</div><div class="val">Activo</div><div class="sub">22:43:18</div></div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-head">
+      <h3>Resumen ambiental</h3>
+      <button class="pill neutral" style="cursor:pointer; margin:0;" onclick="toggleRain(this)">Previsualizar: lluvia</button>
+    </div>
+    <div class="summary-body">
+      <div class="emoji" id="sumEmoji">☀️</div>
+      <ul id="sumList">
+        <li>Sin precipitación</li>
+        <li>Calidad de aire: Limpio</li>
+        <li>Temperatura estable (21.0°C)</li>
+        <li>Humedad: rango confortable</li>
+      </ul>
+    </div>
+    <div class="summary-state" id="sumState"><i></i>Sistema estable</div>
+    <div class="summary-sub" id="sumSub">Condiciones normales de operación</div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Temperatura · AHT10</h3></div>
+    <div class="metric-num" style="color:var(--temp)">21.02<span class="unit">°C</span></div>
+    <div class="metric-range">Rango: 18.00 – 27.00 °C</div>
+    <div class="metric-minmax"><div><span class="lbl-inline">MIN</span>20.42°C</div><div><span class="lbl-inline">MAX</span>26.30°C</div></div>
+    <div class="pill temp">↓ Bajando</div>
+    <svg class="sparkline" viewBox="0 0 300 50" preserveAspectRatio="none">
+      <polyline fill="none" stroke="var(--temp)" stroke-width="2" points="0,20 40,15 80,18 120,24 160,28 200,25 240,22 280,26 300,29"/>
+      <polygon fill="var(--temp)" fill-opacity="0.14" points="0,20 40,15 80,18 120,24 160,28 200,25 240,22 280,26 300,29 300,50 0,50"/>
+    </svg>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Humedad · AHT10</h3><span class="tag good">Confort ideal</span></div>
+    <div class="metric-num" style="color:var(--rain)">74.08<span class="unit">%</span></div>
+    <div class="metric-range">Rango confortable: 40 – 70%</div>
+    <div class="pill rain">↑ Subiendo</div>
+    <svg class="sparkline" viewBox="0 0 300 50" preserveAspectRatio="none">
+      <polyline fill="none" stroke="var(--rain)" stroke-width="2" points="0,40 40,35 80,30 120,26 160,22 200,20 240,18 280,15 300,14"/>
+      <polygon fill="var(--rain)" fill-opacity="0.14" points="0,40 40,35 80,30 120,26 160,22 200,20 240,18 280,15 300,14 300,50 0,50"/>
+    </svg>
+  </div>
+</div>
+
+<div class="bottom">
+  <div class="card">
+    <div class="card-head"><h3>Detección de lluvia</h3><span class="tag">Sensor binario</span></div>
+    <div style="text-align:center; padding:12px 0;">
+      <div class="mini-icon">🌤️</div>
+      <div class="mini-state">Sin lluvia</div>
+      <div class="mini-sub">Sensor seco</div>
+    </div>
+    <div style="font-size:11px; color:var(--ink-dim); text-align:center; margin-top:10px;">Último cambio: 10:43:14 p. m.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Presión atmosférica</h3><span class="tag">BMP280</span></div>
+    <div class="metric-num" style="font-size:38px;">1012.8<span class="unit">hPa</span></div>
+    <div class="metric-range">Rango normal: 1008.0 – 1020.0 hPa</div>
+    <div class="pill rain">+ 0.3 hPa tendencia</div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Calidad del aire</h3><span class="tag">MQ135</span></div>
+    <div style="font-size:22px; font-weight:700; color:var(--good);">Excelente</div>
+    <div class="mini-sub" style="margin-bottom:14px;">Respirar es seguro</div>
+    <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--ink-dim); font-weight:700; text-transform:uppercase;">
+      <span>Valor del sensor</span><span>Tendencia</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="metric-num" style="font-size:32px;">75</div>
+      <div class="pill neutral">— Estable</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Estado del sistema</h3></div>
+    <div class="sys-group">Microcontrolador</div>
+    <div class="sys-row">ESP32 <span class="dot-ok"></span></div>
+    <div class="sys-group">Sensores</div>
+    <div class="sys-row">AHT10 <span class="dot-ok"></span></div>
+    <div class="sys-row">BMP280 <span class="dot-ok"></span></div>
+    <div class="sys-row">MQ135 <span class="dot-ok"></span></div>
+    <div class="sys-row">Sensor lluvia <span class="dot-ok"></span></div>
+  </div>
+</div>
+
+<script>
+let isRain = false;
+function toggleRain(btn){
+  isRain = !isRain;
+  const state = document.getElementById('sumState');
+  const emoji = document.getElementById('sumEmoji');
+  const sub = document.getElementById('sumSub');
+  const list = document.getElementById('sumList');
+  if(isRain){
+    state.className = 'summary-state is-rain';
+    state.innerHTML = '<i></i>Lluvia detectada';
+    emoji.textContent = '🌧️';
+    sub.textContent = 'Precipitación en curso — monitoreo activo';
+    list.innerHTML = '<li>Precipitación detectada</li><li>Calidad de aire: Limpio</li><li>Temperatura estable (21.0°C)</li><li>Humedad: en aumento</li>';
+    btn.textContent = 'Previsualizar: estable';
+  } else {
+    state.className = 'summary-state';
+    state.innerHTML = '<i></i>Sistema estable';
+    emoji.textContent = '☀️';
+    sub.textContent = 'Condiciones normales de operación';
+    list.innerHTML = '<li>Sin precipitación</li><li>Calidad de aire: Limpio</li><li>Temperatura estable (21.0°C)</li><li>Humedad: rango confortable</li>';
+    btn.textContent = 'Previsualizar: lluvia';
+  }
+}
+</script>
+
+</body>
+</html>

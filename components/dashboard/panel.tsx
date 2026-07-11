@@ -21,9 +21,9 @@ export function Panel({
         // Nunca dejar que el contenido interno se desborde fuera del borde redondeado
         "overflow-hidden",
         // flatter card background
-        "bg-card/90",
+        "bg-card",
         // Border: clean and simple
-        "border border-border/40",
+        "border border-border/50",
         // Shadow: minimal separation
         variant === "default" && "shadow-sm",
         variant === "hero" && "shadow-md",
