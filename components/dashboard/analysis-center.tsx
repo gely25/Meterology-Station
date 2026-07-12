@@ -4,13 +4,17 @@ import { useState, useMemo } from "react"
 import {
   BarChart3, Settings, Play, ShieldCheck, CheckSquare,
   Square, ChevronRight, FileSpreadsheet, Calendar, Loader2,
-  FileJson, FileText, Download
+  FileJson, FileText, Download, Filter, Sparkles
 } from "lucide-react"
 import { Panel } from "./panel"
 import type { WeatherData } from "@/types/weather"
 import { runEnvironmentalAnalysis } from "@/lib/analysisEngine"
 import { exportFullReportExcel, exportFullReportJSON, exportFullReportCSV } from "@/lib/reportExporterExcel"
 import { cn } from "@/lib/utils"
+
+const PERIOD_LABELS: Record<string, string> = {
+  "1H": "1 hora", "6H": "6 horas", "12H": "12 horas", "24H": "24 horas", "7D": "7 días",
+}
 
 export function AnalysisCenterView({ data }: { data: WeatherData }) {
   const { history, events } = data
@@ -36,6 +40,18 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
     if (sensors.airQuality) list.push("Calidad del Aire")
     return list
   }, [sensors])
+
+  const additionalLabels = useMemo(() => {
+    const list: string[] = []
+    if (additional.events) list.push("Eventos de bitácora")
+    if (additional.correlations) list.push("Correlaciones cruzadas")
+    if (additional.stats) list.push("Estadísticas del período")
+    return list
+  }, [additional])
+
+  const periodLabelResolved = showCustomPicker
+    ? (customRange.start && customRange.end ? `${customRange.start} → ${customRange.end}` : "Personalizado")
+    : PERIOD_LABELS[period]
 
   const handleGenerate = () => {
     setStep(2)
@@ -143,7 +159,7 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
                           ? "border-accent bg-accent text-accent-foreground shadow-md scale-[1.03]"
                           : "border-border/60 bg-card text-muted-foreground hover:border-accent/50 hover:text-foreground"
                       )}>
-                      {p === "1H" ? "1 hora" : p === "6H" ? "6 horas" : p === "12H" ? "12 horas" : p === "24H" ? "24 horas" : "7 días"}
+                      {PERIOD_LABELS[p]}
                     </button>
                   ))}
                   <button
@@ -263,6 +279,43 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
                   Diagnóstico generado a partir del motor de análisis local.
                 </p>
               </div>
+
+              {/* ── RESUMEN DE FILTROS APLICADOS ─────────────────────────── */}
+              <div className="rounded-xl border border-border/50 bg-muted/10 px-4 py-3">
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <Filter className="size-3 text-accent" />
+                  <span className="text-[9px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Filtros aplicados a este informe</span>
+                </div>
+                <div className="flex flex-wrap gap-x-6 gap-y-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">Periodo</span>
+                    <span className="px-2 py-0.5 rounded-md bg-accent/10 border border-accent/25 text-accent text-[10.5px] font-bold">
+                      {periodLabelResolved}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">Sensores</span>
+                    {selectedSensorsList.length > 0 ? selectedSensorsList.map(s => (
+                      <span key={s} className="px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/25 text-sky-600 dark:text-sky-400 text-[10.5px] font-bold">
+                        {s}
+                      </span>
+                    )) : (
+                      <span className="text-[10.5px] font-semibold text-muted-foreground/50 italic">ninguno</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">Incluye</span>
+                    {additionalLabels.length > 0 ? additionalLabels.map(a => (
+                      <span key={a} className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[10.5px] font-bold">
+                        {a}
+                      </span>
+                    )) : (
+                      <span className="text-[10.5px] font-semibold text-muted-foreground/50 italic">ninguno</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {structuredResults.hallazgos.length > 0 && (
                   <div className="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5">
@@ -299,7 +352,7 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
         </div>
 
         {/* ── FOOTER ─────────────────────────────────────── */}
-        <div className="border-t border-border/40 px-8 py-4 flex items-center justify-between shrink-0">
+        <div className="border-t border-border/40 px-8 py-4 flex items-center justify-between shrink-0 gap-4">
 
           {/* Izquierda: volver */}
           <div>
@@ -321,26 +374,36 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
               </button>
             )}
             {step === 4 && (
-              <>
+              <div className="flex items-stretch rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden">
+                {/* Etiqueta del grupo */}
+                <div className="hidden sm:flex flex-col justify-center px-3 py-1.5 bg-muted/20 border-r border-border/50">
+                  <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/60">Exportar</span>
+                  <span className="text-[8px] font-semibold text-muted-foreground/40">informe</span>
+                </div>
+
+                {/* Secundarias: JSON / CSV */}
                 <button onClick={() => exportFullReportJSON(history, events, period, selectedSensorsList, results)}
                   title="Exportar JSON"
-                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-border/50 bg-card hover:bg-muted/30 text-xs font-bold text-foreground cursor-pointer transition-colors shadow-sm">
-                  <FileJson className="size-4 text-amber-400" />
-                  JSON
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 cursor-pointer transition-colors border-r border-border/40">
+                  <FileJson className="size-4 text-amber-500" />
+                  <span className="hidden md:inline">JSON</span>
                 </button>
                 <button onClick={() => exportFullReportCSV(history, events, period, selectedSensorsList)}
                   title="Exportar CSV"
-                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-border/50 bg-card hover:bg-muted/30 text-xs font-bold text-foreground cursor-pointer transition-colors shadow-sm">
-                  <FileText className="size-4 text-sky-400" />
-                  CSV
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 cursor-pointer transition-colors border-r border-border/40">
+                  <FileText className="size-4 text-sky-500" />
+                  <span className="hidden md:inline">CSV</span>
                 </button>
+
+                {/* Principal: Excel — resaltado, destino recomendado */}
                 <button onClick={() => exportFullReportExcel(history, events, period, selectedSensorsList, results)}
                   title="Generar reporte Excel profesional"
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-card border border-accent/40 text-accent hover:bg-accent/8 font-bold text-xs tracking-wide cursor-pointer shadow-sm transition-all duration-200">
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs tracking-wide cursor-pointer transition-colors">
                   <FileSpreadsheet className="size-4" />
-                  Generar reporte (.xlsx)
+                  <span>Reporte Excel</span>
+                  <Sparkles className="size-3 opacity-70" />
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>

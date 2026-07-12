@@ -11,16 +11,36 @@ import { AnalysisCenterView } from "@/components/dashboard/analysis-center"
 import { AlertToast, useNotifications } from "@/components/dashboard/alert-system"
 import { useWeather } from "@/hooks/useWeather"
 import { ConfigPage } from "@/components/dashboard/config-page"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { cn } from "@/lib/utils"
+import { useRouter, useSearchParams } from "next/navigation"
 
 import { MonitoringCenter } from "@/components/dashboard/monitoring-center"
 
-export default function Page() {
+const VALID_VIEWS = ["dashboard", "historial", "eventos", "decisiones", "configuracion"]
+
+function DashboardPage() {
   const data = useWeather()
-  const [activeView, setActiveView] = useState("dashboard")
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const notifications = useNotifications(data)
   const [accentTheme, setAccentTheme] = useState<string>("theme-aurora")
+
+  // Derive the active view from the URL; fall back to "dashboard" for unknown values
+  const viewFromUrl = searchParams.get("view") ?? "dashboard"
+  const activeView = VALID_VIEWS.includes(viewFromUrl) ? viewFromUrl : "dashboard"
+
+  // Navigate: update URL search param so the view survives a refresh
+  const handleNavigate = useCallback((id: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (id === "dashboard") {
+      params.delete("view")
+    } else {
+      params.set("view", id)
+    }
+    const query = params.toString()
+    router.push(query ? `?${query}` : "/")
+  }, [router, searchParams])
 
   useEffect(() => {
     const saved = localStorage.getItem("agrosmart-color-theme") || "theme-aurora"
@@ -56,7 +76,7 @@ export default function Page() {
         <TopNavigation
           data={data}
           active={activeView}
-          onNavigate={setActiveView}
+          onNavigate={handleNavigate}
           notifications={notifications}
         />
 
@@ -65,7 +85,7 @@ export default function Page() {
             {activeView === 'dashboard' ? (
               <>
                 <div className="mt-5 mb-2 shrink-0">
-                  <MonitoringCenter data={data} onNavigate={setActiveView} />
+                  <MonitoringCenter data={data} onNavigate={handleNavigate} />
                 </div>
 
                 {/* Full-height flex column — rows share the available space */}
@@ -112,5 +132,13 @@ export default function Page() {
       {/* Toast notification */}
       <AlertToast data={data} />
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardPage />
+    </Suspense>
   )
 }

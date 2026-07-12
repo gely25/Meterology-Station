@@ -2,17 +2,50 @@
 
 import { useState, useEffect } from "react"
 import { Panel, PanelHeader } from "./panel"
-import { Save, RefreshCw, Server, Moon, Sun, Monitor, Wifi, WifiOff, AlertTriangle, CheckCircle2, CheckCircle, Info, Cpu, Palette } from "lucide-react"
+import { Save, RefreshCw, Server, Moon, Sun, Monitor, Wifi, WifiOff, AlertTriangle, CheckCircle2, CheckCircle, Info, Cpu, Palette, Sliders, RotateCcw } from "lucide-react"
 import { weatherService, AppConfig } from "@/services/weatherService"
 import { useWeather } from "@/hooks/useWeather"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
+import { THRESHOLDS, saveThresholds, DEFAULT_THRESHOLDS } from "@/lib/thresholds"
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function freshThresholds() {
+  return {
+    temperature: { min: THRESHOLDS.temperature.min, max: THRESHOLDS.temperature.max },
+    humidity:    { min: THRESHOLDS.humidity.min, comfortMax: THRESHOLDS.humidity.comfortMax, max: THRESHOLDS.humidity.max },
+    pressure:    { min: THRESHOLDS.pressure.min, max: THRESHOLDS.pressure.max },
+    rain:        { detected: THRESHOLDS.rain.detected, heavy: THRESHOLDS.rain.heavy },
+    airQuality:  { excellent: THRESHOLDS.airQuality.excellent, acceptable: THRESHOLDS.airQuality.acceptable, regular: THRESHOLDS.airQuality.regular, bad: THRESHOLDS.airQuality.bad },
+  }
+}
+
+function defaultThresholds() {
+  return {
+    temperature: { min: DEFAULT_THRESHOLDS.temperature.min, max: DEFAULT_THRESHOLDS.temperature.max },
+    humidity:    { min: DEFAULT_THRESHOLDS.humidity.min, comfortMax: DEFAULT_THRESHOLDS.humidity.comfortMax, max: DEFAULT_THRESHOLDS.humidity.max },
+    pressure:    { min: DEFAULT_THRESHOLDS.pressure.min, max: DEFAULT_THRESHOLDS.pressure.max },
+    rain:        { detected: DEFAULT_THRESHOLDS.rain.detected, heavy: DEFAULT_THRESHOLDS.rain.heavy },
+    airQuality:  { excellent: DEFAULT_THRESHOLDS.airQuality.excellent, acceptable: DEFAULT_THRESHOLDS.airQuality.acceptable, regular: DEFAULT_THRESHOLDS.airQuality.regular, bad: DEFAULT_THRESHOLDS.airQuality.bad },
+  }
+}
+
+// ─── component ────────────────────────────────────────────────────────────────
 
 export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: string; onAccentThemeChange: (theme: string) => void }) {
   const { theme, setTheme } = useTheme()
   const data = useWeather()
-  const [config, setConfig] = useState<AppConfig>(weatherService.getConfig())
-  const [savedConfig, setSavedConfig] = useState<AppConfig>(weatherService.getConfig())
+
+  // ── ESP32 / service config ──────────────────────────────────────────────────
+  const [config,      setConfig]      = useState<AppConfig>(() => weatherService.getConfig())
+  const [savedConfig, setSavedConfig] = useState<AppConfig>(() => weatherService.getConfig())
+
+  // ── Thresholds ──────────────────────────────────────────────────────────────
+  const [localThresholds, setLocalThresholds] = useState(() => freshThresholds())
+  const [savedThresholds, setSavedThresholds] = useState(() => freshThresholds())
+
+  // ── UI state ────────────────────────────────────────────────────────────────
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -21,31 +54,199 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
     setSavedConfig(initial)
   }, [])
 
-  const hasChanges = JSON.stringify(config) !== JSON.stringify(savedConfig)
+  // ── Validation ──────────────────────────────────────────────────────────────
+  const getThresholdErrors = () => {
+    const errors: string[] = []
+    if (localThresholds.temperature.min >= localThresholds.temperature.max)
+      errors.push("Temperatura: La temperatura mínima recomendada debe ser menor que la máxima.")
+    if (localThresholds.humidity.min < 0 || localThresholds.humidity.comfortMax < 0 || localThresholds.humidity.max < 0)
+      errors.push("Humedad: Los valores no pueden ser negativos.")
+    if (localThresholds.humidity.min > 100 || localThresholds.humidity.comfortMax > 100 || localThresholds.humidity.max > 100)
+      errors.push("Humedad: Los valores no pueden superar el 100%.")
+    if (localThresholds.humidity.min >= localThresholds.humidity.max)
+      errors.push("Humedad: La humedad mínima debe ser menor que la máxima.")
+    if (localThresholds.humidity.comfortMax <= localThresholds.humidity.min || localThresholds.humidity.comfortMax >= localThresholds.humidity.max)
+      errors.push("Humedad: El umbral de confort debe estar entre la humedad mínima y la máxima.")
+    if (localThresholds.pressure.min < 0 || localThresholds.pressure.max < 0)
+      errors.push("Presión: Los valores no pueden ser negativos.")
+    if (localThresholds.pressure.min >= localThresholds.pressure.max)
+      errors.push("Presión: La presión mínima debe ser menor que la máxima.")
+    if (localThresholds.rain.detected < 0 || localThresholds.rain.heavy < 0)
+      errors.push("Sensor de Lluvia: Los valores no pueden ser negativos.")
+    if (localThresholds.rain.detected > 100 || localThresholds.rain.heavy > 100)
+      errors.push("Sensor de Lluvia: Los valores no pueden superar el 100%.")
+    if (localThresholds.rain.detected >= localThresholds.rain.heavy)
+      errors.push("Sensor de Lluvia: El umbral de detección debe ser menor que el de lluvia intensa.")
+    if (localThresholds.airQuality.excellent < 0 || localThresholds.airQuality.acceptable < 0 || localThresholds.airQuality.regular < 0 || localThresholds.airQuality.bad < 0)
+      errors.push("Calidad del Aire: Los valores no pueden ser negativos.")
+    if (localThresholds.airQuality.excellent >= localThresholds.airQuality.acceptable)
+      errors.push("Calidad del Aire: El nivel 'Excelente' debe ser menor que el 'Buena'.")
+    if (localThresholds.airQuality.acceptable >= localThresholds.airQuality.regular)
+      errors.push("Calidad del Aire: El nivel 'Buena' debe ser menor que el 'Moderada'.")
+    if (localThresholds.airQuality.regular >= localThresholds.airQuality.bad)
+      errors.push("Calidad del Aire: El nivel 'Moderada' debe ser menor que el 'Crítica'.")
+    return errors
+  }
 
+  const thresholdErrors = getThresholdErrors()
+
+  // ── Change detection ────────────────────────────────────────────────────────
+  const configChanged    = JSON.stringify(config)          !== JSON.stringify(savedConfig)
+  const thresholdsChanged = JSON.stringify(localThresholds) !== JSON.stringify(savedThresholds)
+  const hasChanges        = configChanged || thresholdsChanged
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  const updateConfig = (patch: Partial<AppConfig>) =>
+    setConfig(prev => ({ ...prev, ...patch }))
+
+  /** Save both ESP32 config and thresholds in a single action */
   const handleSave = () => {
+    if (thresholdErrors.length > 0) return
+    // Save ESP32 config
     weatherService.saveConfig(config)
-    weatherService.forceEvent('Configuración guardada exitosamente', 'success')
     setSavedConfig({ ...config })
+    // Save thresholds (dispatches 'thresholds-updated' event internally)
+    saveThresholds(localThresholds)
+    setSavedThresholds({ ...localThresholds })
+    // Fire a single success event
+    weatherService.forceEvent('Configuración del sistema guardada exitosamente', 'success')
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
 
-  const updateConfig = (patch: Partial<AppConfig>) => {
-    setConfig(prev => ({ ...prev, ...patch }))
+  /** Reset threshold form fields to factory defaults — does NOT save */
+  const handleResetThresholds = () => {
+    setLocalThresholds(defaultThresholds())
+    // Note: we do NOT call saveThresholds here. The user must press GUARDAR CAMBIOS.
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-6 max-w-3xl mx-auto w-full animate-fade-in pb-10">
-      {/* Header */}
+
+      {/* ── Page Header ── */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Configuración del Sistema</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Ajusta los parámetros de conexión con el ESP32 y preferencias de la interfaz.
+          Las preferencias visuales se aplican al instante. La configuración operativa requiere guardar.
         </p>
       </div>
 
+      {/* ════════════════════════════════════════════════════════════════════════
+          GRUPO 1 — PREFERENCIAS DE LA APLICACIÓN
+          Se aplican inmediatamente · No requieren presionar Guardar
+      ════════════════════════════════════════════════════════════════════════ */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-extrabold tracking-[0.2em] uppercase text-accent">Preferencias de la Aplicación</span>
+          <div className="flex-1 h-px bg-border/50" />
+          <span className="text-[9px] font-medium text-muted-foreground/60 tracking-wide flex items-center gap-1">
+            <CheckCircle2 className="size-3 text-accent/70" />
+            Se aplican al instante
+          </span>
+        </div>
+      </div>
+
       <div className="grid gap-6">
+
+        {/* ── APARIENCIA ── */}
+        <Panel>
+          <PanelHeader icon={<Moon className="size-4 text-indigo-400" />} title="Apariencia" subtitle="Preferencias visuales de la interfaz" accent="var(--color-indigo-500)" />
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {[
+              { id: 'light',  label: 'Claro',     icon: Sun,     desc: 'Usar siempre el tema claro.' },
+              { id: 'dark',   label: 'Oscuro',    icon: Moon,    desc: 'Usar siempre el tema oscuro.' },
+              { id: 'system', label: 'Automático', icon: Monitor, desc: 'Seguir automáticamente la configuración del sistema operativo.' },
+            ].map((t) => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setTheme(t.id)
+                  updateConfig({ theme: t.id as AppConfig['theme'] })
+                }}
+                className={cn(
+                  "flex flex-col items-center justify-start gap-2 rounded-xl border p-4 text-left transition-all",
+                  (theme === t.id || (theme === undefined && t.id === 'system'))
+                    ? "border-indigo-500 bg-indigo-500/10 text-indigo-500"
+                    : "border-border bg-background/50 text-muted-foreground hover:bg-muted/50"
+                )}
+              >
+                <t.icon className="size-6 shrink-0" />
+                <span className="text-xs font-bold uppercase tracking-wider w-full text-center">{t.label}</span>
+                <span className="text-[10px] font-normal leading-snug text-muted-foreground w-full text-center">{t.desc}</span>
+              </button>
+            ))}
+          </div>
+        </Panel>
+
+        {/* ── COLOR DE ACENTO ── */}
+        <Panel className="border border-border/40 hover:border-accent/40 bg-card/90 shadow-sm transition-all duration-300">
+          <PanelHeader
+            icon={<Palette className="size-4 text-accent" />}
+            title="Color de Acento"
+            subtitle="Elige el tono del fondo — se aplica instantáneamente"
+            accent="var(--accent)"
+          />
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+            {[
+              { id: 'theme-aurora',  label: 'Aurora',    color: '#1E7F6B', desc: 'Teal/Menta' },
+              { id: 'theme-emerald', label: 'Esmeralda', color: '#10B981', desc: 'Verde fresco' },
+              { id: 'theme-ocean',   label: 'Océano',    color: '#0EA5E9', desc: 'Azul cielo' },
+              { id: 'theme-sunset',  label: 'Atardecer', color: '#F97316', desc: 'Naranja cálido' },
+              { id: 'theme-rose',    label: 'Rosa',      color: '#F43F5E', desc: 'Rojo suave' },
+              { id: 'theme-violet',  label: 'Violeta',   color: '#8B5CF6', desc: 'Morado' },
+              { id: 'theme-slate',   label: 'Pizarra',   color: '#64748B', desc: 'Gris neutro' },
+            ].map((themeOpt) => {
+              const isActive = accentTheme === themeOpt.id
+              return (
+                <button
+                  key={themeOpt.id}
+                  type="button"
+                  onClick={() => onAccentThemeChange(themeOpt.id)}
+                  className={cn(
+                    "relative flex flex-col items-center justify-start gap-1.5 rounded-xl border p-3 text-center transition-all duration-200 cursor-pointer",
+                    isActive
+                      ? "border-accent bg-accent/8 text-accent shadow-md scale-[1.03]"
+                      : "border-border bg-background/30 text-muted-foreground hover:bg-muted/40 hover:text-foreground hover:scale-[1.01]"
+                  )}
+                >
+                  {isActive && (
+                    <span className="absolute top-1.5 right-1.5 size-3.5 rounded-full bg-accent flex items-center justify-center">
+                      <CheckCircle2 className="size-2.5 text-white" />
+                    </span>
+                  )}
+                  <span className="size-5 rounded-full shadow border border-black/10 mt-0.5" style={{ backgroundColor: themeOpt.color }} />
+                  <span className="text-[11px] font-extrabold uppercase tracking-wide leading-none">{themeOpt.label}</span>
+                  <span className="text-[9px] font-medium leading-none text-muted-foreground/80">{themeOpt.desc}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-3 text-[10px] text-muted-foreground/60 font-medium flex items-center gap-1.5">
+            <CheckCircle2 className="size-3 text-emerald-500" />
+            El color de fondo y los acentos de toda la interfaz cambian al instante. No requiere guardar.
+          </p>
+        </Panel>
+
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          GRUPO 2 — CONFIGURACIÓN OPERATIVA DEL SISTEMA
+          Requieren presionar Guardar cambios para aplicarse
+      ════════════════════════════════════════════════════════════════════════ */}
+      <div className="flex flex-col gap-1 mt-2">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-extrabold tracking-[0.2em] uppercase text-amber-500">Configuración Operativa del Sistema</span>
+          <div className="flex-1 h-px bg-border/50" />
+          <span className="text-[9px] font-medium text-muted-foreground/60 tracking-wide flex items-center gap-1">
+            <Save className="size-3 text-amber-500/70" />
+            Requiere guardar
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-6">
+
         {/* ── MODO SIMULACIÓN ── */}
         <Panel>
           <PanelHeader icon={<Cpu className="size-4 text-amber-500" />} title="Modo Simulación" subtitle="Generar datos simulados o conectar a hardware real" accent="var(--color-amber-500)" />
@@ -102,6 +303,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
           </div>
         </Panel>
 
+        {/* ── SINCRONIZACIÓN ── */}
         <Panel>
           <PanelHeader icon={<RefreshCw className="size-4 text-emerald-500" />} title="Sincronización" subtitle="Frecuencia de lectura de datos" accent="var(--color-emerald-500)" />
           <div className="mt-4 flex flex-col gap-3">
@@ -215,7 +417,6 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
           </div>
         </Panel>
 
-
         {/* ── RECONEXIÓN AUTOMÁTICA ── */}
         <Panel>
           <PanelHeader icon={<Wifi className="size-4 text-sky-400" />} title="Reconexión Automática" subtitle="Comportamiento ante pérdida de señal" accent="var(--color-sky-400)" />
@@ -243,83 +444,188 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
           </div>
         </Panel>
 
-        {/* ── APARIENCIA ── */}
-        <Panel>
-          <PanelHeader icon={<Moon className="size-4 text-indigo-400" />} title="Apariencia" subtitle="Preferencias visuales de la interfaz" accent="var(--color-indigo-500)" />
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            {[
-              { id: 'light', label: 'Claro', icon: Sun, desc: 'Usar siempre el tema claro.' },
-              { id: 'dark', label: 'Oscuro', icon: Moon, desc: 'Usar siempre el tema oscuro.' },
-              { id: 'system', label: 'Automático', icon: Monitor, desc: 'Seguir automáticamente la configuración del sistema operativo.' },
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => {
-                  setTheme(t.id)
-                  updateConfig({ theme: t.id as AppConfig['theme'] })
-                }}
-                className={cn(
-                  "flex flex-col items-center justify-start gap-2 rounded-xl border p-4 text-left transition-all",
-                  (theme === t.id || (theme === undefined && t.id === 'system'))
-                    ? "border-indigo-500 bg-indigo-500/10 text-indigo-500"
-                    : "border-border bg-background/50 text-muted-foreground hover:bg-muted/50"
-                )}
-              >
-                <t.icon className="size-6 shrink-0" />
-                <span className="text-xs font-bold uppercase tracking-wider w-full text-center">{t.label}</span>
-                <span className="text-[10px] font-normal leading-snug text-muted-foreground w-full text-center">{t.desc}</span>
-              </button>
-            ))}
-          </div>
-        </Panel>
-
-        {/* ── COLOR DE ACENTO ── */}
+        {/* ── UMBRALES OPERATIVOS ── */}
         <Panel className="border border-border/40 hover:border-accent/40 bg-card/90 shadow-sm transition-all duration-300">
           <PanelHeader
-            icon={<Palette className="size-4 text-accent" />}
-            title="Color de Acento"
-            subtitle="Elige el tono del fondo — se aplica instantáneamente"
-            accent="var(--accent)"
+            icon={<Sliders className="size-4 text-violet-500" />}
+            title="Umbrales Operativos"
+            subtitle="Parámetros utilizados para interpretar el estado de los sensores."
+            accent="var(--color-violet-500)"
           />
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-            {[
-              { id: 'theme-aurora',  label: 'Aurora',     color: '#1E7F6B', desc: 'Teal/Menta' },
-              { id: 'theme-emerald', label: 'Esmeralda',  color: '#10B981', desc: 'Verde fresco' },
-              { id: 'theme-ocean',   label: 'Océano',     color: '#0EA5E9', desc: 'Azul cielo' },
-              { id: 'theme-sunset',  label: 'Atardecer',  color: '#F97316', desc: 'Naranja cálido' },
-              { id: 'theme-rose',    label: 'Rosa',       color: '#F43F5E', desc: 'Rojo suave' },
-              { id: 'theme-violet',  label: 'Violeta',    color: '#8B5CF6', desc: 'Morado' },
-              { id: 'theme-slate',   label: 'Pizarra',    color: '#64748B', desc: 'Gris neutro' },
-            ].map((themeOpt) => {
-              const isActive = accentTheme === themeOpt.id
-              return (
-                <button
-                  key={themeOpt.id}
-                  type="button"
-                  onClick={() => onAccentThemeChange(themeOpt.id)}
-                  className={cn(
-                    "relative flex flex-col items-center justify-start gap-1.5 rounded-xl border p-3 text-center transition-all duration-200 cursor-pointer",
-                    isActive
-                      ? "border-accent bg-accent/8 text-accent shadow-md scale-[1.03]"
-                      : "border-border bg-background/30 text-muted-foreground hover:bg-muted/40 hover:text-foreground hover:scale-[1.01]"
-                  )}
-                >
-                  {isActive && (
-                    <span className="absolute top-1.5 right-1.5 size-3.5 rounded-full bg-accent flex items-center justify-center">
-                      <CheckCircle2 className="size-2.5 text-white" />
-                    </span>
-                  )}
-                  <span className="size-5 rounded-full shadow border border-black/10 mt-0.5" style={{ backgroundColor: themeOpt.color }} />
-                  <span className="text-[11px] font-extrabold uppercase tracking-wide leading-none">{themeOpt.label}</span>
-                  <span className="text-[9px] font-medium leading-none text-muted-foreground/80">{themeOpt.desc}</span>
-                </button>
-              )
-            })}
+          <div className="mt-4 flex flex-col gap-4">
+
+            {/* Grid de Sensores */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Tarjeta: Temperatura */}
+              <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-background/30 p-4">
+                <div className="flex items-center justify-between border-b border-border/30 pb-2">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-foreground">Temperatura</span>
+                  <span className="text-[9px] font-semibold text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border border-border/20">Sensor AHT10</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground">Min. recomendada (°C)</span>
+                    <input
+                      type="number" step="0.1"
+                      value={localThresholds.temperature.min}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, temperature: { ...prev.temperature, min: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground">Max. recomendada (°C)</span>
+                    <input
+                      type="number" step="0.1"
+                      value={localThresholds.temperature.max}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, temperature: { ...prev.temperature, max: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Tarjeta: Humedad */}
+              <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-background/30 p-4">
+                <div className="flex items-center justify-between border-b border-border/30 pb-2">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-foreground">Humedad</span>
+                  <span className="text-[9px] font-semibold text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border border-border/20">Sensor AHT10</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[9px] font-semibold text-muted-foreground">Mínima (%)</span>
+                    <input
+                      type="number" min="0" max="100"
+                      value={localThresholds.humidity.min}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, humidity: { ...prev.humidity, min: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-2.5 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[9px] font-semibold text-muted-foreground">Confort Máx. (%)</span>
+                    <input
+                      type="number" min="0" max="100"
+                      value={localThresholds.humidity.comfortMax}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, humidity: { ...prev.humidity, comfortMax: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-2.5 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[9px] font-semibold text-muted-foreground">Máxima (%)</span>
+                    <input
+                      type="number" min="0" max="100"
+                      value={localThresholds.humidity.max}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, humidity: { ...prev.humidity, max: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-2.5 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Tarjeta: Presión */}
+              <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-background/30 p-4">
+                <div className="flex items-center justify-between border-b border-border/30 pb-2">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-foreground">Presión</span>
+                  <span className="text-[9px] font-semibold text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border border-border/20">Sensor BMP280</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground">Mínima (hPa)</span>
+                    <input
+                      type="number" min="0" step="0.1"
+                      value={localThresholds.pressure.min}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, pressure: { ...prev.pressure, min: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground">Máxima (hPa)</span>
+                    <input
+                      type="number" min="0" step="0.1"
+                      value={localThresholds.pressure.max}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, pressure: { ...prev.pressure, max: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Tarjeta: Sensor de Lluvia */}
+              <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-background/30 p-4">
+                <div className="flex items-center justify-between border-b border-border/30 pb-2">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-foreground">Sensor de Lluvia</span>
+                  <span className="text-[9px] font-semibold text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border border-border/20">Sensor Resistivo</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground">Umbral de detección (%)</span>
+                    <input
+                      type="number" min="0" max="100"
+                      value={localThresholds.rain.detected}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, rain: { ...prev.rain, detected: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground">Umbral lluvia intensa (%)</span>
+                    <input
+                      type="number" min="0" max="100"
+                      value={localThresholds.rain.heavy}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, rain: { ...prev.rain, heavy: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Tarjeta completa: Calidad del Aire */}
+              <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-background/30 p-4 md:col-span-2">
+                <div className="flex items-center justify-between border-b border-border/30 pb-2">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-foreground">Calidad del Aire (Niveles del Sensor MQ135)</span>
+                  <span className="text-[9px] font-semibold text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border border-border/20">Sensor MQ135</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold text-emerald-500">Excelente (ppm)</span>
+                    <input
+                      type="number" min="0"
+                      value={localThresholds.airQuality.excellent}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, airQuality: { ...prev.airQuality, excellent: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold text-sky-400">Buena (ppm)</span>
+                    <input
+                      type="number" min="0"
+                      value={localThresholds.airQuality.acceptable}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, airQuality: { ...prev.airQuality, acceptable: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold text-amber-400">Moderada (ppm)</span>
+                    <input
+                      type="number" min="0"
+                      value={localThresholds.airQuality.regular}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, airQuality: { ...prev.airQuality, regular: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold text-red-400">Crítica (ppm)</span>
+                    <input
+                      type="number" min="0"
+                      value={localThresholds.airQuality.bad}
+                      onChange={e => setLocalThresholds(prev => ({ ...prev, airQuality: { ...prev.airQuality, bad: parseFloat(e.target.value) || 0 } }))}
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    />
+                  </label>
+                </div>
+              </div>
+
+            </div>
           </div>
-          <p className="mt-3 text-[10px] text-muted-foreground/60 font-medium flex items-center gap-1.5">
-            <CheckCircle2 className="size-3 text-emerald-500" />
-            El color de fondo y los acentos de toda la interfaz cambian al instante. No requiere guardar.
-          </p>
         </Panel>
 
         {/* ── INFORMACIÓN DEL SISTEMA ── */}
@@ -339,15 +645,22 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
             <InfoRow label="Última conexión" value={data?.ultimaActualizacion ?? '—'} />
           </div>
         </Panel>
+
       </div>
 
-      {/* ── FLOATING TOAST NOTIFICATION ── */}
+      {/* ── FLOATING TOAST: cambios pendientes ── */}
       {(hasChanges && !saved) && (
         <div className="fixed top-20 right-6 z-50 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-card p-4 shadow-xl shadow-amber-500/5 max-w-sm animate-slide-in-right">
           <AlertTriangle className="size-5 shrink-0 text-amber-500 mt-0.5" />
           <div className="flex-1 flex flex-col gap-0.5 pr-2">
             <span className="text-xs font-bold text-foreground">Cambios pendientes</span>
-            <span className="text-[11px] text-muted-foreground leading-snug">Tienes modificaciones en la configuración del ESP32 sin aplicar.</span>
+            <span className="text-[11px] text-muted-foreground leading-snug">
+              {configChanged && thresholdsChanged
+                ? 'Hay cambios en la configuración del ESP32 y en los umbrales sin aplicar.'
+                : configChanged
+                  ? 'Hay modificaciones en la configuración del ESP32 sin aplicar.'
+                  : 'Hay cambios en los umbrales operativos sin aplicar.'}
+            </span>
           </div>
         </div>
       )}
@@ -356,40 +669,70 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
         <div className="fixed top-20 right-6 z-50 flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-card p-4 shadow-xl shadow-emerald-500/5 max-w-sm animate-slide-in-right">
           <CheckCircle2 className="size-5 shrink-0 text-emerald-500 mt-0.5" />
           <div className="flex-1 flex flex-col gap-0.5 pr-2">
-            <span className="text-xs font-bold text-foreground">Ajustes guardados</span>
-            <span className="text-[11px] text-muted-foreground leading-snug">La configuración ha sido sincronizada con el firmware correctamente.</span>
+            <span className="text-xs font-bold text-foreground">Configuración guardada</span>
+            <span className="text-[11px] text-muted-foreground leading-snug">La configuración operativa ha sido aplicada en todo el sistema.</span>
           </div>
         </div>
       )}
 
+      {/* ── VALIDATION ERRORS ── */}
+      {thresholdErrors.length > 0 && (
+        <div className="flex flex-col gap-1.5 rounded-xl border border-red-500/30 bg-red-500/5 p-3">
+          <div className="flex items-center gap-1.5 text-red-500">
+            <AlertTriangle className="size-4 shrink-0" />
+            <span className="text-xs font-bold uppercase tracking-wider">Validación fallida — corrija los errores antes de guardar:</span>
+          </div>
+          <ul className="list-disc list-inside text-[11px] text-red-400/90 leading-relaxed flex flex-col gap-0.5 pl-1">
+            {thresholdErrors.map((err, idx) => (
+              <li key={idx}>{err}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* ── SAVE BAR ── */}
-      <div className="flex items-center justify-between pt-2 border-t border-border/10">
-        {/* Left side: status indicator */}
-        <div className="flex items-center gap-1.5">
-          <CheckCircle2 className={cn("size-3.5 transition-colors", hasChanges ? "text-muted-foreground/35" : "text-emerald-500")} />
-          <span className={cn("text-xs font-semibold transition-colors", hasChanges ? "text-muted-foreground/60" : "text-emerald-500/80")}>
-            {hasChanges ? "Esperando aplicación de cambios" : "Configuración sincronizada"}
-          </span>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border/10">
+
+        {/* Left: reset + status */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={handleResetThresholds}
+            title="Vuelve a cargar los valores de fábrica en el formulario. Debes presionar Guardar para aplicarlos."
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-background/50 hover:bg-muted text-xs font-bold text-muted-foreground hover:text-foreground transition-all cursor-pointer whitespace-nowrap"
+          >
+            <RotateCcw className="size-3.5 shrink-0" />
+            Restablecer valores recomendados
+          </button>
+
+          <div className="hidden sm:flex items-center gap-1.5">
+            <CheckCircle2 className={cn("size-3.5 transition-colors", hasChanges ? "text-muted-foreground/35" : "text-emerald-500")} />
+            <span className={cn("text-xs font-semibold transition-colors", hasChanges ? "text-muted-foreground/60" : "text-emerald-500/80")}>
+              {hasChanges ? "Cambios sin guardar" : "Todo sincronizado"}
+            </span>
+          </div>
         </div>
 
-        {/* Right side: save button */}
+        {/* Right: primary save */}
         <button
           onClick={handleSave}
-          disabled={!hasChanges}
+          disabled={!hasChanges || thresholdErrors.length > 0}
           className={cn(
-            "flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold tracking-widest transition-all",
+            "flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold tracking-widest transition-all w-full sm:w-auto justify-center",
             saved
               ? "bg-emerald-500 text-white cursor-default"
-              : hasChanges
+              : hasChanges && thresholdErrors.length === 0
                 ? "bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/20"
                 : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
           )}
         >
           {saved
             ? <><CheckCircle2 className="size-4" /> GUARDADO</>
-            : hasChanges
+            : hasChanges && thresholdErrors.length === 0
               ? <><Save className="size-4" /> GUARDAR CAMBIOS</>
-              : <><Save className="size-4" /> SIN CAMBIOS</>}
+              : thresholdErrors.length > 0
+                ? <><AlertTriangle className="size-4" /> CORREGIR ERRORES</>
+                : <><Save className="size-4" /> SIN CAMBIOS</>}
         </button>
       </div>
 

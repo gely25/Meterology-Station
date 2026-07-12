@@ -331,37 +331,6 @@ export function PressureCard({ data, className }: { data: WeatherData; className
           <span className="mb-1.5 ml-2 text-lg font-bold text-pressure">hPa</span>
         </div>
         <p className="text-center text-[9px] font-semibold text-muted-foreground/60 mt-0.5">Rango normal: {THRESHOLDS.pressure.min.toFixed(1)} - {THRESHOLDS.pressure.max.toFixed(1)} hPa</p>
-        
-        {/* Visual Range Position Bar */}
-        <div className="w-4/5 h-1.5 bg-muted/40 rounded-full overflow-hidden mt-1.5 relative">
-          {(() => {
-            const minP = THRESHOLDS.pressure.min
-            const maxP = THRESHOLDS.pressure.max
-            // Rango de visualización extendido
-            const extMin = minP - 15
-            const extMax = maxP + 15
-            const percentage = Math.max(0, Math.min(100, ((value - extMin) / (extMax - extMin)) * 100))
-            const idealStart = ((minP - extMin) / (extMax - extMin)) * 100
-            const idealEnd = ((maxP - extMin) / (extMax - extMin)) * 100
-            return (
-              <>
-                {/* Comfort/ideal range */}
-                <div 
-                  className="absolute h-full bg-emerald-500/20" 
-                  style={{ left: `${idealStart}%`, right: `${100 - idealEnd}%` }}
-                />
-                {/* Current indicator */}
-                <div 
-                  className={cn(
-                    "absolute top-0 -translate-x-1/2 size-1.5 rounded-full border border-background shadow-sm transition-all duration-300",
-                    (value < minP || value > maxP) ? "bg-red-500" : "bg-emerald-500"
-                  )}
-                  style={{ left: `${percentage}%` }}
-                />
-              </>
-            )
-          })()}
-        </div>
       </div>
 
       <div className="mt-1 flex items-center justify-end gap-2 relative z-10">
@@ -503,35 +472,6 @@ export function AirQualityCard({ data, className }: { data: WeatherData; classNa
         </h3>
         <p className="text-sm font-bold text-foreground leading-tight">{level.desc}</p>
         <p className="text-[10px] text-muted-foreground/80 font-medium mt-0.5">{level.action}</p>
-
-        {/* Visual Range Position Bar */}
-        <div className="w-4/5 h-1.5 bg-muted/40 rounded-full overflow-hidden mt-2 relative">
-          {(() => {
-            const val = Math.round(value)
-            // Límite de escala visual max 2000
-            const percentage = Math.max(0, Math.min(100, (val / 2000) * 100))
-            const excEnd = (THRESHOLDS.airQuality.excellent / 2000) * 100
-            const accEnd = (THRESHOLDS.airQuality.acceptable / 2000) * 100
-            const regEnd = (THRESHOLDS.airQuality.regular / 2000) * 100
-            const badEnd = (THRESHOLDS.airQuality.bad / 2000) * 100
-            return (
-              <>
-                {/* Zones */}
-                <div className="absolute h-full bg-[#2dd4bf]/20" style={{ left: '0%', width: `${excEnd}%` }} />
-                <div className="absolute h-full bg-[#facc15]/20" style={{ left: `${excEnd}%`, width: `${accEnd - excEnd}%` }} />
-                <div className="absolute h-full bg-[#f97316]/20" style={{ left: `${accEnd}%`, width: `${regEnd - accEnd}%` }} />
-                <div className="absolute h-full bg-[#fb923c]/20" style={{ left: `${regEnd}%`, width: `${badEnd - regEnd}%` }} />
-                <div className="absolute h-full bg-[#f87171]/20" style={{ left: `${badEnd}%`, right: '0%' }} />
-
-                {/* Dot */}
-                <div 
-                  className="absolute top-0 -translate-x-1/2 size-1.5 rounded-full border border-background shadow-sm transition-all duration-300"
-                  style={{ left: `${percentage}%`, backgroundColor: level.color }}
-                />
-              </>
-            )
-          })()}
-        </div>
       </div>
 
       {/* Value secondary display */}
@@ -552,4 +492,3 @@ export function AirQualityCard({ data, className }: { data: WeatherData; classNa
     </Panel>
   )
 }
-

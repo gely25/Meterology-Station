@@ -214,38 +214,7 @@ export function TemperatureCard({ data, className }: { data: WeatherData; classN
             <span className="font-digital text-6xl leading-none text-foreground tracking-wider">{value.toFixed(2)}</span>
             <span className="mb-0.5 ml-1 text-xl font-bold text-temp">°C</span>
           </div>
-          <p className={`text-[9px] font-semibold text-muted-foreground/60 mb-1`}>Rango: {THRESHOLDS.temperature.min.toFixed(2)} - {THRESHOLDS.temperature.max.toFixed(2)} °C</p>
-          
-          {/* Visual Range Position Bar */}
-          <div className="w-full h-1.5 bg-muted/40 rounded-full overflow-hidden mb-2 relative">
-            {(() => {
-              const minT = THRESHOLDS.temperature.min
-              const maxT = THRESHOLDS.temperature.max
-              // Rango extendido para visualizar valores fuera de límites (-5°C a +5°C del rango)
-              const extMin = minT - 5
-              const extMax = maxT + 5
-              const percentage = Math.max(0, Math.min(100, ((value - extMin) / (extMax - extMin)) * 100))
-              const idealStart = ((minT - extMin) / (extMax - extMin)) * 100
-              const idealEnd = ((maxT - extMin) / (extMax - extMin)) * 100
-              return (
-                <>
-                  {/* Ideal zone highlight */}
-                  <div 
-                    className="absolute h-full bg-emerald-500/20" 
-                    style={{ left: `${idealStart}%`, right: `${100 - idealEnd}%` }}
-                  />
-                  {/* Current value indicator dot */}
-                  <div 
-                    className={cn(
-                      "absolute top-0 -translate-x-1/2 size-1.5 rounded-full border border-background shadow-sm transition-all duration-300",
-                      (value < minT || value > maxT) ? "bg-red-500" : "bg-emerald-500"
-                    )}
-                    style={{ left: `${percentage}%` }}
-                  />
-                </>
-              )
-            })()}
-          </div>
+          <p className={`text-[9px] font-semibold text-muted-foreground/60 mb-2`}>Rango: {THRESHOLDS.temperature.min.toFixed(2)} - {THRESHOLDS.temperature.max.toFixed(2)} °C</p>
 
           <div className="flex items-center gap-3 text-[10px] font-semibold mb-2">
             <span className="flex items-center gap-1 text-muted-foreground">
@@ -378,34 +347,6 @@ export function HumidityCard({ data }: { data: WeatherData }) {
             Rango confortable: {THRESHOLDS.humidity.min} - {THRESHOLDS.humidity.comfortMax}%
           </text>
         </svg>
-      </div>
-
-      {/* Visual Range Position Bar */}
-      <div className="px-5 mb-2 shrink-0">
-        <div className="w-full h-1.5 bg-muted/40 rounded-full overflow-hidden relative">
-          {(() => {
-            const minH = THRESHOLDS.humidity.min
-            const maxH = THRESHOLDS.humidity.comfortMax
-            const percentage = Math.max(0, Math.min(100, value))
-            return (
-              <>
-                {/* Comfort zone highlight */}
-                <div 
-                  className="absolute h-full bg-emerald-500/20" 
-                  style={{ left: `${minH}%`, right: `${100 - maxH}%` }}
-                />
-                {/* Current value indicator dot */}
-                <div 
-                  className={cn(
-                    "absolute top-0 -translate-x-1/2 size-1.5 rounded-full border border-background shadow-sm transition-all duration-300",
-                    (value < minH || value > maxH) ? "bg-red-500" : "bg-emerald-500"
-                  )}
-                  style={{ left: `${percentage}%` }}
-                />
-              </>
-            )
-          })()}
-        </div>
       </div>
 
       {/* Footer */}
@@ -562,63 +503,103 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
   let stateLabel = "SISTEMA ESTABLE"
   let stateSubtitle = "Condiciones normales de operación"
   let labelColor = "text-emerald-400"
-  let bgGradient = "from-emerald-500/5 via-transparent to-transparent animate-pulse-slow"
+  let bgGradient = "from-emerald-500/8 via-transparent to-transparent animate-pulse-slow"
   let svgSrc = "/svg/Ambiente despejado.svg"
+  let accentHex = "#10b981"
+  let badgeClasses = "border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
 
   if (isRainHeavy || isAirDangerous) {
     stateLabel = "ALERTA ACTIVA"
     stateSubtitle = "Parámetros fuera de rango crítico"
     labelColor = "text-red-400"
-    bgGradient = "from-red-500/10 via-transparent to-transparent animate-pulse"
+    bgGradient = "from-red-500/12 via-transparent to-transparent animate-pulse"
     svgSrc = "/svg/Lluvia intensa.svg"
+    accentHex = "#ef4444"
+    badgeClasses = "border-red-500/40 bg-red-500/15 text-red-400"
   } else if (isRaining) {
     stateLabel = "LLUVIA DETECTADA"
     stateSubtitle = "Precipitación activa sobre los sensores"
     labelColor = "text-sky-400"
-    bgGradient = "from-sky-500/8 via-transparent to-transparent"
+    bgGradient = "from-sky-500/10 via-transparent to-transparent"
     svgSrc = "/svg/Lluvia detectada.svg"
+    accentHex = "#38bdf8"
+    badgeClasses = "border-sky-500/40 bg-sky-500/15 text-sky-400"
   } else if (isAirBad) {
     stateLabel = "CALIDAD DE AIRE MALA"
     stateSubtitle = "Concentración de gas moderada/alta"
     labelColor = "text-amber-400"
-    bgGradient = "from-amber-500/8 via-transparent to-transparent"
+    bgGradient = "from-amber-500/10 via-transparent to-transparent"
     svgSrc = "/svg/Ambiente húmedo.svg"
+    accentHex = "#f59e0b"
+    badgeClasses = "border-amber-500/40 bg-amber-500/15 text-amber-400"
   }
 
   const recs = getRecommendations(data)
 
   return (
-    <Panel variant="hero" className={cn(`flex flex-col justify-between overflow-hidden relative bg-gradient-to-b ${bgGradient} p-4 pb-3`, className)}>
+    <Panel
+      variant="hero"
+      glow={accentHex}
+      className={cn(
+        `flex flex-col justify-between overflow-hidden relative bg-gradient-to-br ${bgGradient} p-4 pb-3 border-l-4`,
+        className,
+      )}
+      style={{ borderLeftColor: accentHex, backgroundColor: `${accentHex}0A` }}
+    >
       {/* Background watermark */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none">
-        <img src={svgSrc} alt="" width={280} height={280} className="object-contain" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
+        <img src={svgSrc} alt="" width={300} height={300} className="object-contain" />
       </div>
 
       {/* Header */}
       <div className="w-full flex items-center justify-between z-10 relative">
         <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Resumen Ambiental</h2>
-        <span className="text-[8px] font-bold tracking-wider text-muted-foreground/45">SINC: {data.hora}</span>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn("flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-widest", badgeClasses)}
+            style={{ boxShadow: `0 0 12px -2px ${accentHex}60` }}
+          >
+            <span className="relative flex size-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ backgroundColor: accentHex }} />
+              <span className="relative inline-flex size-1.5 rounded-full" style={{ backgroundColor: accentHex }} />
+            </span>
+            {stateLabel}
+          </span>
+        </div>
       </div>
 
       {/* Center Layout: split into dynamic illustration and checklist */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-auto z-10 relative items-center py-2">
-        {/* Dynamic illustration */}
+      <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-5 my-auto z-10 relative items-center py-2">
+        {/* Dynamic illustration + huge status label (hero weight, matches digital-number cards) */}
         <div className="flex flex-col items-center justify-center">
-          <img
-            src={svgSrc}
-            alt={stateLabel}
-            width={110}
-            height={110}
-            className="object-contain select-none drop-shadow-[0_4px_10px_rgba(255,255,255,0.05)] opacity-90 transition-all duration-500"
-          />
-          <div className="text-center mt-2">
-            <p className={`text-base font-extrabold tracking-widest ${labelColor} transition-colors duration-500`}>{stateLabel}</p>
-            <p className="text-[9.5px] font-semibold text-muted-foreground mt-0.5">{stateSubtitle}</p>
+          <div
+            className="relative flex items-center justify-center rounded-2xl p-3"
+            style={{ backgroundColor: `${accentHex}1a`, boxShadow: `0 0 0 1px ${accentHex}40, 0 0 24px -6px ${accentHex}50` }}
+          >
+            <img
+              src={svgSrc}
+              alt={stateLabel}
+              width={104}
+              height={104}
+              className="object-contain select-none drop-shadow-[0_4px_10px_rgba(255,255,255,0.05)] transition-all duration-500"
+            />
+          </div>
+          <div className="text-center mt-3">
+            <p
+              className={`text-2xl leading-none font-extrabold tracking-wide ${labelColor} transition-colors duration-500`}
+              style={{ textShadow: `0 0 24px ${accentHex}40` }}
+            >
+              {stateLabel}
+            </p>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-1.5">{stateSubtitle}</p>
           </div>
         </div>
 
         {/* Dynamic Recommendations list instead of static checklist */}
-        <div className="flex flex-col gap-2 border-l border-border/10 pl-4 h-full max-h-[170px] overflow-y-auto pr-1">
+        <div
+          className="flex flex-col gap-2 pl-4 h-full max-h-[170px] overflow-y-auto pr-1 border-l"
+          style={{ borderColor: `${accentHex}25` }}
+        >
           <span className="text-[8.5px] font-extrabold tracking-widest uppercase text-muted-foreground/60 mb-0.5">Asistente Agronómico</span>
           {recs.map(rec => (
             <div key={rec.id} className="flex flex-col gap-0.5">
@@ -635,11 +616,12 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
       </div>
 
       {/* Footer */}
-      <p className="z-10 text-center text-[9px] text-muted-foreground/50 max-w-[85%] mx-auto mt-1 leading-normal">
-        Monitoreo activo procesando datos en tiempo real desde el ESP32.
-      </p>
+      <div className="z-10 flex items-center justify-center gap-1.5 mt-1">
+        <span className="size-1 rounded-full" style={{ backgroundColor: accentHex }} />
+        <p className="text-center text-[9px] text-muted-foreground/50 max-w-[85%] leading-normal">
+          Monitoreo activo procesando datos en tiempo real desde el ESP32 · SINC {data.hora}
+        </p>
+      </div>
     </Panel>
   )
 }
-
-

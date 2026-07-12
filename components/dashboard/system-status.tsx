@@ -32,8 +32,8 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
     }
     if (status === 'operativo') return {
       label: 'Operativo',
-      textClass: 'text-[#6ab187]',
-      dotClass: 'bg-[#6ab187] shadow-[0_0_5px_#6ab18755] animate-pulse',
+      textClass: 'text-success',
+      dotClass: 'bg-success shadow-[0_0_5px] shadow-success/40 animate-pulse',
     }
     if (status === 'error') return {
       label: 'Error',
@@ -53,20 +53,23 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
     <Panel className={cn("flex flex-col h-full", className)}>
       <h2 className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">Estado del Sistema</h2>
 
+      {/* Contenido scrolleable: si no cabe en la altura de la fila, se desplaza en vez de cortarse */}
+      <div className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto scrollbar-hide pr-0.5">
+
       {/* Grupos de hardware clasificados */}
-      <div className="flex flex-col gap-2 shrink-0">
+      <div className="flex flex-col gap-1.5 shrink-0">
         {/* Grupo 1: Microcontrolador */}
         <div className="flex flex-col gap-1">
           <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/60 px-0.5">Microcontrolador</span>
           <div className="grid grid-cols-1 gap-1">
-            <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-1">
+            <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-0.5">
               <span className="flex items-center gap-1.5 min-w-0">
                 <Cpu className="size-3.5 text-muted-foreground shrink-0" />
                 <span className="text-[10px] font-semibold text-foreground truncate">ESP32</span>
               </span>
-              <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", esp32Connected ? 'text-[#6ab187]' : 'text-alert')}>
+              <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", esp32Connected ? 'text-success' : 'text-alert')}>
                 {esp32Connected ? 'Conectado' : 'Sin conexión'}
-                <span className={cn("size-1.5 rounded-full shrink-0", esp32Connected ? 'bg-[#6ab187] shadow-[0_0_5px_#6ab18755] animate-pulse' : 'bg-alert shadow-[0_0_5px] shadow-alert')} />
+                <span className={cn("size-1.5 rounded-full shrink-0", esp32Connected ? 'bg-success shadow-[0_0_5px] shadow-success/40 animate-pulse' : 'bg-alert shadow-[0_0_5px] shadow-alert')} />
               </span>
             </div>
           </div>
@@ -84,7 +87,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
             ].map((row) => {
               const Icon = row.icon
               return (
-                <div key={row.name} className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-1">
+                <div key={row.name} className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-0.5">
                   <span className="flex items-center gap-1.5 min-w-0">
                     <Icon className="size-3.5 text-muted-foreground shrink-0" />
                     <span className="text-[10px] font-semibold text-foreground truncate">{row.name}</span>
@@ -111,7 +114,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
             ].map((row) => {
               const Icon = row.icon
               return (
-                <div key={row.name} className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-1">
+                <div key={row.name} className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-0.5">
                   <span className="flex items-center gap-1.5 min-w-0">
                     <Icon className="size-3.5 text-muted-foreground shrink-0" />
                     <span className="text-[10px] font-semibold text-foreground truncate">{row.name}</span>
@@ -128,8 +131,8 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
       </div>
 
       {/* Connectivity metrics */}
-      <div className="mt-1.5 pt-1.5 border-t border-border grid grid-cols-3 gap-1.5 shrink-0">
-        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-1">
+      <div className="mt-1 pt-1 border-t border-border grid grid-cols-3 gap-1.5 shrink-0">
+        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-0.5">
           <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
             <Wifi className="size-3" /> WiFi RSSI
           </span>
@@ -140,7 +143,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
           <span className="text-[8px] text-muted-foreground mt-0.5">{rssiLabel}</span>
         </div>
 
-        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-1">
+        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-0.5">
           <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
             <Clock className="size-3" /> Uptime ESP32
           </span>
@@ -148,7 +151,7 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
           <span className="text-[8px] text-muted-foreground mt-0.5">{esp32Connected ? 'Desde ' + data.hora : 'Sin conexión'}</span>
         </div>
 
-        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-1">
+        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-0.5">
           <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
             <Activity className="size-3" /> Latencia
           </span>
@@ -160,10 +163,10 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
       </div>
 
       {/* ── Visual status legend ── */}
-      <div className="mt-1.5 pt-1.5 border-t border-border/40 flex flex-wrap items-center gap-x-2.5 gap-y-1 shrink-0">
+      <div className="mt-1 pt-1 border-t border-border/40 flex flex-wrap items-center gap-x-2.5 gap-y-1 shrink-0">
         <span className="text-[7px] font-extrabold uppercase tracking-wider text-muted-foreground/50 mr-0.5">Estado:</span>
         {[
-          { label: 'Operativo',         dot: 'bg-[#6ab187] shadow-[0_0_4px_#6ab18755]' },
+          { label: 'Operativo',         dot: 'bg-success shadow-[0_0_4px] shadow-success/40' },
           { label: 'Esperando lectura', dot: 'bg-sky-400 shadow-[0_0_4px] shadow-sky-400' },
           { label: 'Error',             dot: 'bg-warning shadow-[0_0_4px] shadow-warning' },
           { label: 'Sin conexión',      dot: 'bg-alert shadow-[0_0_4px] shadow-alert' },
@@ -173,6 +176,8 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
             <span className="text-[7px] font-semibold text-muted-foreground/60">{s.label}</span>
           </span>
         ))}
+      </div>
+
       </div>
     </Panel>
   )

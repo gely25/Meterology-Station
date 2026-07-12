@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { ReactNode, CSSProperties } from "react"
 import { cn } from "@/lib/utils"
 
 export function Panel({
@@ -6,11 +6,13 @@ export function Panel({
   className,
   glow,
   variant = "default",
+  style,
 }: {
   children?: ReactNode
   className?: string
   glow?: string
   variant?: "default" | "hero"
+  style?: CSSProperties
 }) {
   return (
     <section
@@ -29,7 +31,10 @@ export function Panel({
         variant === "hero" && "shadow-md",
         className,
       )}
-      style={glow ? { boxShadow: `0 0 0 1px ${glow}15, 0 4px 12px -2px ${glow}25` } : undefined}
+      style={{
+        ...(glow ? { boxShadow: `0 0 0 1px ${glow}15, 0 4px 12px -2px ${glow}25` } : undefined),
+        ...style,
+      }}
     >
       {children}
     </section>

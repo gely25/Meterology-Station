@@ -165,12 +165,12 @@ export function HistoryView({ data }: { data: WeatherData }) {
     if (rangePreset === "custom" && (!customFrom || !customTo)) {
       const now = new Date()
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-      
+
       const getLocalISOString = (date: Date) => {
         const tzOffset = date.getTimezoneOffset() * 60000
         return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16)
       }
-      
+
       if (!customFrom) setCustomFrom(getLocalISOString(yesterday))
       if (!customTo) setCustomTo(getLocalISOString(now))
     }
@@ -623,10 +623,10 @@ export function HistoryView({ data }: { data: WeatherData }) {
                   key={p}
                   onClick={() => setActivePeriod(p)}
                   className={cn(
-                    "px-2.5 py-1 text-[9px] font-bold rounded-md transition-colors",
+                    "px-2.5 py-1 text-[9px] font-bold rounded-md transition-all duration-200 border",
                     activePeriod === p
-                      ? "bg-background shadow-sm text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-foreground text-background border-foreground shadow-sm scale-105"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-background/60"
                   )}
                 >{p}</button>
               ))}
@@ -729,14 +729,16 @@ export function HistoryView({ data }: { data: WeatherData }) {
                   key={key}
                   onClick={() => setActiveMetric(key)}
                   className={cn(
-                    "px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-300 border",
+                    "px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-300 border-2",
                     isActive
-                      ? "border-transparent shadow-sm"
+                      ? "shadow-md scale-105"
                       : "border-border bg-card/40 text-muted-foreground hover:bg-card hover:text-foreground"
                   )}
                   style={isActive ? {
                     color: METRICS[key].color,
-                    backgroundColor: `color-mix(in srgb, ${METRICS[key].color} 15%, transparent)`,
+                    borderColor: METRICS[key].color,
+                    backgroundColor: `color-mix(in srgb, ${METRICS[key].color} 22%, transparent)`,
+                    boxShadow: `0 0 0 1px color-mix(in srgb, ${METRICS[key].color} 45%, transparent), 0 2px 10px color-mix(in srgb, ${METRICS[key].color} 35%, transparent)`,
                   } : {}}
                 >{METRICS[key].label}</button>
               )
@@ -859,9 +861,9 @@ export function HistoryView({ data }: { data: WeatherData }) {
                   key={p.id}
                   onClick={() => setRangePreset(p.id)}
                   className={cn(
-                    "px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-colors text-left",
+                    "px-2.5 py-1.5 rounded-lg border-2 text-[11px] font-bold transition-all duration-200 text-left",
                     rangePreset === p.id
-                      ? "border-violet-500/50 bg-violet-500/10 text-violet-700 dark:text-violet-300"
+                      ? "border-violet-500 bg-violet-500/15 text-violet-700 dark:text-violet-300 shadow-sm scale-[1.02]"
                       : "border-border bg-background/50 text-muted-foreground hover:text-foreground hover:border-border/80"
                   )}
                 >
@@ -911,7 +913,7 @@ export function HistoryView({ data }: { data: WeatherData }) {
             {(() => {
               let validationMessage = ""
               let isError = false
-              
+
               if (rangePreset === "custom") {
                 if (!customFrom && !customTo) {
                   validationMessage = "Por favor, selecciona las fechas y horas de inicio y fin."
