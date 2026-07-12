@@ -532,6 +532,17 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
     svgSrc = "/svg/Ambiente húmedo.svg"
     accentHex = "#f59e0b"
     badgeClasses = "border-amber-500/40 bg-amber-500/15 text-amber-400"
+  } else if (isTempExtreme || isHumExtreme) {
+    const outOfRange: string[] = []
+    if (isTempExtreme) outOfRange.push("temperatura")
+    if (isHumExtreme) outOfRange.push("humedad")
+    stateLabel = "CONDICIÓN ANÓMALA"
+    stateSubtitle = `Fuera de rango: ${outOfRange.join(" y ")}`
+    labelColor = "text-orange-400"
+    bgGradient = "from-orange-500/10 via-transparent to-transparent"
+    svgSrc = isTempExtreme ? "/svg/temperatura.svg" : "/svg/Ambiente húmedo.svg"
+    accentHex = "#fb923c"
+    badgeClasses = "border-orange-500/40 bg-orange-500/15 text-orange-400"
   }
 
   const recs = getRecommendations(data)

@@ -125,42 +125,42 @@
 
 .theme-aurora {
   --theme-hue: 175;
-  --theme-chroma: 0.05;
+  --theme-chroma: 0.02;
   --theme-accent-hue: 170;
   --theme-accent-chroma: 0.15;
 }
 
 .theme-emerald {
   --theme-hue: 145;
-  --theme-chroma: 0.05;
+  --theme-chroma: 0.02;
   --theme-accent-hue: 140;
   --theme-accent-chroma: 0.15;
 }
 
 .theme-ocean {
   --theme-hue: 220;
-  --theme-chroma: 0.05;
+  --theme-chroma: 0.02;
   --theme-accent-hue: 215;
   --theme-accent-chroma: 0.15;
 }
 
 .theme-sunset {
   --theme-hue: 50;
-  --theme-chroma: 0.04;
+  --theme-chroma: 0.028;
   --theme-accent-hue: 45;
   --theme-accent-chroma: 0.15;
 }
 
 .theme-rose {
   --theme-hue: 15;
-  --theme-chroma: 0.04;
+  --theme-chroma: 0.028;
   --theme-accent-hue: 10;
   --theme-accent-chroma: 0.16;
 }
 
 .theme-violet {
   --theme-hue: 290;
-  --theme-chroma: 0.05;
+  --theme-chroma: 0.02;
   --theme-accent-hue: 285;
   --theme-accent-chroma: 0.15;
 }

@@ -154,10 +154,10 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
                     <button key={p}
                       onClick={() => { setPeriod(p); setShowCustomPicker(false) }}
                       className={cn(
-                        "px-4 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                        "px-4 py-2 rounded-lg border text-xs font-bold transition-all cursor-pointer",
                         period === p && !showCustomPicker
-                          ? "border-accent bg-accent text-accent-foreground shadow-md scale-[1.03]"
-                          : "border-border/60 bg-card text-muted-foreground hover:border-accent/50 hover:text-foreground"
+                          ? "border-accent/40 bg-accent/10 text-accent shadow-sm"
+                          : "border-border/60 bg-card text-muted-foreground hover:border-accent/30 hover:bg-muted/30 hover:text-foreground"
                       )}>
                       {PERIOD_LABELS[p]}
                     </button>
@@ -165,10 +165,10 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
                   <button
                     onClick={() => setShowCustomPicker(true)}
                     className={cn(
-                      "px-4 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                      "px-4 py-2 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
                       showCustomPicker
-                        ? "border-accent bg-accent text-accent-foreground shadow-md scale-[1.03]"
-                        : "border-border/60 bg-card text-muted-foreground hover:border-accent/50 hover:text-foreground"
+                        ? "border-accent/40 bg-accent/10 text-accent shadow-sm"
+                        : "border-border/60 bg-card text-muted-foreground hover:border-accent/30 hover:bg-muted/30 hover:text-foreground"
                     )}>
                     <Calendar className="size-3.5" />
                     <span>Personalizado</span>

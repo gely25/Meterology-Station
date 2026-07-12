@@ -1,7 +1,77 @@
-import { utils, write } from "xlsx";
 import { WeatherData } from "../types/weather";
+import { THRESHOLDS } from "./thresholds";
 
-export function exportFullReportExcel(
+// ─── Helpers de estado (mismo criterio que Historial) ───
+function statusOf(value: number, metric: "temperature" | "humidity" | "pressure" | "rain" | "airQuality"): string {
+  if (metric === "temperature") {
+    if (value < THRESHOLDS.temperature.min) return "Bajo";
+    if (value > THRESHOLDS.temperature.max) return "Alto";
+    return "Normal";
+  }
+  if (metric === "humidity") {
+    if (value < THRESHOLDS.humidity.min) return "Bajo";
+    if (value > THRESHOLDS.humidity.comfortMax) return "Alto";
+    return "Normal";
+  }
+  if (metric === "pressure") {
+    if (value < THRESHOLDS.pressure.min) return "Bajo";
+    if (value > THRESHOLDS.pressure.max) return "Alto";
+    return "Normal";
+  }
+  if (metric === "rain") {
+    return value >= THRESHOLDS.rain.detected ? "Alto" : "Normal";
+  }
+  // airQuality
+  if (value >= THRESHOLDS.airQuality.bad) return "Alto";
+  if (value < THRESHOLDS.airQuality.excellent) return "Normal";
+  return "Normal";
+}
+
+const FILL_BY_STATUS: Record<string, string> = {
+  Normal: "FFD1FAE5",
+  Alto: "FFFEE2E2",
+  Bajo: "FFE0F2FE",
+};
+const FONT_BY_STATUS: Record<string, string> = {
+  Normal: "FF065F46",
+  Alto: "FF991B1B",
+  Bajo: "FF075985",
+};
+const FILL_BY_TYPE: Record<string, string> = {
+  alert: "FFFEE2E2", warning: "FFFEF3C7", success: "FFD1FAE5", info: "FFE0F2FE",
+};
+const FONT_BY_TYPE: Record<string, string> = {
+  alert: "FF991B1B", warning: "FF92400E", success: "FF065F46", info: "FF075985",
+};
+
+// Mapa de etiqueta legible (como llega desde la UI) -> clave interna del sensor
+const SENSOR_LABEL_TO_KEY: Record<string, "temperature" | "humidity" | "pressure" | "rain" | "airQuality"> = {
+  "Temperatura": "temperature",
+  "Humedad": "humidity",
+  "Presión": "pressure",
+  "Lluvia": "rain",
+  "Calidad del Aire": "airQuality",
+};
+
+function drawTitleBlock(sheet: any, subtitle: string, colSpan: number) {
+  sheet.mergeCells(1, 1, 1, colSpan);
+  const t = sheet.getCell(1, 1);
+  t.value = "CENTRO DE ANÁLISIS METEOROLÓGICO — REPORTE CONSOLIDADO";
+  t.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
+  t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F172A" } };
+  t.alignment = { vertical: "middle", horizontal: "center" };
+  sheet.getRow(1).height = 26;
+
+  sheet.mergeCells(2, 1, 2, colSpan);
+  const s = sheet.getCell(2, 1);
+  s.value = subtitle;
+  s.font = { italic: true, size: 10, color: { argb: "FF475569" } };
+  s.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+  s.alignment = { vertical: "middle", horizontal: "center" };
+  sheet.getRow(2).height = 18;
+}
+
+export async function exportFullReportExcel(
   history: WeatherData["history"],
   events: WeatherData["events"],
   period: string,
@@ -10,116 +80,159 @@ export function exportFullReportExcel(
 ) {
   if (history.length === 0) return;
 
+  const ExcelJS = (await import("exceljs")).default;
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Estación Meteorológica IoT";
+  workbook.created = new Date();
+
+  const stampNow = new Date().toLocaleString("es-EC");
+  const selectedKeys = sensors
+    .map(label => SENSOR_LABEL_TO_KEY[label])
+    .filter((k): k is keyof typeof SENSOR_COLUMNS => Boolean(k));
+
   // ─── HOJA 1: RESUMEN EJECUTIVO ───
-  const summaryData = [
-    ["CENTRO DE ANÁLISIS METEOROLÓGICO - REPORTE CONSOLIDADO"],
-    [],
-    ["Fecha de Generación:", new Date().toLocaleString()],
-    ["Período Analizado:", period],
-    ["Sensores Incluidos:", sensors.join(", ")],
-    ["Registros Analizados:", history.length.toString()],
-    ["Eventos Registrados:", events.length.toString()],
-  ];
-  const wsSummary = utils.aoa_to_sheet(summaryData);
+  const wsSummary = workbook.addWorksheet("Resumen");
+  drawTitleBlock(wsSummary, `Generado: ${stampNow}`, 2);
 
-  // Ajustar ancho de columnas para Resumen
-  wsSummary["!cols"] = [
-    { wch: 25 },
-    { wch: 45 }
+  const summaryRows: [string, string][] = [
+    ["Período Analizado", PERIOD_LABELS[period] ?? period],
+    ["Sensores Incluidos", sensors.join(", ") || "Ninguno"],
+    ["Registros Analizados", history.length.toString()],
+    ["Eventos Registrados", events.length.toString()],
   ];
+  summaryRows.forEach((row, i) => {
+    const rowIdx = 4 + i;
+    const label = wsSummary.getCell(rowIdx, 1);
+    label.value = row[0];
+    label.font = { bold: true, color: { argb: "FF334155" } };
+    label.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
+    label.border = { bottom: { style: "hair", color: { argb: "FFE2E8F0" } } };
 
-  // ─── HOJA 2: ANÁLISIS DERIVADO (Conclusiones) ───
-  const analysisRows = [
-    ["Índice", "Hallazgos y Correlaciones Detectadas"]
-  ];
-  if (conclusions.length === 0) {
-    analysisRows.push(["1", "No se detectaron comportamientos fuera de rango o patrones significativos en el periodo."]);
-  } else {
-    conclusions.forEach((c, i) => {
-      analysisRows.push([(i + 1).toString(), c]);
-    });
-  }
-  const wsAnalysis = utils.aoa_to_sheet(analysisRows);
-  wsAnalysis["!cols"] = [
-    { wch: 10 },
-    { wch: 90 }
-  ];
-
-  // ─── HOJA 3: HISTORIAL DE MEDICIONES ───
-  const historyRows = [
-    ["Fecha/Hora", "Temperatura (ºC)", "Humedad Relative (%)", "Presión Atmosférica (hPa)", "Lluvia (%)", "Calidad de Aire (ppm)", "Estado Lluvia"]
-  ];
-  history.forEach(row => {
-    const rainLevel = row.rain * 10;
-    const isRaining = rainLevel >= 20;
-    const rainState = isRaining ? (rainLevel >= 70 ? "Intensa" : "Ligera") : "Seco";
-    historyRows.push([
-      row.time,
-      row.temperature.toFixed(2),
-      row.humidity.toFixed(2),
-      row.pressure.toFixed(1),
-      rainLevel.toFixed(1),
-      row.airQuality.toFixed(0),
-      rainState
-    ]);
+    const val = wsSummary.getCell(rowIdx, 2);
+    val.value = row[1];
+    val.border = { bottom: { style: "hair", color: { argb: "FFE2E8F0" } } };
   });
-  const wsHistory = utils.aoa_to_sheet(historyRows);
-  wsHistory["!cols"] = [
-    { wch: 25 },
-    { wch: 18 },
-    { wch: 22 },
-    { wch: 25 },
-    { wch: 15 },
-    { wch: 20 },
-    { wch: 15 }
-  ];
+  wsSummary.columns = [{ width: 26 }, { width: 55 }];
+
+  // ─── HOJA 2: RESULTADOS DEL ANÁLISIS ───
+  const wsAnalysis = workbook.addWorksheet("Resultados Análisis", { views: [{ state: "frozen", ySplit: 5 }] });
+  drawTitleBlock(wsAnalysis, `Diagnóstico generado por el motor de análisis local  |  Generado: ${stampNow}`, 2);
+
+  const analysisHeaders = ["#", "Hallazgos y Correlaciones Detectadas"];
+  analysisHeaders.forEach((h, i) => {
+    const cell = wsAnalysis.getCell(4, i + 1);
+    cell.value = h;
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+  });
+  wsAnalysis.getRow(4).height = 20;
+
+  const rows = conclusions.length > 0
+    ? conclusions
+    : ["No se detectaron comportamientos fuera de rango o patrones significativos en el periodo."];
+  rows.forEach((c, i) => {
+    const idxCell = wsAnalysis.getCell(5 + i, 1);
+    idxCell.value = i + 1;
+    idxCell.alignment = { vertical: "middle", horizontal: "center" };
+    idxCell.border = { bottom: { style: "hair", color: { argb: "FFE2E8F0" } } };
+
+    const textCell = wsAnalysis.getCell(5 + i, 2);
+    textCell.value = c;
+    textCell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+    textCell.border = { bottom: { style: "hair", color: { argb: "FFE2E8F0" } } };
+  });
+  wsAnalysis.columns = [{ width: 8 }, { width: 100 }];
+
+  // ─── HOJA 3: HISTORIAL DE SENSORES (solo los seleccionados) ───
+  const wsHistory = workbook.addWorksheet("Historial Sensores", { views: [{ state: "frozen", ySplit: 5 }] });
+  const activeCols = selectedKeys.length > 0 ? selectedKeys : (Object.keys(SENSOR_COLUMNS) as (keyof typeof SENSOR_COLUMNS)[]);
+  drawTitleBlock(wsHistory, `Registros: ${history.length}  |  Sensores: ${sensors.join(", ") || "todos"}  |  Generado: ${stampNow}`, 1 + activeCols.length * 2);
+
+  const historyHeaders = ["Fecha/Hora"];
+  activeCols.forEach(k => historyHeaders.push(SENSOR_COLUMNS[k].label, `Estado ${SENSOR_COLUMNS[k].short}`));
+  historyHeaders.forEach((h, i) => {
+    const cell = wsHistory.getCell(4, i + 1);
+    cell.value = h;
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+    cell.border = { bottom: { style: "thin", color: { argb: "FF334155" } } };
+  });
+  wsHistory.getRow(4).height = 20;
+
+  history.forEach((row, r) => {
+    const rowIdx = 5 + r;
+    const dateCell = wsHistory.getCell(rowIdx, 1);
+    dateCell.value = row.time;
+    dateCell.alignment = { vertical: "middle", horizontal: "left" };
+    dateCell.border = { bottom: { style: "hair", color: { argb: "FFE2E8F0" } } };
+
+    let col = 2;
+    activeCols.forEach(k => {
+      const rawValue = k === "rain" ? row.rain * 10 : row[k];
+      const status = statusOf(rawValue, k);
+
+      const valCell = wsHistory.getCell(rowIdx, col);
+      valCell.value = Number(rawValue.toFixed(k === "airQuality" ? 0 : 2));
+      valCell.alignment = { vertical: "middle", horizontal: "center" };
+      valCell.border = { bottom: { style: "hair", color: { argb: "FFE2E8F0" } } };
+
+      const statusCell = wsHistory.getCell(rowIdx, col + 1);
+      statusCell.value = status;
+      statusCell.alignment = { vertical: "middle", horizontal: "center" };
+      statusCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: FILL_BY_STATUS[status] ?? "FFF1F5F9" } };
+      statusCell.font = { bold: true, color: { argb: FONT_BY_STATUS[status] ?? "FF475569" } };
+      statusCell.border = { bottom: { style: "hair", color: { argb: "FFE2E8F0" } } };
+
+      col += 2;
+    });
+  });
+  wsHistory.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: historyHeaders.length } };
+  wsHistory.columns = [{ width: 22 }, ...activeCols.flatMap(() => [{ width: 16 }, { width: 13 }])];
 
   // ─── HOJA 4: BITÁCORA DE EVENTOS ───
-  const eventRows = [
-    ["ID Evento", "Hora/Minuto", "Tipo de Alerta", "Descripción del Suceso"]
-  ];
+  const wsEvents = workbook.addWorksheet("Bitácora Eventos", { views: [{ state: "frozen", ySplit: 5 }] });
+  drawTitleBlock(wsEvents, `Eventos: ${events.length}  |  Generado: ${stampNow}`, 4);
+
+  const eventHeaders = ["ID Evento", "Hora", "Tipo", "Descripción del Suceso"];
+  eventHeaders.forEach((h, i) => {
+    const cell = wsEvents.getCell(4, i + 1);
+    cell.value = h;
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+    cell.border = { bottom: { style: "thin", color: { argb: "FF334155" } } };
+  });
+  wsEvents.getRow(4).height = 20;
+
   if (events.length === 0) {
-    eventRows.push(["-", "-", "-", "No se registraron incidentes ni alertas en el período."]);
+    wsEvents.mergeCells(5, 1, 5, 4);
+    const cell = wsEvents.getCell(5, 1);
+    cell.value = "No se registraron incidentes ni alertas en el período.";
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+    cell.font = { italic: true, color: { argb: "FF94A3B8" } };
   } else {
-    events.forEach(ev => {
-      eventRows.push([
-        ev.id,
-        ev.time,
-        ev.type.toUpperCase(),
-        ev.message
-      ]);
+    events.forEach((ev, i) => {
+      const rowIdx = 5 + i;
+      const rowVals = [ev.id, ev.time, ev.type.toUpperCase(), ev.message];
+      rowVals.forEach((v, c) => {
+        const cell = wsEvents.getCell(rowIdx, c + 1);
+        cell.value = v;
+        cell.alignment = { vertical: "middle", horizontal: c === 2 ? "center" : "left" };
+        cell.border = { bottom: { style: "hair", color: { argb: "FFE2E8F0" } } };
+      });
+      const typeCell = wsEvents.getCell(rowIdx, 3);
+      typeCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: FILL_BY_TYPE[ev.type] ?? "FFF1F5F9" } };
+      typeCell.font = { bold: true, color: { argb: FONT_BY_TYPE[ev.type] ?? "FF475569" } };
     });
   }
-  const wsEvents = utils.aoa_to_sheet(eventRows);
-  wsEvents["!cols"] = [
-    { wch: 15 },
-    { wch: 15 },
-    { wch: 18 },
-    { wch: 60 }
-  ];
+  wsEvents.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: eventHeaders.length } };
+  wsEvents.columns = [{ width: 15 }, { width: 15 }, { width: 16 }, { width: 60 }];
 
-  // Crear Libro de Trabajo (Workbook)
-  const wb = {
-    SheetNames: ["Resumen", "Resultados Análisis", "Historial Sensores", "Bitácora Eventos"],
-    Sheets: {
-      "Resumen": wsSummary,
-      "Resultados Análisis": wsAnalysis,
-      "Historial Sensores": wsHistory,
-      "Bitácora Eventos": wsEvents
-    }
-  };
-
-  // Convertir a binario Excel y descargar
-  const wbout = write(wb, { bookType: "xlsx", type: "binary" });
-
-  function s2ab(s: string) {
-    const buf = new ArrayBuffer(s.length);
-    const view = new Uint8Array(buf);
-    for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
-    return buf;
-  }
-
-  const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+  // ─── Descarga ───
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.setAttribute("hidden", "");
@@ -128,7 +241,20 @@ export function exportFullReportExcel(
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
 }
+
+const PERIOD_LABELS: Record<string, string> = {
+  "1H": "1 hora", "6H": "6 horas", "12H": "12 horas", "24H": "24 horas", "7D": "7 días",
+};
+
+const SENSOR_COLUMNS = {
+  temperature: { label: "Temperatura (°C)", short: "Temp." },
+  humidity: { label: "Humedad (%)", short: "Hum." },
+  pressure: { label: "Presión (hPa)", short: "Presión" },
+  rain: { label: "Lluvia (%)", short: "Lluvia" },
+  airQuality: { label: "Calidad de Aire (ppm)", short: "Aire" },
+} as const;
 
 // ─── EXPORTADORES ADICIONALES REQUERIDOS: JSON, CSV y TXT (como representación simple de Reporte / PDF alternativo) ───
 
