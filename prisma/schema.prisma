@@ -1,0 +1,31 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Reading {
+  id          Int      @id @default(autoincrement())
+  timestamp   Int // Unix timestamp in milliseconds
+  time        String // Formatted time string (e.g. HH:MM:SS)
+  temperature Float
+  humidity    Float
+  pressure    Float
+  rain        Float
+  airQuality  Float
+
+  @@index([timestamp])
+}
+
+model Event {
+  id        String   @id
+  timestamp Int // Unix timestamp in milliseconds
+  time      String // Formatted time string (e.g. HH:MM)
+  type      String // EventType: info, alert, success, warning
+  message   String
+
+  @@index([timestamp])
+}

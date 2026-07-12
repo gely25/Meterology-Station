@@ -42,3 +42,11 @@ __v0_devtools.tsx
 __v0_jsx-dev-runtime.ts
 .snowflake/
 .v0-trash/
+/lib/generated/prisma
+
+# SQLite DB
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+

@@ -41,11 +41,87 @@ class WeatherService {
   constructor() {
     this.config = this.loadConfig();
     this.currentData = this.getInitialData();
-    // Solo arrancar el polling en el navegador. En el servidor (SSR de Next.js)
-    // este singleton también se instancia al importar el módulo, y sin este guard
-    // dispararía fetch()/setInterval() en el servidor innecesariamente.
     if (typeof window !== 'undefined') {
-      this.start();
+      this.hydrateFromDatabase().then(() => {
+        this.start();
+      });
+    }
+  }
+
+  // --- Hydration ---
+  private async hydrateFromDatabase() {
+    try {
+      const [readingsRes, eventsRes] = await Promise.all([
+        fetch('/api/readings'),
+        fetch('/api/events')
+      ]);
+
+      if (readingsRes.ok && eventsRes.ok) {
+        const dbReadings = await readingsRes.json();
+        const dbEvents = await eventsRes.json();
+
+        // Convert backend Readings to frontend HistoryPoint format
+        const history: HistoryPoint[] = dbReadings.map((r: any) => ({
+          time: r.time,
+          timestamp: r.timestamp,
+          temperature: r.temperature,
+          humidity: r.humidity,
+          pressure: r.pressure,
+          rain: r.rain,
+          airQuality: r.airQuality
+        }));
+
+        // Convert backend Events to frontend SystemEvent format
+        const events: SystemEvent[] = dbEvents.map((e: any) => ({
+          id: e.id,
+          time: e.time,
+          type: e.type as EventType,
+          message: e.message,
+          timestamp: e.timestamp
+        }));
+
+        if (history.length > 0) {
+          // Keep sliding buffer of last 3600 elements in memory
+          this.currentData.history = history.slice(Math.max(0, history.length - 3600));
+
+          // Set latest metrics from the last stored point
+          const latest = history[history.length - 1];
+          const now = new Date(latest.timestamp);
+          const hora = now.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+          const fecha = now.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
+
+          const nivelLluvia = latest.rain * 10;
+          const intenso = nivelLluvia >= THRESHOLDS.rain.heavy;
+          const estadoLluvia = intenso ? 'Intensa' : nivelLluvia >= THRESHOLDS.rain.detected ? 'Ligera' : 'Seco';
+          const alertaActiva = intenso ? 'LLUVIA INTENSA DETECTADA' : null;
+          const estadoClima = this.deriveWeatherState(nivelLluvia, latest.humidity);
+          const estadoCalidadAire = latest.airQuality < THRESHOLDS.airQuality.excellent ? 'BUENA' : latest.airQuality < THRESHOLDS.airQuality.acceptable ? 'MODERADA' : 'MALA';
+
+          this.currentData = {
+            ...this.currentData,
+            temperatura: latest.temperature,
+            humedad: latest.humidity,
+            presion: latest.pressure,
+            nivelLluvia,
+            estadoLluvia,
+            estadoClima,
+            estadoCalidadAire,
+            calidadAire: latest.airQuality,
+            hora,
+            fecha,
+            ultimaActualizacion: hora,
+            alertaActiva
+          };
+        }
+
+        if (events.length > 0) {
+          this.currentData.events = events;
+        }
+
+        this.notify();
+      }
+    } catch (e) {
+      console.error("Failed to hydrate from database", e);
     }
   }
 
@@ -86,7 +162,6 @@ class WeatherService {
     }
   }
 
-
   public getConfig(): AppConfig {
     return { ...this.config };
   }
@@ -94,14 +169,24 @@ class WeatherService {
   // --- Event Handling ---
   public addEvent(message: string, type: EventType) {
     const time = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+    const timestamp = Date.now();
     const newEvent: SystemEvent = {
       id: generateId(),
       time,
       type,
       message,
-      timestamp: Date.now(),
+      timestamp,
     };
     this.currentData.events = [newEvent, ...this.currentData.events].slice(0, 100); // Keep last 100 events
+
+    // Fire-and-forget DB persistence
+    if (typeof window !== 'undefined') {
+      fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newEvent)
+      }).catch(err => console.error('Failed to post event to database:', err));
+    }
   }
 
   // --- Core Logic ---
@@ -169,7 +254,7 @@ class WeatherService {
   }
 
   private async fetchRealData() {
-    if (this.isFetching) return; // Prevent concurrent fetch requests from overlapping
+    if (this.isFetching) return;
 
     if (!this.config.useSimulation) {
       this.isFetching = true;
@@ -201,7 +286,6 @@ class WeatherService {
         return;
       }
 
-      // Reset failures on successful fetch
       this.consecutiveFailures = 0;
 
       let espData;
@@ -233,7 +317,6 @@ class WeatherService {
       this.tick += 1;
       let history = this.currentData.history;
 
-      // Ventana deslizante: mantener solo los últimos 3600 elementos (buffer en memoria)
       const newPoint = {
         time: hora,
         timestamp: Date.now(),
@@ -244,14 +327,21 @@ class WeatherService {
         airQuality: calidadAire,
       };
 
+      // Fire-and-forget DB persistence
+      if (typeof window !== 'undefined') {
+        fetch('/api/readings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newPoint)
+        }).catch(err => console.error('Failed to post reading to database:', err));
+      }
+
       history = [...history.slice(history.length >= 3600 ? 1 : 0), newPoint];
 
       const intenso = nivelLluvia >= THRESHOLDS.rain.heavy;
       const estadoLluvia = intenso ? 'Intensa' : nivelLluvia >= THRESHOLDS.rain.detected ? 'Ligera' : 'Seco';
       const alertaActiva = intenso ? 'LLUVIA INTENSA DETECTADA' : null;
       const estadoClima = this.deriveWeatherState(nivelLluvia, humedad);
-
-      // ── EVENT TRIGGERS ─────────────────────────────────────────────────────
 
       // Sistema: alarma + actuadores (buzzer, LED rojo)
       if (alertaActiva && !this.currentData.alertaActiva) {
@@ -305,7 +395,6 @@ class WeatherService {
         this.addEvent('Sensor de lluvia reconectado', 'success');
       }
 
-      // Sensores: cambio de categoría de calidad del aire (MQ135)
       const newAQCat = calidadAire < THRESHOLDS.airQuality.excellent ? 'Excelente' : calidadAire < THRESHOLDS.airQuality.acceptable ? 'Buena' : calidadAire < THRESHOLDS.airQuality.regular ? 'Moderada' : calidadAire < THRESHOLDS.airQuality.bad ? 'Mala' : 'Muy mala';
       const oldAQCat = this.currentData.calidadAire < THRESHOLDS.airQuality.excellent ? 'Excelente' : this.currentData.calidadAire < THRESHOLDS.airQuality.acceptable ? 'Buena' : this.currentData.calidadAire < THRESHOLDS.airQuality.regular ? 'Moderada' : this.currentData.calidadAire < THRESHOLDS.airQuality.bad ? 'Mala' : 'Muy mala';
       if (newAQCat !== oldAQCat) {
@@ -313,7 +402,6 @@ class WeatherService {
         this.addEvent(`Sensor MQ135: calidad del aire cambió a ${newAQCat}`, aqType);
       }
 
-      // Sistema: hito de uptime cada 30 minutos (1800 ticks a 1 seg)
       const wifiCalidad = this.deriveWiFiQuality(wifiRSSI);
       const uptimeMins = Math.floor(this.tick / 60);
       const uptime = `${Math.floor(uptimeMins / 60)}h ${uptimeMins % 60}m`;
@@ -354,7 +442,7 @@ class WeatherService {
       return;
     }
 
-    // MOCK DATA GENERATION FOR NOW
+    // MOCK DATA GENERATION
     this.tick += 1;
     const now = new Date();
     this.lastFetchTime = Date.now();
@@ -375,7 +463,6 @@ class WeatherService {
 
     let history = this.currentData.history;
 
-    // Ventana deslizante: mantener solo los últimos 3600 elementos (buffer en memoria)
     const newPoint = {
       time: hora,
       timestamp: Date.now(),
@@ -386,14 +473,21 @@ class WeatherService {
       airQuality: calidadAire,
     };
 
+    // Fire-and-forget DB persistence
+    if (typeof window !== 'undefined') {
+      fetch('/api/readings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPoint)
+      }).catch(err => console.error('Failed to post reading to database:', err));
+    }
+
     history = [...history.slice(history.length >= 3600 ? 1 : 0), newPoint];
 
     const intenso = nivelLluvia >= THRESHOLDS.rain.heavy;
     const estadoLluvia = intenso ? 'Intensa' : nivelLluvia >= THRESHOLDS.rain.detected ? 'Ligera' : 'Seco';
     const alertaActiva = intenso ? 'LLUVIA INTENSA DETECTADA' : null;
     const estadoClima = this.deriveWeatherState(nivelLluvia, humedad);
-
-    // ── EVENT TRIGGERS ────────────────────────────────────────────────────────
 
     // Sistema: alarma + actuadores (buzzer, LED rojo)
     if (alertaActiva && !this.currentData.alertaActiva) {
@@ -413,42 +507,36 @@ class WeatherService {
       this.addEvent('Sensor de lluvia: precipitación finalizada', 'success');
     }
 
-    // Conectividad: reconexión
     if (this.currentData.conexionESP32 === 'desconectado') {
       this.addEvent('ESP32 conectado', 'success');
       this.addEvent('WiFi conectado', 'success');
     }
 
-    // Sensores: calidad del aire (MQ135)
-    const newAQCat = calidadAire < THRESHOLDS.airQuality.excellent ? 'Excelente' : calidadAire < THRESHOLDS.airQuality.acceptable ? 'Moderada' : 'Mala';
-    const oldAQCat = this.currentData.calidadAire < THRESHOLDS.airQuality.excellent ? 'Excelente' : this.currentData.calidadAire < THRESHOLDS.airQuality.acceptable ? 'Moderada' : 'Mala';
+    const newAQCat = calidadAire < THRESHOLDS.airQuality.excellent ? 'Excelente' : calidadAire < THRESHOLDS.airQuality.acceptable ? 'Buena' : calidadAire < THRESHOLDS.airQuality.regular ? 'Moderada' : calidadAire < THRESHOLDS.airQuality.bad ? 'Mala' : 'Muy mala';
+    const oldAQCat = this.currentData.calidadAire < THRESHOLDS.airQuality.excellent ? 'Excelente' : this.currentData.calidadAire < THRESHOLDS.airQuality.acceptable ? 'Buena' : this.currentData.calidadAire < THRESHOLDS.airQuality.regular ? 'Moderada' : this.currentData.calidadAire < THRESHOLDS.airQuality.bad ? 'Mala' : 'Muy mala';
     if (newAQCat !== oldAQCat) {
-      const aqType: EventType = (newAQCat === 'Mala') ? 'warning' : 'success';
+      const aqType: EventType = (newAQCat === 'Mala' || newAQCat === 'Muy mala') ? 'warning' : 'success';
       this.addEvent(`Sensor MQ135: calidad del aire cambió a ${newAQCat}`, aqType);
     }
 
-    // Sensores: umbrales de temperatura (AHT10)
     if (temperatura > THRESHOLDS.temperature.max && this.currentData.temperatura <= THRESHOLDS.temperature.max) {
       this.addEvent(`Sensor AHT10: temperatura superó ${THRESHOLDS.temperature.max} °C`, 'warning');
     } else if (temperatura < THRESHOLDS.temperature.min && this.currentData.temperatura >= THRESHOLDS.temperature.min) {
       this.addEvent(`Sensor AHT10: temperatura bajo ${THRESHOLDS.temperature.min} °C`, 'warning');
     }
 
-    // Sensores: umbrales de humedad (AHT10)
     if (humedad > THRESHOLDS.humidity.max && this.currentData.humedad <= THRESHOLDS.humidity.max) {
       this.addEvent(`Sensor AHT10: humedad superó ${THRESHOLDS.humidity.max}%`, 'warning');
     } else if (humedad < THRESHOLDS.humidity.min && this.currentData.humedad >= THRESHOLDS.humidity.min) {
       this.addEvent(`Sensor AHT10: humedad bajo ${THRESHOLDS.humidity.min}%`, 'warning');
     }
 
-    // Sensores: umbrales de presión (BMP280)
     if (presion < THRESHOLDS.pressure.min && this.currentData.presion >= THRESHOLDS.pressure.min) {
       this.addEvent(`Sensor BMP280: presión bajo ${THRESHOLDS.pressure.min} hPa`, 'warning');
     } else if (presion > THRESHOLDS.pressure.max && this.currentData.presion <= THRESHOLDS.pressure.max) {
       this.addEvent(`Sensor BMP280: presión superó ${THRESHOLDS.pressure.max} hPa`, 'info');
     }
 
-    // Sistema: hito de uptime cada 30 minutos (1800 ticks a 1 seg)
     const wifiCalidad = this.deriveWiFiQuality(wifiRSSI);
     const uptimeMins = Math.floor(this.tick / 60);
     const uptime = `${Math.floor(uptimeMins / 60)}h ${uptimeMins % 60}m`;
@@ -483,7 +571,7 @@ class WeatherService {
       estadoOLED: 'operativo',
       estadoLedVerde: 'operativo',
       estadoLedRojo: 'operativo',
-      estadoBuzzer: intenso ? 'operativo' : 'operativo',
+      estadoBuzzer: 'operativo',
     };
 
     this.notify();
@@ -512,12 +600,10 @@ class WeatherService {
   }
 
   public start() {
-    if (typeof window === 'undefined') return; // nunca ejecutar polling en el servidor
+    if (typeof window === 'undefined') return;
 
     if (this.timer) clearInterval(this.timer);
 
-    // Ejecutar una petición inicial inmediata para evitar retraso al arrancar o guardar
-    // fetchRealData ya maneja errores internamente — no lanza excepciones
     this.fetchRealData();
 
     this.timer = setInterval(() => {
@@ -535,7 +621,7 @@ class WeatherService {
   // --- Subscriptions ---
   public subscribe(callback: (data: WeatherData) => void) {
     this.subscribers.add(callback);
-    callback(this.currentData); // Send immediate current state
+    callback(this.currentData);
     return () => this.subscribers.delete(callback);
   }
 
