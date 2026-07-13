@@ -35,7 +35,12 @@ export async function GET(request: Request) {
       readings.reverse()
     }
 
-    return NextResponse.json(readings)
+    const serializedReadings = readings.map(r => ({
+      ...r,
+      timestamp: Number(r.timestamp),
+    }))
+
+    return NextResponse.json(serializedReadings)
   } catch (error) {
     console.error('Error fetching readings:', error)
     return NextResponse.json({ error: 'Failed to fetch readings' }, { status: 500 })
@@ -71,7 +76,10 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json(newReading)
+    return NextResponse.json({
+      ...newReading,
+      timestamp: Number(newReading.timestamp),
+    })
   } catch (error) {
     console.error('Error creating reading:', error)
     return NextResponse.json({ error: 'Failed to save reading' }, { status: 500 })

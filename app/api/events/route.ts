@@ -35,7 +35,12 @@ export async function GET(request: Request) {
       events.reverse()
     }
 
-    return NextResponse.json(events)
+    const serializedEvents = events.map(e => ({
+      ...e,
+      timestamp: Number(e.timestamp),
+    }))
+
+    return NextResponse.json(serializedEvents)
   } catch (error) {
     console.error('Error fetching events:', error)
     return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 })
@@ -62,7 +67,10 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json(newEvent)
+    return NextResponse.json({
+      ...newEvent,
+      timestamp: Number(newEvent.timestamp),
+    })
   } catch (error) {
     console.error('Error creating event:', error)
     return NextResponse.json({ error: 'Failed to save event' }, { status: 500 })

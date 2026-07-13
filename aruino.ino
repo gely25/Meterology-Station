@@ -8,9 +8,16 @@
 #include <WebServer.h>
 #include <ArduinoJson.h>
 
-// ---------- WiFi credentials ----------
-const char* ssid = "Dani";
+// ---------- WiFi credentials (router) ----------
+const char* ssid     = "Dani";
 const char* password = "daniela14";
+
+// ---------- Access Point fallback ----------
+const char* ap_ssid     = "EstacionMeteo";
+const char* ap_password = "sensor123";    // minimo 8 caracteres
+
+// ---------- Modo de red activo ----------
+bool modoAP = false;  // false = conectado al router, true = modo AP
 
 WebServer server(80);
 
@@ -241,10 +248,11 @@ void setup() {
     delay(20);
   }
 
-  // ================= WiFi Connection =================
+  // ================= WiFi Híbrido: Router → AP Fallback =================
   Serial.println();
-  Serial.println("Conectando al WiFi...");
-  WiFi.setSleep(false); // Desactivar modo sleep para evitar desconexiones y timeouts
+  Serial.println("Intentando conectar al router WiFi...");
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
   WiFi.begin(ssid, password);
 
   unsigned long inicio = millis();
@@ -254,24 +262,55 @@ void setup() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
+    // ── Modo cliente: conectado al router ──────────────────────────────
+    modoAP = false;
     Serial.println();
-    Serial.println("WiFi conectado con exito");
+    Serial.println("WiFi conectado con exito (modo cliente)");
     Serial.print("IP del ESP32: ");
     Serial.println(WiFi.localIP());
 
-    server.on("/api/data", HTTP_GET, enviarDatos);
-    server.on("/api/data", HTTP_OPTIONS, manejarPreflight);
-    server.begin();
-    Serial.println("Servidor HTTP iniciado para el dashboard");
+    // Mostrar IP en OLED
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("WiFi OK (Router)");
+    display.print("IP: ");
+    display.println(WiFi.localIP());
+    display.display();
+    delay(3000);
+
   } else {
+    // ── Fallback: el ESP32 crea su propia red WiFi ─────────────────────
+    modoAP = true;
     Serial.println();
-    Serial.println("Fallo al conectar al WiFi. Iniciando en modo local...");
+    Serial.println("Router no disponible. Iniciando modo Access Point...");
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(ap_ssid, ap_password);
+    IPAddress apIP = WiFi.softAPIP();
+    Serial.print("Red AP creada: "); Serial.println(ap_ssid);
+    Serial.print("IP del ESP32 en modo AP: "); Serial.println(apIP);
+
+    // Mostrar modo AP en OLED
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Modo Access Point");
+    display.print("Red: "); display.println(ap_ssid);
+    display.print("IP:  "); display.println(apIP);
+    display.println("Pass: sensor123");
+    display.display();
+    delay(5000);
   }
+
+  // ── El servidor HTTP funciona igual en ambos modos ─────────────────
+  server.on("/api/data", HTTP_GET,     enviarDatos);
+  server.on("/api/data", HTTP_OPTIONS, manejarPreflight);
+  server.begin();
+  Serial.println("Servidor HTTP iniciado para el dashboard");
 }
 
 void loop() {
   // ---------- HTTP request handler ----------
-  if (WiFi.status() == WL_CONNECTED) {
+  // Funciona en modo router (STA) y en modo AP
+  if (WiFi.status() == WL_CONNECTED || modoAP) {
     server.handleClient();
   }
 

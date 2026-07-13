@@ -14,20 +14,20 @@ import { THRESHOLDS, saveThresholds, DEFAULT_THRESHOLDS } from "@/lib/thresholds
 function freshThresholds() {
   return {
     temperature: { min: THRESHOLDS.temperature.min, max: THRESHOLDS.temperature.max },
-    humidity:    { min: THRESHOLDS.humidity.min, comfortMax: THRESHOLDS.humidity.comfortMax, max: THRESHOLDS.humidity.max },
-    pressure:    { min: THRESHOLDS.pressure.min, max: THRESHOLDS.pressure.max },
-    rain:        { detected: THRESHOLDS.rain.detected, heavy: THRESHOLDS.rain.heavy },
-    airQuality:  { excellent: THRESHOLDS.airQuality.excellent, acceptable: THRESHOLDS.airQuality.acceptable, regular: THRESHOLDS.airQuality.regular, bad: THRESHOLDS.airQuality.bad },
+    humidity: { min: THRESHOLDS.humidity.min, comfortMax: THRESHOLDS.humidity.comfortMax, max: THRESHOLDS.humidity.max },
+    pressure: { min: THRESHOLDS.pressure.min, max: THRESHOLDS.pressure.max },
+    rain: { detected: THRESHOLDS.rain.detected, heavy: THRESHOLDS.rain.heavy },
+    airQuality: { excellent: THRESHOLDS.airQuality.excellent, acceptable: THRESHOLDS.airQuality.acceptable, regular: THRESHOLDS.airQuality.regular, bad: THRESHOLDS.airQuality.bad },
   }
 }
 
 function defaultThresholds() {
   return {
     temperature: { min: DEFAULT_THRESHOLDS.temperature.min, max: DEFAULT_THRESHOLDS.temperature.max },
-    humidity:    { min: DEFAULT_THRESHOLDS.humidity.min, comfortMax: DEFAULT_THRESHOLDS.humidity.comfortMax, max: DEFAULT_THRESHOLDS.humidity.max },
-    pressure:    { min: DEFAULT_THRESHOLDS.pressure.min, max: DEFAULT_THRESHOLDS.pressure.max },
-    rain:        { detected: DEFAULT_THRESHOLDS.rain.detected, heavy: DEFAULT_THRESHOLDS.rain.heavy },
-    airQuality:  { excellent: DEFAULT_THRESHOLDS.airQuality.excellent, acceptable: DEFAULT_THRESHOLDS.airQuality.acceptable, regular: DEFAULT_THRESHOLDS.airQuality.regular, bad: DEFAULT_THRESHOLDS.airQuality.bad },
+    humidity: { min: DEFAULT_THRESHOLDS.humidity.min, comfortMax: DEFAULT_THRESHOLDS.humidity.comfortMax, max: DEFAULT_THRESHOLDS.humidity.max },
+    pressure: { min: DEFAULT_THRESHOLDS.pressure.min, max: DEFAULT_THRESHOLDS.pressure.max },
+    rain: { detected: DEFAULT_THRESHOLDS.rain.detected, heavy: DEFAULT_THRESHOLDS.rain.heavy },
+    airQuality: { excellent: DEFAULT_THRESHOLDS.airQuality.excellent, acceptable: DEFAULT_THRESHOLDS.airQuality.acceptable, regular: DEFAULT_THRESHOLDS.airQuality.regular, bad: DEFAULT_THRESHOLDS.airQuality.bad },
   }
 }
 
@@ -38,7 +38,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
   const data = useWeather()
 
   // ── ESP32 / service config ──────────────────────────────────────────────────
-  const [config,      setConfig]      = useState<AppConfig>(() => weatherService.getConfig())
+  const [config, setConfig] = useState<AppConfig>(() => weatherService.getConfig())
   const [savedConfig, setSavedConfig] = useState<AppConfig>(() => weatherService.getConfig())
 
   // ── Thresholds ──────────────────────────────────────────────────────────────
@@ -91,9 +91,9 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
   const thresholdErrors = getThresholdErrors()
 
   // ── Change detection ────────────────────────────────────────────────────────
-  const configChanged    = JSON.stringify(config)          !== JSON.stringify(savedConfig)
+  const configChanged = JSON.stringify(config) !== JSON.stringify(savedConfig)
   const thresholdsChanged = JSON.stringify(localThresholds) !== JSON.stringify(savedThresholds)
-  const hasChanges        = configChanged || thresholdsChanged
+  const hasChanges = configChanged || thresholdsChanged
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const updateConfig = (patch: Partial<AppConfig>) =>
@@ -151,11 +151,11 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
 
         {/* ── APARIENCIA ── */}
         <Panel>
-          <PanelHeader icon={<Moon className="size-4 text-indigo-400" />} title="Apariencia" subtitle="Preferencias visuales de la interfaz" accent="var(--color-indigo-500)" />
+          <PanelHeader icon={<Moon className="size-4 text-indigo-300" />} title="Apariencia" subtitle="Preferencias visuales de la interfaz" accent="var(--color-indigo-300)" />
           <div className="mt-4 grid grid-cols-3 gap-3">
             {[
-              { id: 'light',  label: 'Claro',     icon: Sun,     desc: 'Usar siempre el tema claro.' },
-              { id: 'dark',   label: 'Oscuro',    icon: Moon,    desc: 'Usar siempre el tema oscuro.' },
+              { id: 'light', label: 'Claro', icon: Sun, desc: 'Usar siempre el tema claro.' },
+              { id: 'dark', label: 'Oscuro', icon: Moon, desc: 'Usar siempre el tema oscuro.' },
               { id: 'system', label: 'Automático', icon: Monitor, desc: 'Seguir automáticamente la configuración del sistema operativo.' },
             ].map((t) => (
               <button
@@ -167,7 +167,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                 className={cn(
                   "flex flex-col items-center justify-start gap-2 rounded-xl border p-4 text-left transition-all",
                   (theme === t.id || (theme === undefined && t.id === 'system'))
-                    ? "border-indigo-500 bg-indigo-500/10 text-indigo-500"
+                    ? "border-indigo-200 dark:border-indigo-300/40 bg-indigo-50 dark:bg-indigo-300/10 text-indigo-400 dark:text-indigo-300"
                     : "border-border bg-background/50 text-muted-foreground hover:bg-muted/50"
                 )}
               >
@@ -189,13 +189,13 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
           />
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
             {[
-              { id: 'theme-aurora',  label: 'Aurora',    color: '#1E7F6B', desc: 'Teal/Menta' },
+              { id: 'theme-aurora', label: 'Aurora', color: '#1E7F6B', desc: 'Teal/Menta' },
               { id: 'theme-emerald', label: 'Esmeralda', color: '#10B981', desc: 'Verde fresco' },
-              { id: 'theme-ocean',   label: 'Océano',    color: '#0EA5E9', desc: 'Azul cielo' },
-              { id: 'theme-sunset',  label: 'Atardecer', color: '#F97316', desc: 'Naranja cálido' },
-              { id: 'theme-rose',    label: 'Rosa',      color: '#F43F5E', desc: 'Rojo suave' },
-              { id: 'theme-violet',  label: 'Violeta',   color: '#8B5CF6', desc: 'Morado' },
-              { id: 'theme-slate',   label: 'Pizarra',   color: '#64748B', desc: 'Gris neutro' },
+              { id: 'theme-ocean', label: 'Océano', color: '#0EA5E9', desc: 'Azul cielo' },
+              { id: 'theme-sunset', label: 'Atardecer', color: '#F97316', desc: 'Naranja cálido' },
+              { id: 'theme-rose', label: 'Rosa', color: '#F43F5E', desc: 'Rojo suave' },
+              { id: 'theme-violet', label: 'Violeta', color: '#8B5CF6', desc: 'Morado' },
+              { id: 'theme-slate', label: 'Pizarra', color: '#64748B', desc: 'Gris neutro' },
             ].map((themeOpt) => {
               const isActive = accentTheme === themeOpt.id
               return (
@@ -223,7 +223,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
             })}
           </div>
           <p className="mt-3 text-[10px] text-muted-foreground/60 font-medium flex items-center gap-1.5">
-            <CheckCircle2 className="size-3 text-emerald-500" />
+            <CheckCircle2 className="size-3 text-emerald-400 dark:text-emerald-300" />
             El color de fondo y los acentos de toda la interfaz cambian al instante. No requiere guardar.
           </p>
         </Panel>
@@ -236,10 +236,10 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
       ════════════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-col gap-1 mt-2">
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-extrabold tracking-[0.2em] uppercase text-amber-500">Configuración Operativa del Sistema</span>
+          <span className="text-[10px] font-extrabold tracking-[0.2em] uppercase text-amber-400 dark:text-amber-200">Configuración Operativa del Sistema</span>
           <div className="flex-1 h-px bg-border/50" />
           <span className="text-[9px] font-medium text-muted-foreground/60 tracking-wide flex items-center gap-1">
-            <Save className="size-3 text-amber-500/70" />
+            <Save className="size-3 text-amber-400/70 dark:text-amber-200/70" />
             Requiere guardar
           </span>
         </div>
@@ -249,7 +249,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
 
         {/* ── MODO SIMULACIÓN ── */}
         <Panel>
-          <PanelHeader icon={<Cpu className="size-4 text-amber-500" />} title="Modo Simulación" subtitle="Generar datos simulados o conectar a hardware real" accent="var(--color-amber-500)" />
+          <PanelHeader icon={<Cpu className="size-4 text-amber-300" />} title="Modo Simulación" subtitle="Generar datos simulados o conectar a hardware real" accent="var(--color-amber-300)" />
           <div className="mt-4">
             <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-background/50">
               <div className="flex flex-col gap-0.5 pr-4">
@@ -259,14 +259,14 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
               <button
                 onClick={() => updateConfig({ useSimulation: !config.useSimulation })}
                 className={cn(
-                  "relative shrink-0 h-6 w-11 rounded-full transition-colors",
-                  config.useSimulation ? "bg-amber-500" : "bg-muted"
+                  "relative shrink-0 h-6 w-11 rounded-full transition-colors border",
+                  config.useSimulation ? "bg-amber-200 dark:bg-amber-300/30 border-amber-300 dark:border-amber-300/50" : "bg-muted border-transparent"
                 )}
               >
                 <span
                   className={cn(
-                    "absolute top-1 left-1 size-4 rounded-full bg-background transition-transform shadow",
-                    config.useSimulation ? "translate-x-5" : "translate-x-0"
+                    "absolute top-1 left-1 size-4 rounded-full transition-transform shadow",
+                    config.useSimulation ? "translate-x-5 bg-amber-400 dark:bg-amber-200" : "translate-x-0 bg-background"
                   )}
                 />
               </button>
@@ -276,7 +276,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
 
         {/* ── CONEXIÓN ESP32 ── */}
         <Panel>
-          <PanelHeader icon={<Server className="size-4 text-sky-500" />} title="Conexión ESP32" subtitle="Parámetros de red HTTP / WebSocket" accent="var(--color-sky-500)" />
+          <PanelHeader icon={<Server className="size-4 text-sky-300" />} title="Conexión ESP32" subtitle="Parámetros de red HTTP / WebSocket" accent="var(--color-sky-300)" />
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Dirección IP</label>
@@ -284,7 +284,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                 type="text"
                 value={config.ip}
                 onChange={(e) => updateConfig({ ip: e.target.value })}
-                className="rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
+                className="rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-sky-300/50 transition-all"
                 placeholder="Ej: 192.168.1.100"
               />
               <p className="text-[11px] text-muted-foreground">Dirección IP local del ESP32.</p>
@@ -295,7 +295,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                 type="text"
                 value={config.port}
                 onChange={(e) => updateConfig({ port: e.target.value })}
-                className="rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
+                className="rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-sky-300/50 transition-all"
                 placeholder="Ej: 80"
               />
               <p className="text-[11px] text-muted-foreground">Puerto HTTP o WebSocket utilizado por el ESP32.</p>
@@ -305,14 +305,14 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
 
         {/* ── SINCRONIZACIÓN ── */}
         <Panel>
-          <PanelHeader icon={<RefreshCw className="size-4 text-emerald-500" />} title="Sincronización" subtitle="Frecuencia de lectura de datos" accent="var(--color-emerald-500)" />
+          <PanelHeader icon={<RefreshCw className="size-4 text-emerald-300" />} title="Sincronización" subtitle="Frecuencia de lectura de datos" accent="var(--color-emerald-300)" />
           <div className="mt-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Intervalo de Actualización</label>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-foreground">{config.interval} ms</span>
                 {config.interval >= 1000 && config.interval <= 2000 && (
-                  <span className="text-[10px] font-semibold text-emerald-500 border border-emerald-500/30 bg-emerald-500/10 rounded-md px-1.5 py-0.5">✓ Recomendado</span>
+                  <span className="text-[10px] font-semibold text-emerald-400 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-300/30 bg-emerald-50 dark:bg-emerald-300/10 rounded-md px-1.5 py-0.5">✓ Recomendado</span>
                 )}
               </div>
             </div>
@@ -323,7 +323,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
               step="100"
               value={config.interval}
               onChange={(e) => updateConfig({ interval: Number(e.target.value) })}
-              className="w-full accent-emerald-500"
+              className="w-full accent-emerald-300"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
               <span>Rápido (200ms)</span>
@@ -334,8 +334,8 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
             {(() => {
               const iv = config.interval
               if (iv < 500) return (
-                <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/8 px-3 py-2.5 text-xs text-red-400">
-                  <AlertTriangle className="size-4 shrink-0 mt-0.5 text-red-400" />
+                <div className="flex items-start gap-2 rounded-xl border border-rose-200 dark:border-rose-300/25 bg-rose-50 dark:bg-rose-300/8 px-3 py-2.5 text-xs text-rose-400 dark:text-rose-300">
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5 text-rose-400 dark:text-rose-300" />
                   <div className="flex flex-col gap-0.5">
                     <span className="font-bold uppercase tracking-wide">⚡ Frecuencia muy alta</span>
                     <span className="text-muted-foreground">El ESP32 puede saturarse con peticiones tan frecuentes. Puede causar pérdida de paquetes, retrasos y calentamiento del módulo WiFi. Se recomienda mínimo 500 ms.</span>
@@ -343,7 +343,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                 </div>
               )
               if (iv >= 500 && iv < 1000) return (
-                <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/8 px-3 py-2.5 text-xs text-warning">
+                <div className="flex items-start gap-2 rounded-xl border border-amber-200 dark:border-amber-200/25 bg-amber-50 dark:bg-amber-200/8 px-3 py-2.5 text-xs text-amber-400 dark:text-amber-200">
                   <AlertTriangle className="size-4 shrink-0 mt-0.5" />
                   <div className="flex flex-col gap-0.5">
                     <span className="font-bold uppercase tracking-wide">⚠ Alta frecuencia</span>
@@ -352,7 +352,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                 </div>
               )
               if (iv >= 1000 && iv <= 2000) return (
-                <div className="flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/8 px-3 py-2.5 text-xs text-emerald-400">
+                <div className="flex items-start gap-2 rounded-xl border border-emerald-200 dark:border-emerald-300/25 bg-emerald-50 dark:bg-emerald-300/8 px-3 py-2.5 text-xs text-emerald-400 dark:text-emerald-300">
                   <CheckCircle className="size-4 shrink-0 mt-0.5" />
                   <div className="flex flex-col gap-0.5">
                     <span className="font-bold uppercase tracking-wide">✓ Zona óptima ({iv === 1000 ? '1 s · ideal' : `${iv} ms`})</span>
@@ -361,7 +361,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                 </div>
               )
               if (iv > 2000 && iv <= 5000) return (
-                <div className="flex items-start gap-2 rounded-xl border border-sky-500/30 bg-sky-500/8 px-3 py-2.5 text-xs text-sky-400">
+                <div className="flex items-start gap-2 rounded-xl border border-sky-200 dark:border-sky-300/25 bg-sky-50 dark:bg-sky-300/8 px-3 py-2.5 text-xs text-sky-400 dark:text-sky-300">
                   <Info className="size-4 shrink-0 mt-0.5" />
                   <div className="flex flex-col gap-0.5">
                     <span className="font-bold uppercase tracking-wide">ℹ Frecuencia moderada</span>
@@ -370,7 +370,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                 </div>
               )
               if (iv > 5000 && iv <= 8000) return (
-                <div className="flex items-start gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/8 px-3 py-2.5 text-xs text-indigo-400">
+                <div className="flex items-start gap-2 rounded-xl border border-indigo-200 dark:border-indigo-300/25 bg-indigo-50 dark:bg-indigo-300/8 px-3 py-2.5 text-xs text-indigo-400 dark:text-indigo-300">
                   <Info className="size-4 shrink-0 mt-0.5" />
                   <div className="flex flex-col gap-0.5">
                     <span className="font-bold uppercase tracking-wide">↓ Frecuencia baja</span>
@@ -391,16 +391,16 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
 
             {/* ── System Read Statistics ── */}
             {(() => {
-              const perMin  = Math.floor(60_000 / config.interval)
+              const perMin = Math.floor(60_000 / config.interval)
               const perHour = Math.floor(3_600_000 / config.interval)
-              const perDay  = Math.floor(86_400_000 / config.interval)
+              const perDay = Math.floor(86_400_000 / config.interval)
               const iv = config.interval
               const zoneSub = iv < 500 ? "⚡ Muy alta frecuencia" : iv < 1000 ? "Alta frecuencia" : iv <= 2000 ? "✓ Zona recomendada" : iv <= 5000 ? "Frecuencia moderada" : iv <= 8000 ? "Baja frecuencia" : "⚠ Muy baja frecuencia"
               const stats = [
-                { label: "Intervalo actual",  value: `${config.interval} ms`, sub: zoneSub },
-                { label: "Lecturas / minuto", value: perMin.toLocaleString(),  sub: "req/min" },
-                { label: "Lecturas / hora",   value: perHour.toLocaleString(), sub: "req/h" },
-                { label: "Lecturas / día",    value: perDay.toLocaleString(),  sub: "req/día" },
+                { label: "Intervalo actual", value: `${config.interval} ms`, sub: zoneSub },
+                { label: "Lecturas / minuto", value: perMin.toLocaleString(), sub: "req/min" },
+                { label: "Lecturas / hora", value: perHour.toLocaleString(), sub: "req/h" },
+                { label: "Lecturas / día", value: perDay.toLocaleString(), sub: "req/día" },
               ]
               return (
                 <div className="mt-1.5 grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -419,7 +419,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
 
         {/* ── RECONEXIÓN AUTOMÁTICA ── */}
         <Panel>
-          <PanelHeader icon={<Wifi className="size-4 text-sky-400" />} title="Reconexión Automática" subtitle="Comportamiento ante pérdida de señal" accent="var(--color-sky-400)" />
+          <PanelHeader icon={<Wifi className="size-4 text-sky-300" />} title="Reconexión Automática" subtitle="Comportamiento ante pérdida de señal" accent="var(--color-sky-300)" />
           <div className="mt-4">
             <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-background/50">
               <div className="flex flex-col gap-0.5 pr-4">
@@ -429,14 +429,14 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
               <button
                 onClick={() => updateConfig({ autoReconnect: !config.autoReconnect })}
                 className={cn(
-                  "relative shrink-0 h-6 w-11 rounded-full transition-colors",
-                  config.autoReconnect ? "bg-emerald-500" : "bg-muted"
+                  "relative shrink-0 h-6 w-11 rounded-full transition-colors border",
+                  config.autoReconnect ? "bg-emerald-200 dark:bg-emerald-300/30 border-emerald-300 dark:border-emerald-300/50" : "bg-muted border-transparent"
                 )}
               >
                 <span
                   className={cn(
-                    "absolute top-1 left-1 size-4 rounded-full bg-background transition-transform shadow",
-                    config.autoReconnect ? "translate-x-5" : "translate-x-0"
+                    "absolute top-1 left-1 size-4 rounded-full transition-transform shadow",
+                    config.autoReconnect ? "translate-x-5 bg-emerald-400 dark:bg-emerald-200" : "translate-x-0 bg-background"
                   )}
                 />
               </button>
@@ -447,10 +447,10 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
         {/* ── UMBRALES OPERATIVOS ── */}
         <Panel className="border border-border/40 hover:border-accent/40 bg-card/90 shadow-sm transition-all duration-300">
           <PanelHeader
-            icon={<Sliders className="size-4 text-violet-500" />}
+            icon={<Sliders className="size-4 text-violet-300" />}
             title="Umbrales Operativos"
             subtitle="Parámetros utilizados para interpretar el estado de los sensores."
-            accent="var(--color-violet-500)"
+            accent="var(--color-violet-300)"
           />
           <div className="mt-4 flex flex-col gap-4">
 
@@ -470,7 +470,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                       type="number" step="0.1"
                       value={localThresholds.temperature.min}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, temperature: { ...prev.temperature, min: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                   <label className="flex flex-col gap-1">
@@ -479,7 +479,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                       type="number" step="0.1"
                       value={localThresholds.temperature.max}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, temperature: { ...prev.temperature, max: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                 </div>
@@ -498,7 +498,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                       type="number" min="0" max="100"
                       value={localThresholds.humidity.min}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, humidity: { ...prev.humidity, min: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-2.5 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-2.5 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                   <label className="flex flex-col gap-1">
@@ -507,7 +507,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                       type="number" min="0" max="100"
                       value={localThresholds.humidity.comfortMax}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, humidity: { ...prev.humidity, comfortMax: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-2.5 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-2.5 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                   <label className="flex flex-col gap-1">
@@ -516,7 +516,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                       type="number" min="0" max="100"
                       value={localThresholds.humidity.max}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, humidity: { ...prev.humidity, max: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-2.5 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-2.5 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                 </div>
@@ -535,7 +535,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                       type="number" min="0" step="0.1"
                       value={localThresholds.pressure.min}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, pressure: { ...prev.pressure, min: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                   <label className="flex flex-col gap-1">
@@ -544,7 +544,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                       type="number" min="0" step="0.1"
                       value={localThresholds.pressure.max}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, pressure: { ...prev.pressure, max: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                 </div>
@@ -563,7 +563,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                       type="number" min="0" max="100"
                       value={localThresholds.rain.detected}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, rain: { ...prev.rain, detected: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                   <label className="flex flex-col gap-1">
@@ -572,7 +572,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                       type="number" min="0" max="100"
                       value={localThresholds.rain.heavy}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, rain: { ...prev.rain, heavy: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                 </div>
@@ -586,39 +586,39 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-semibold text-emerald-500">Excelente (ppm)</span>
+                    <span className="text-[10px] font-semibold text-emerald-400 dark:text-emerald-300">Excelente (ppm)</span>
                     <input
                       type="number" min="0"
                       value={localThresholds.airQuality.excellent}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, airQuality: { ...prev.airQuality, excellent: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-semibold text-sky-400">Buena (ppm)</span>
+                    <span className="text-[10px] font-semibold text-sky-400 dark:text-sky-200">Buena (ppm)</span>
                     <input
                       type="number" min="0"
                       value={localThresholds.airQuality.acceptable}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, airQuality: { ...prev.airQuality, acceptable: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-semibold text-amber-400">Moderada (ppm)</span>
+                    <span className="text-[10px] font-semibold text-amber-400 dark:text-amber-200">Moderada (ppm)</span>
                     <input
                       type="number" min="0"
                       value={localThresholds.airQuality.regular}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, airQuality: { ...prev.airQuality, regular: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-semibold text-red-400">Crítica (ppm)</span>
+                    <span className="text-[10px] font-semibold text-rose-400 dark:text-rose-300">Crítica (ppm)</span>
                     <input
                       type="number" min="0"
                       value={localThresholds.airQuality.bad}
                       onChange={e => setLocalThresholds(prev => ({ ...prev, airQuality: { ...prev.airQuality, bad: parseFloat(e.target.value) || 0 } }))}
-                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                      className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-violet-300/40"
                     />
                   </label>
                 </div>
@@ -635,9 +635,9 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
             <InfoRow
               label="Estado"
               value={data?.conexionESP32 === 'conectado' ? 'Conectado' : 'Desconectado'}
-              valueClass={data?.conexionESP32 === 'conectado' ? 'text-emerald-500' : 'text-alert'}
+              valueClass={data?.conexionESP32 === 'conectado' ? 'text-emerald-400 dark:text-emerald-300' : 'text-alert'}
               icon={data?.conexionESP32 === 'conectado'
-                ? <CheckCircle2 className="size-3.5 text-emerald-500" />
+                ? <CheckCircle2 className="size-3.5 text-emerald-400 dark:text-emerald-300" />
                 : <WifiOff className="size-3.5 text-alert" />}
             />
             <InfoRow label="IP del ESP32" value={config.ip} />
@@ -650,8 +650,8 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
 
       {/* ── FLOATING TOAST: cambios pendientes ── */}
       {(hasChanges && !saved) && (
-        <div className="fixed top-20 right-6 z-50 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-card p-4 shadow-xl shadow-amber-500/5 max-w-sm animate-slide-in-right">
-          <AlertTriangle className="size-5 shrink-0 text-amber-500 mt-0.5" />
+        <div className="fixed top-20 right-6 z-50 flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-200/25 bg-card p-4 shadow-xl shadow-amber-200/5 max-w-sm animate-slide-in-right">
+          <AlertTriangle className="size-5 shrink-0 text-amber-300 mt-0.5" />
           <div className="flex-1 flex flex-col gap-0.5 pr-2">
             <span className="text-xs font-bold text-foreground">Cambios pendientes</span>
             <span className="text-[11px] text-muted-foreground leading-snug">
@@ -666,8 +666,8 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
       )}
 
       {saved && (
-        <div className="fixed top-20 right-6 z-50 flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-card p-4 shadow-xl shadow-emerald-500/5 max-w-sm animate-slide-in-right">
-          <CheckCircle2 className="size-5 shrink-0 text-emerald-500 mt-0.5" />
+        <div className="fixed top-20 right-6 z-50 flex items-start gap-3 rounded-xl border border-emerald-200 dark:border-emerald-300/25 bg-card p-4 shadow-xl shadow-emerald-200/5 max-w-sm animate-slide-in-right">
+          <CheckCircle2 className="size-5 shrink-0 text-emerald-300 mt-0.5" />
           <div className="flex-1 flex flex-col gap-0.5 pr-2">
             <span className="text-xs font-bold text-foreground">Configuración guardada</span>
             <span className="text-[11px] text-muted-foreground leading-snug">La configuración operativa ha sido aplicada en todo el sistema.</span>
@@ -677,12 +677,12 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
 
       {/* ── VALIDATION ERRORS ── */}
       {thresholdErrors.length > 0 && (
-        <div className="flex flex-col gap-1.5 rounded-xl border border-red-500/30 bg-red-500/5 p-3">
-          <div className="flex items-center gap-1.5 text-red-500">
+        <div className="flex flex-col gap-1.5 rounded-xl border border-rose-200 dark:border-rose-300/25 bg-rose-50 dark:bg-rose-300/5 p-3">
+          <div className="flex items-center gap-1.5 text-rose-400 dark:text-rose-300">
             <AlertTriangle className="size-4 shrink-0" />
             <span className="text-xs font-bold uppercase tracking-wider">Validación fallida — corrija los errores antes de guardar:</span>
           </div>
-          <ul className="list-disc list-inside text-[11px] text-red-400/90 leading-relaxed flex flex-col gap-0.5 pl-1">
+          <ul className="list-disc list-inside text-[11px] text-rose-400/90 dark:text-rose-300/80 leading-relaxed flex flex-col gap-0.5 pl-1">
             {thresholdErrors.map((err, idx) => (
               <li key={idx}>{err}</li>
             ))}
@@ -706,8 +706,8 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
           </button>
 
           <div className="hidden sm:flex items-center gap-1.5">
-            <CheckCircle2 className={cn("size-3.5 transition-colors", hasChanges ? "text-muted-foreground/35" : "text-emerald-500")} />
-            <span className={cn("text-xs font-semibold transition-colors", hasChanges ? "text-muted-foreground/60" : "text-emerald-500/80")}>
+            <CheckCircle2 className={cn("size-3.5 transition-colors", hasChanges ? "text-muted-foreground/35" : "text-emerald-300")} />
+            <span className={cn("text-xs font-semibold transition-colors", hasChanges ? "text-muted-foreground/60" : "text-emerald-400/80 dark:text-emerald-300/80")}>
               {hasChanges ? "Cambios sin guardar" : "Todo sincronizado"}
             </span>
           </div>
@@ -718,12 +718,12 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
           onClick={handleSave}
           disabled={!hasChanges || thresholdErrors.length > 0}
           className={cn(
-            "flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold tracking-widest transition-all w-full sm:w-auto justify-center",
+            "flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold tracking-widest transition-all w-full sm:w-auto justify-center border",
             saved
-              ? "bg-emerald-500 text-white cursor-default"
+              ? "bg-emerald-100 dark:bg-emerald-300/15 border-emerald-300 dark:border-emerald-300/40 text-emerald-600 dark:text-emerald-300 cursor-default"
               : hasChanges && thresholdErrors.length === 0
-                ? "bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/20"
-                : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                ? "bg-sky-100 hover:bg-sky-200 dark:bg-sky-300/15 dark:hover:bg-sky-300/25 border-sky-300 dark:border-sky-300/40 text-sky-600 dark:text-sky-200 shadow-sm"
+                : "bg-muted text-muted-foreground border-transparent cursor-not-allowed opacity-50"
           )}
         >
           {saved

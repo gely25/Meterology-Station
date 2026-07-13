@@ -9,7 +9,7 @@ generator client {
 
 model Reading {
   id          Int      @id @default(autoincrement())
-  timestamp   Int // Unix timestamp in milliseconds
+  timestamp   BigInt // Unix timestamp in milliseconds
   time        String // Formatted time string (e.g. HH:MM:SS)
   temperature Float
   humidity    Float
@@ -22,7 +22,7 @@ model Reading {
 
 model Event {
   id        String   @id
-  timestamp Int // Unix timestamp in milliseconds
+  timestamp BigInt // Unix timestamp in milliseconds
   time      String // Formatted time string (e.g. HH:MM)
   type      String // EventType: info, alert, success, warning
   message   String

@@ -32,10 +32,10 @@ const SEVERITY_FILTERS: {
   activeClass: string
 }[] = [
   { id: "todos",   label: "TODOS",        inactiveColor: "text-muted-foreground",               activeClass: "bg-muted border-border/60 text-foreground" },
-  { id: "alert",   label: "CRÍTICO",      inactiveColor: "text-red-600/70 dark:text-red-400/70",    activeClass: "bg-red-500/10 border-red-500/40 text-red-600 dark:text-red-400" },
-  { id: "warning", label: "ADVERTENCIA",  inactiveColor: "text-amber-600/70 dark:text-amber-400/70", activeClass: "bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-400" },
-  { id: "success", label: "OPERATIVO",    inactiveColor: "text-emerald-600/70 dark:text-emerald-400/70", activeClass: "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400" },
-  { id: "info",    label: "CONFIG/INFO",  inactiveColor: "text-sky-600/70 dark:text-sky-400/70",    activeClass: "bg-sky-500/10 border-sky-500/40 text-sky-600 dark:text-sky-400" },
+  { id: "alert",   label: "CRÍTICO",      inactiveColor: "text-rose-400/70 dark:text-rose-300/60",    activeClass: "bg-rose-50 dark:bg-rose-300/10 border-rose-200 dark:border-rose-300/30 text-rose-400 dark:text-rose-300" },
+  { id: "warning", label: "ADVERTENCIA",  inactiveColor: "text-amber-400/70 dark:text-amber-200/60", activeClass: "bg-amber-50 dark:bg-amber-200/10 border-amber-200 dark:border-amber-200/30 text-amber-400 dark:text-amber-200" },
+  { id: "success", label: "OPERATIVO",    inactiveColor: "text-emerald-400/70 dark:text-emerald-300/60", activeClass: "bg-emerald-50 dark:bg-emerald-300/10 border-emerald-200 dark:border-emerald-300/30 text-emerald-400 dark:text-emerald-300" },
+  { id: "info",    label: "CONFIG/INFO",  inactiveColor: "text-sky-400/70 dark:text-sky-200/60",    activeClass: "bg-sky-50 dark:bg-sky-200/10 border-sky-200 dark:border-sky-200/30 text-sky-400 dark:text-sky-200" },
 ]
 
 const DATE_FILTERS: { id: DateQuickFilter; label: string; description: string }[] = [
@@ -47,39 +47,39 @@ const DATE_FILTERS: { id: DateQuickFilter; label: string; description: string }[
 ]
 
 
-// Pastel palette — vivid in light, soft in dark
+// Pastel palette — same tones as summary cards (rose / amber / emerald / sky, suaves)
 const TYPE_CFG = {
   alert: {
-    badge:       "border-red-500/30 text-red-600 dark:text-red-300 bg-red-500/10",
+    badge:       "border-rose-200 dark:border-rose-300/30 text-rose-400 dark:text-rose-300 bg-rose-50 dark:bg-rose-300/10",
     label:       "CRÍTICO",
-    borderColor: "border-l-red-500",
-    stateColor:  "text-red-600 dark:text-red-400",
+    borderColor: "border-l-rose-300 dark:border-l-rose-300/70",
+    stateColor:  "text-rose-400 dark:text-rose-300",
     stateLabel:  "FALLO",
-    iconClass:   "text-red-600 dark:text-red-300",
+    iconClass:   "text-rose-400 dark:text-rose-300",
   },
   warning: {
-    badge:       "border-amber-500/30 text-amber-600 dark:text-amber-300 bg-amber-500/10",
+    badge:       "border-amber-200 dark:border-amber-200/30 text-amber-400 dark:text-amber-200 bg-amber-50 dark:bg-amber-200/10",
     label:       "ADVERTENCIA",
-    borderColor: "border-l-amber-500",
-    stateColor:  "text-amber-600 dark:text-amber-400",
+    borderColor: "border-l-amber-200 dark:border-l-amber-200/70",
+    stateColor:  "text-amber-400 dark:text-amber-200",
     stateLabel:  "ALERTA",
-    iconClass:   "text-amber-600 dark:text-amber-300",
+    iconClass:   "text-amber-400 dark:text-amber-200",
   },
   success: {
-    badge:       "border-emerald-500/30 text-emerald-600 dark:text-emerald-300 bg-emerald-500/10",
+    badge:       "border-emerald-200 dark:border-emerald-300/30 text-emerald-400 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-300/10",
     label:       "OPERATIVO",
-    borderColor: "border-l-emerald-500",
-    stateColor:  "text-emerald-600 dark:text-emerald-400",
+    borderColor: "border-l-emerald-200 dark:border-l-emerald-300/70",
+    stateColor:  "text-emerald-400 dark:text-emerald-300",
     stateLabel:  "OK",
-    iconClass:   "text-emerald-600 dark:text-emerald-300",
+    iconClass:   "text-emerald-400 dark:text-emerald-300",
   },
   info: {
-    badge:       "border-sky-500/30 text-sky-600 dark:text-sky-300 bg-sky-500/10",
+    badge:       "border-sky-200 dark:border-sky-200/30 text-sky-400 dark:text-sky-200 bg-sky-50 dark:bg-sky-200/10",
     label:       "CONFIG",
-    borderColor: "border-l-sky-500",
-    stateColor:  "text-sky-600 dark:text-sky-400",
+    borderColor: "border-l-sky-200 dark:border-l-sky-200/70",
+    stateColor:  "text-sky-400 dark:text-sky-200",
     stateLabel:  "INFO",
-    iconClass:   "text-sky-600 dark:text-sky-300",
+    iconClass:   "text-sky-400 dark:text-sky-200",
   },
 } as const
 
@@ -444,18 +444,20 @@ export function EventsView({ data }: { data: WeatherData }) {
       <Panel className="flex-1 min-h-0 flex flex-col p-0 overflow-hidden">
 
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
-        <div className="px-5 py-3 border-b border-border/50 flex items-center justify-between gap-3 bg-background/50 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-8 rounded-lg bg-card border border-border shadow-sm">
+        <div className="px-5 py-3 border-b border-border/50 grid grid-cols-[1fr_auto_1fr] items-center gap-3 bg-background/50 flex-shrink-0">
+          <div />
+
+          <div className="flex items-center gap-3 justify-center">
+            <div className="flex items-center justify-center size-8 rounded-lg bg-card border border-border shadow-sm flex-shrink-0">
               <Bell className="size-3.5 text-muted-foreground" />
             </div>
-            <div>
+            <div className="text-center">
               <h2 className="text-sm font-bold tracking-wide text-foreground">Bitácora de Eventos</h2>
               <p className="text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">Registro operativo del sistema</p>
             </div>
           </div>
 
-          <div className="relative flex-shrink-0" ref={exportMenuRef}>
+          <div className="relative flex justify-end flex-shrink-0" ref={exportMenuRef}>
             <button
               onClick={() => setExportMenuOpen(o => !o)}
               disabled={filteredEvents.length === 0 || isExporting}
@@ -498,40 +500,40 @@ export function EventsView({ data }: { data: WeatherData }) {
 
         {/* ── SUMMARY CARDS ──────────────────────────────────────────────── */}
         <div className="px-4 pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 flex-shrink-0">
-          {/* Críticos */}
-          <div className="rounded-xl border border-border/50 bg-card px-4 py-3 flex flex-col gap-3">
+          {/* Críticos — pastel rose */}
+          <div className="relative overflow-hidden rounded-xl border border-l-4 border-l-rose-300 dark:border-l-rose-300/70 border-rose-200/60 dark:border-rose-300/25 bg-rose-50/60 dark:bg-rose-400/[0.06] pl-5 pr-4 py-3.5 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="flex items-center justify-center size-8 rounded-lg bg-red-500/10 border border-red-500/25">
-                <TriangleAlert className="size-4 text-red-600 dark:text-red-400" />
+              <span className="flex items-center justify-center size-9 rounded-lg bg-rose-100 dark:bg-rose-300/15 border border-rose-200 dark:border-rose-300/30">
+                <TriangleAlert className="size-4.5 text-rose-400 dark:text-rose-300" />
               </span>
-              <span className="text-2xl font-extrabold font-mono text-red-600 dark:text-red-400 leading-none">{criticalCount}</span>
+              <span className="text-3xl font-extrabold font-mono text-rose-400 dark:text-rose-300 leading-none tabular-nums">{criticalCount}</span>
             </div>
-            <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Críticos</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-rose-400/80 dark:text-rose-300/60">Críticos</span>
           </div>
 
-          {/* Advertencias */}
-          <div className="rounded-xl border border-border/50 bg-card px-4 py-3 flex flex-col gap-3">
+          {/* Advertencias — pastel amber */}
+          <div className="relative overflow-hidden rounded-xl border border-l-4 border-l-amber-200 dark:border-l-amber-200/70 border-amber-200/60 dark:border-amber-200/25 bg-amber-50/60 dark:bg-amber-200/[0.06] pl-5 pr-4 py-3.5 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center justify-center size-8 rounded-lg bg-amber-500/10 border border-amber-500/25 flex-shrink-0">
-                <BellRing className="size-4 text-amber-600 dark:text-amber-400" />
+              <span className="flex items-center justify-center size-9 rounded-lg bg-amber-100 dark:bg-amber-200/15 border border-amber-200 dark:border-amber-200/30 flex-shrink-0">
+                <BellRing className="size-4.5 text-amber-400 dark:text-amber-200" />
               </span>
-              <span className="text-2xl font-extrabold font-mono text-amber-600 dark:text-amber-400 leading-none">{warningCount}</span>
+              <span className="text-3xl font-extrabold font-mono text-amber-400 dark:text-amber-200 leading-none tabular-nums">{warningCount}</span>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Advertencias</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400/80 dark:text-amber-200/60">Advertencias</span>
               <WarningSparkline events={events} />
             </div>
           </div>
 
-          {/* Total */}
-          <div className="rounded-xl border border-border/50 bg-card px-4 py-3 flex flex-col gap-3">
+          {/* Total — pastel sky */}
+          <div className="relative overflow-hidden rounded-xl border border-l-4 border-l-sky-200 dark:border-l-sky-200/70 border-sky-200/60 dark:border-sky-200/25 bg-sky-50/60 dark:bg-sky-200/[0.06] pl-5 pr-4 py-3.5 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="flex items-center justify-center size-8 rounded-lg bg-sky-500/10 border border-sky-500/25">
-                <Activity className="size-4 text-sky-600 dark:text-sky-400" />
+              <span className="flex items-center justify-center size-9 rounded-lg bg-sky-100 dark:bg-sky-200/15 border border-sky-200 dark:border-sky-200/30">
+                <Activity className="size-4.5 text-sky-400 dark:text-sky-200" />
               </span>
-              <span className="text-2xl font-extrabold font-mono text-foreground leading-none">{events.length}</span>
+              <span className="text-3xl font-extrabold font-mono text-foreground leading-none tabular-nums">{events.length}</span>
             </div>
-            <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-muted-foreground/70">Total de eventos</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-400/80 dark:text-sky-200/60">Total de eventos</span>
           </div>
         </div>
 
@@ -562,7 +564,7 @@ export function EventsView({ data }: { data: WeatherData }) {
                   className={cn(
                     "px-2.5 py-1.5 text-[9.5px] font-bold rounded-lg border transition-all duration-150 tracking-wider whitespace-nowrap",
                     quickDate === f.id
-                      ? "bg-sky-500 border-sky-500 text-white shadow-sm"
+                      ? "bg-sky-50 dark:bg-sky-200/15 border-sky-200 dark:border-sky-200/40 text-sky-400 dark:text-sky-200 shadow-sm"
                       : "border-border/50 text-muted-foreground/70 hover:text-foreground hover:border-border"
                   )}
                 >{f.label}</button>

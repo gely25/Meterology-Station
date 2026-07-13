@@ -124,26 +124,26 @@ function timeAgo(ts: number): string {
 // ─── Severity helpers ─────────────────────────────────────────────────────────
 const severityConfig = {
   critical: {
-    bg: 'bg-alert/12',
-    border: 'border-alert/25',
-    text: 'text-alert',
-    dot: 'bg-alert shadow-[0_0_6px] shadow-alert',
+    bg: 'bg-rose-50 dark:bg-rose-300/10',
+    border: 'border-rose-200 dark:border-rose-300/25',
+    text: 'text-rose-400 dark:text-rose-300',
+    dot: 'bg-rose-300 shadow-[0_0_6px] shadow-rose-300/50',
     label: 'Crítica',
     Icon: TriangleAlert,
   },
   warning: {
-    bg: 'bg-orange-500/12',
-    border: 'border-orange-500/25',
-    text: 'text-orange-400',
-    dot: 'bg-orange-400 shadow-[0_0_6px] shadow-orange-400',
+    bg: 'bg-amber-50 dark:bg-amber-200/10',
+    border: 'border-amber-200 dark:border-amber-200/25',
+    text: 'text-amber-400 dark:text-amber-200',
+    dot: 'bg-amber-300 shadow-[0_0_6px] shadow-amber-300/50',
     label: 'Advertencia',
     Icon: TriangleAlert,
   },
   info: {
-    bg: 'bg-sky-500/12',
-    border: 'border-sky-500/25',
-    text: 'text-sky-400',
-    dot: 'bg-sky-400 shadow-[0_0_6px] shadow-sky-400',
+    bg: 'bg-sky-50 dark:bg-sky-300/10',
+    border: 'border-sky-200 dark:border-sky-300/25',
+    text: 'text-sky-400 dark:text-sky-300',
+    dot: 'bg-sky-300 shadow-[0_0_6px] shadow-sky-300/50',
     label: 'Informativa',
     Icon: Info,
   },
@@ -177,8 +177,8 @@ export function AlertToast({ data }: { data: WeatherData }) {
 
   return (
     <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
-      <div className="flex items-center gap-3 rounded-2xl border border-alert/30 bg-card/95 backdrop-blur px-5 py-3 shadow-[0_8px_32px_-12px_rgba(239,68,68,0.5)]">
-        <span className="grid size-8 place-items-center rounded-full bg-alert/15 text-alert animate-pulse">
+      <div className="flex items-center gap-3 rounded-2xl border border-rose-200 dark:border-rose-300/30 bg-card/95 backdrop-blur px-5 py-3 shadow-[0_8px_32px_-12px_rgba(253,164,175,0.4)]">
+        <span className="grid size-8 place-items-center rounded-full bg-rose-50 dark:bg-rose-300/15 text-rose-400 dark:text-rose-300 animate-pulse">
           <TriangleAlert className="size-4" strokeWidth={2.5} />
         </span>
         <div className="flex flex-col">
@@ -213,9 +213,9 @@ export function NotificationBell({
       className={cn(
         "relative grid size-9 place-items-center rounded-xl transition-all duration-300",
         isOpen
-          ? "bg-humidity/15 text-humidity ring-1 ring-humidity/30"
+          ? "bg-sky-50 dark:bg-sky-300/15 text-sky-400 dark:text-sky-300 ring-1 ring-sky-200 dark:ring-sky-300/30"
           : criticalCount > 0
-            ? "text-alert bg-alert/10 hover:bg-alert/20"
+            ? "text-rose-400 dark:text-rose-300 bg-rose-50 dark:bg-rose-300/10 hover:bg-rose-100 dark:hover:bg-rose-300/20"
             : "text-muted-foreground hover:bg-muted hover:text-foreground"
       )}
       aria-label="Centro de notificaciones"
@@ -227,10 +227,10 @@ export function NotificationBell({
       {totalCount > 0 && (
         <span
           className={cn(
-            "absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full text-[8px] font-black text-white border-2 border-background transition-all",
+            "absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full text-[8px] font-black border-2 border-background transition-all",
             criticalCount > 0
-              ? "bg-alert min-w-[18px] h-[18px] px-1 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse"
-              : "bg-orange-500 min-w-[16px] h-[16px] px-0.5"
+              ? "bg-rose-300 text-rose-950 min-w-[18px] h-[18px] px-1 shadow-[0_0_8px_rgba(253,164,175,0.5)] animate-pulse"
+              : "bg-amber-200 text-amber-950 min-w-[16px] h-[16px] px-0.5"
           )}
         >
           {totalCount}
@@ -301,16 +301,23 @@ export function NotificationCenter({
   const recentEvents = (notifications || []).slice(0, 20)
 
   return (
-    <div
-      ref={panelRef}
-      className="absolute top-full right-0 mt-2 w-[380px] max-h-[520px] z-50 flex flex-col rounded-2xl border border-border bg-card/98 backdrop-blur-xl shadow-[0_16px_48px_-12px_rgba(0,0,0,0.45)] animate-slide-down overflow-hidden"
-      style={{ backdropFilter: 'blur(20px)' }}
-    >
+    <>
+      {/* Scrim — separates the flyout from the dashboard behind it */}
+      <div
+        className="fixed inset-0 z-[90] bg-background/40 backdrop-blur-[2px] animate-fade-in"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <div
+        ref={panelRef}
+        className="absolute top-full right-0 mt-2 w-[380px] max-h-[520px] z-[100] flex flex-col rounded-2xl border border-border bg-card shadow-[0_16px_48px_-12px_rgba(0,0,0,0.55)] animate-slide-down overflow-hidden"
+      >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="grid size-7 place-items-center rounded-lg bg-humidity/15">
-            <Bell className="size-3.5 text-humidity" strokeWidth={2.5} />
+          <span className="grid size-7 place-items-center rounded-lg bg-sky-50 dark:bg-sky-300/15">
+            <Bell className="size-3.5 text-sky-400 dark:text-sky-300" strokeWidth={2.5} />
           </span>
           <div>
             <h2 className="text-[13px] font-extrabold tracking-wide text-foreground">Centro de notificaciones</h2>
@@ -331,9 +338,9 @@ export function NotificationCenter({
       {alerts.length > 0 && (
         <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/60 bg-panel/40">
           {[
-            { label: 'Críticas', count: criticalCount, color: 'text-alert', bg: 'bg-alert/15', dot: 'bg-alert' },
-            { label: 'Advertencias', count: warningCount, color: 'text-orange-400', bg: 'bg-orange-400/15', dot: 'bg-orange-400' },
-            { label: 'Informativas', count: infoCount, color: 'text-sky-400', bg: 'bg-sky-400/15', dot: 'bg-sky-400' },
+            { label: 'Críticas', count: criticalCount, color: 'text-rose-400 dark:text-rose-300', bg: 'bg-rose-50 dark:bg-rose-300/15', dot: 'bg-rose-300' },
+            { label: 'Advertencias', count: warningCount, color: 'text-amber-400 dark:text-amber-200', bg: 'bg-amber-50 dark:bg-amber-200/15', dot: 'bg-amber-300' },
+            { label: 'Informativas', count: infoCount, color: 'text-sky-400 dark:text-sky-300', bg: 'bg-sky-50 dark:bg-sky-300/15', dot: 'bg-sky-300' },
           ].map(s => (
             <div
               key={s.label}
@@ -411,8 +418,8 @@ export function NotificationCenter({
               const sev = eventToSeverity(evt.type)
               const cfg = severityConfig[sev]
               const SevIcon = sev === 'info' ? (evt.type === 'success' ? CheckCircle2 : Info) : cfg.Icon
-              const sevColor = evt.type === 'success' ? 'text-success' : cfg.text
-              const sevBg = evt.type === 'success' ? 'bg-success/12' : cfg.bg
+              const sevColor = evt.type === 'success' ? 'text-emerald-400 dark:text-emerald-300' : cfg.text
+              const sevBg = evt.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-300/10' : cfg.bg
               const ts = (evt.timestamp && evt.timestamp > 0) ? evt.timestamp : undefined
               return (
                 <div
@@ -455,13 +462,14 @@ export function NotificationCenter({
       <div className="border-t border-border px-4 py-2.5">
         <button
           onClick={() => { onNavigate('eventos'); onClose() }}
-          className="flex items-center justify-center gap-1.5 w-full rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-widest text-humidity hover:bg-humidity/10 transition-colors"
+          className="flex items-center justify-center gap-1.5 w-full rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-widest text-sky-400 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-300/10 transition-colors"
         >
           <ExternalLink className="size-3" />
           Ver todas las notificaciones
         </button>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 
