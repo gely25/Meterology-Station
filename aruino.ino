@@ -9,8 +9,9 @@
 #include <ArduinoJson.h>
 
 // ---------- WiFi credentials (router) ----------
-const char* ssid     = "Dani";
-const char* password = "daniela14";
+#include "config.h"
+const char* ssid     = WIFI_SSID;
+const char* password = WIFI_PASSWORD;
 
 // ---------- Access Point fallback ----------
 const char* ap_ssid     = "EstacionMeteo";

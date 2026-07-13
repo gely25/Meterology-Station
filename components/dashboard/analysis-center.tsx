@@ -44,7 +44,7 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
   const additionalLabels = useMemo(() => {
     const list: string[] = []
     if (additional.events) list.push("Eventos de bitácora")
-    if (additional.correlations) list.push("Correlaciones cruzadas")
+    if (additional.correlations) list.push("Correlaciones entre sensores")
     if (additional.stats) list.push("Estadísticas del período")
     return list
   }, [additional])
@@ -136,7 +136,7 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
         </div>
 
         {/* Body dinámico */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-8 py-6">
+        <div className="flex-1 min-h-0 overflow-y-auto px-8 py-6 scrollbar-thin">
 
           {/* ── PASO 1: CONFIGURAR ── */}
           {step === 1 && (
@@ -224,9 +224,9 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
                 <span className="text-[9px] font-extrabold uppercase tracking-widest text-muted-foreground/70 block mb-2">Información adicional</span>
                 <div className="space-y-3">
                   {[
-                    { key:"events", label:"Incluir eventos de bitácora", desc:"Cruza los hallazgos con el registro operativo del sistema." },
-                    { key:"correlations", label:"Detectar correlaciones cruzadas", desc:"Identifica relaciones entre variables de distintos sensores." },
-                    { key:"stats", label:"Calcular estadísticas del período", desc:"Promedios, máximos, mínimos y desviación estándar." },
+                    { key:"events", label:"Incluir eventos de bitácora", desc:"Incorpora al análisis las alertas y eventos registrados durante el período seleccionado." },
+                    { key:"correlations", label:"Detectar correlaciones entre sensores", desc:"Analiza relaciones entre las variables ambientales para identificar comportamientos que ocurren conjuntamente, por ejemplo una disminución de presión antes de un evento de lluvia." },
+                    { key:"stats", label:"Calcular estadísticas del período", desc:"Genera indicadores estadísticos como mínimos, máximos, promedios y variaciones de las variables analizadas." },
                   ].map(a => {
                     const checked = additional[a.key as keyof typeof additional]
                     return (
@@ -289,14 +289,14 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
                 <div className="flex flex-wrap gap-x-6 gap-y-2.5">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">Periodo</span>
-                    <span className="px-2 py-0.5 rounded-md bg-accent/10 border border-accent/25 text-accent text-[10.5px] font-bold">
+                    <span className="px-2 py-0.5 rounded-md bg-accent/10 border border-accent/15 text-accent/80 text-[10.5px] font-bold">
                       {periodLabelResolved}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">Sensores</span>
                     {selectedSensorsList.length > 0 ? selectedSensorsList.map(s => (
-                      <span key={s} className="px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/25 text-sky-600 dark:text-sky-400 text-[10.5px] font-bold">
+                      <span key={s} className="px-2 py-0.5 rounded-md bg-sky-400/15 border border-sky-400/20 text-sky-700 dark:text-sky-200 text-[10.5px] font-bold">
                         {s}
                       </span>
                     )) : (
@@ -306,7 +306,7 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">Incluye</span>
                     {additionalLabels.length > 0 ? additionalLabels.map(a => (
-                      <span key={a} className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 text-[10.5px] font-bold">
+                      <span key={a} className="px-2 py-0.5 rounded-md bg-emerald-400/15 border border-emerald-400/20 text-emerald-700 dark:text-emerald-200 text-[10.5px] font-bold">
                         {a}
                       </span>
                     )) : (
@@ -318,26 +318,35 @@ export function AnalysisCenterView({ data }: { data: WeatherData }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {structuredResults.hallazgos.length > 0 && (
-                  <div className="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5">
-                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-sky-400 block mb-1">Precipitaciones y Eventos</span>
+                  <div className="p-4 rounded-xl border border-sky-400/15 bg-sky-400/[0.06]">
+                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-sky-300/90 block mb-1">Precipitaciones y Eventos</span>
                     {structuredResults.hallazgos.map((h, i) => <p key={i} className="text-xs text-foreground leading-relaxed mt-1">{h}</p>)}
                   </div>
                 )}
-                {structuredResults.correlaciones.length > 0 && (
-                  <div className="p-4 rounded-xl border border-accent/20 bg-accent/5">
-                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-accent block mb-1">Correlaciones Cruzadas</span>
-                    {structuredResults.correlaciones.map((c, i) => <p key={i} className="text-xs text-foreground leading-relaxed mt-1">{c}</p>)}
+                {additional.correlations && (
+                  <div className="p-4 rounded-xl border border-accent/15 bg-accent/[0.06]">
+                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-accent/80 block mb-1">Correlaciones Entre Sensores</span>
+                    <p className="text-[10px] text-muted-foreground/70 leading-relaxed mt-1 mb-2">
+                      Las correlaciones representan relaciones observadas entre las variables durante el período analizado. No implican necesariamente una relación de causa y efecto.
+                    </p>
+                    {structuredResults.correlaciones.length > 0 ? (
+                      structuredResults.correlaciones.map((c, i) => <p key={i} className="text-xs text-foreground leading-relaxed mt-1">{c}</p>)
+                    ) : (
+                      <p className="text-xs text-muted-foreground/60 italic leading-relaxed">
+                        No se identificaron relaciones significativas entre las variables analizadas durante el período seleccionado.
+                      </p>
+                    )}
                   </div>
                 )}
                 {structuredResults.tendencias.length > 0 && (
-                  <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-400 block mb-1">Estabilidad de Sensores</span>
+                  <div className="p-4 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.06]">
+                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-300/90 block mb-1">Estabilidad de Sensores</span>
                     {structuredResults.tendencias.map((t, i) => <p key={i} className="text-xs text-foreground leading-relaxed mt-1">{t}</p>)}
                   </div>
                 )}
                 {structuredResults.bitacora.length > 0 && (
-                  <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
-                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-amber-400 block mb-1">Bitácora Adicional</span>
+                  <div className="p-4 rounded-xl border border-amber-400/15 bg-amber-400/[0.06]">
+                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-amber-300/90 block mb-1">Bitácora Adicional</span>
                     {structuredResults.bitacora.map((b, i) => <p key={i} className="text-xs text-foreground leading-relaxed mt-1">{b}</p>)}
                   </div>
                 )}

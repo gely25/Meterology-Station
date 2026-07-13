@@ -103,33 +103,57 @@ export function runEnvironmentalAnalysis(
   }
 
   // 6. CORRELACIONES
+  // En vez de un booleano que se satisface con una sola coincidencia en todo
+  // el histórico, contamos CADA episodio de lluvia (transición de "sin lluvia"
+  // a "lluvia detectada") y qué proporción de esos episodios estuvo precedida
+  // por el patrón esperado. Así el hallazgo queda respaldado por una cifra
+  // (N de M episodios) en vez de una frase genérica de sí/no.
   if (config.additional.correlations) {
-    // Buscar si la humedad subió previo a eventos de lluvia
-    let rainPrecedentHumIncrease = false;
+    let rainEvents = 0;
+    let humIncreaseBefore = 0;
+    let pressureDropBefore = 0;
+
     for (let i = 2; i < filteredHistory.length; i++) {
-      if (rains[i] >= rainThreshold && rains[i-2] < rainThreshold) {
-        if (humidities[i] > humidities[i-2]) {
-          rainPrecedentHumIncrease = true;
-          break;
-        }
-      }
-    }
-    if (rainPrecedentHumIncrease) {
-      conclusions.push("La humedad relativa aumentó gradualmente antes de los eventos de precipitación detectados.");
+      const isRainOnset = rains[i] >= rainThreshold && rains[i - 2] < rainThreshold;
+      if (!isRainOnset) continue;
+
+      rainEvents++;
+      if (humidities[i] > humidities[i - 2]) humIncreaseBefore++;
+      if (pressures[i] < pressures[i - 2]) pressureDropBefore++;
     }
 
-    // Buscar si la presión bajó previo a lluvia
-    let pressureDropPrecedent = false;
-    for (let i = 2; i < filteredHistory.length; i++) {
-      if (rains[i] >= rainThreshold && rains[i-2] < rainThreshold) {
-        if (pressures[i] < pressures[i-2]) {
-          pressureDropPrecedent = true;
-          break;
-        }
+    // Umbral mínimo de evidencia: exigimos al menos 3 episodios de lluvia en
+    // el período para poder hablar de "patrón" en vez de coincidencia aislada.
+    const MIN_EVENTS_FOR_PATTERN = 3;
+    const CONSISTENCY_THRESHOLD = 60; // % de episodios que deben mostrar el patrón
+
+    if (rainEvents >= MIN_EVENTS_FOR_PATTERN) {
+      const humPct = (humIncreaseBefore / rainEvents) * 100;
+      const pressPct = (pressureDropBefore / rainEvents) * 100;
+
+      if (humPct >= CONSISTENCY_THRESHOLD) {
+        conclusions.push(
+          `En el ${humPct.toFixed(0)}% de los ${rainEvents} episodios de lluvia detectados (${humIncreaseBefore}/${rainEvents}), la humedad relativa venía en aumento en las lecturas previas.`
+        );
+      } else {
+        conclusions.push(
+          `Solo el ${humPct.toFixed(0)}% de los ${rainEvents} episodios de lluvia estuvieron precedidos por un aumento de humedad; no se observa un patrón consistente.`
+        );
       }
-    }
-    if (pressureDropPrecedent) {
-      conclusions.push("La presión atmosférica mostró una tendencia descendente previa a las precipitaciones.");
+
+      if (pressPct >= CONSISTENCY_THRESHOLD) {
+        conclusions.push(
+          `En el ${pressPct.toFixed(0)}% de los ${rainEvents} episodios de lluvia (${pressureDropBefore}/${rainEvents}), la presión atmosférica venía descendiendo en las lecturas previas.`
+        );
+      } else {
+        conclusions.push(
+          `Solo el ${pressPct.toFixed(0)}% de los ${rainEvents} episodios de lluvia estuvieron precedidos por una caída de presión; no se observa un patrón consistente.`
+        );
+      }
+    } else if (rainEvents > 0) {
+      conclusions.push(
+        `Se detectaron ${rainEvents} episodio(s) de lluvia en el período, insuficientes para establecer un patrón de correlación confiable (mínimo ${MIN_EVENTS_FOR_PATTERN}).`
+      );
     }
   }
 
