@@ -76,7 +76,7 @@ export function runEnvironmentalAnalysis(
     if (humStabilityPct > 80) {
       conclusions.push("La humedad relativa se mantuvo estable y en rango confortable durante la mayor parte del tiempo.");
     } else {
-      conclusions.push(`La humedad fluctuó fuera del rango de confort agronómico el ${(100 - humStabilityPct).toFixed(0)}% del periodo.`);
+      conclusions.push(`La humedad fluctuó fuera del rango configurado durante el ${(100 - humStabilityPct).toFixed(0)}% del período analizado.`);
     }
   }
 

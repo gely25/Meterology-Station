@@ -540,7 +540,7 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
     stateSubtitle = `Fuera de rango: ${outOfRange.join(" y ")}`
     labelColor = "text-orange-400"
     bgGradient = "from-orange-500/10 via-transparent to-transparent"
-    svgSrc = isTempExtreme ? "/svg/temperatura.svg" : "/svg/Ambiente húmedo.svg"
+    svgSrc = "/svg/Ambiente húmedo.svg"
     accentHex = "#fb923c"
     badgeClasses = "border-orange-500/40 bg-orange-500/15 text-orange-400"
   }
@@ -558,8 +558,8 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
       style={{ borderLeftColor: accentHex, backgroundColor: `${accentHex}0A` }}
     >
       {/* Background watermark */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
-        <img src={svgSrc} alt="" width={300} height={300} className="object-contain" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none overflow-hidden w-[300px] h-[300px] flex items-center justify-center">
+        <img src={svgSrc} alt="" width={300} height={300} className="object-contain w-full h-full" />
       </div>
 
       {/* Header */}
@@ -584,7 +584,7 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
         {/* Dynamic illustration + huge status label (hero weight, matches digital-number cards) */}
         <div className="flex flex-col items-center justify-center">
           <div
-            className="relative flex items-center justify-center rounded-2xl p-3"
+            className="relative flex items-center justify-center rounded-2xl p-3 overflow-hidden"
             style={{ backgroundColor: `${accentHex}1a`, boxShadow: `0 0 0 1px ${accentHex}40, 0 0 24px -6px ${accentHex}50` }}
           >
             <img
@@ -592,7 +592,7 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
               alt={stateLabel}
               width={104}
               height={104}
-              className="object-contain select-none drop-shadow-[0_4px_10px_rgba(255,255,255,0.05)] transition-all duration-500"
+              className="object-contain select-none drop-shadow-[0_4px_10px_rgba(255,255,255,0.05)] transition-all duration-500 w-[104px] h-[104px] max-w-[104px] max-h-[104px]"
             />
           </div>
           <div className="text-center mt-3">
@@ -611,7 +611,7 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
           className="flex flex-col gap-2 pl-4 h-full max-h-[170px] overflow-y-auto pr-1 border-l"
           style={{ borderColor: `${accentHex}25` }}
         >
-          <span className="text-[8.5px] font-extrabold tracking-widest uppercase text-muted-foreground/60 mb-0.5">Asistente Agronómico</span>
+          <span className="text-[8.5px] font-extrabold tracking-widest uppercase text-muted-foreground/60 mb-0.5">Interpretación del Sistema</span>
           {recs.map(rec => (
             <div key={rec.id} className="flex flex-col gap-0.5">
               <span className={cn(

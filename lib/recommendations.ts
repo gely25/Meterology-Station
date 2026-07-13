@@ -22,47 +22,47 @@ export function getRecommendations(data: WeatherData): Recommendation[] {
     ];
   }
 
-  // 1. Lluvia y Riego
+  // 1. Lluvia
   if (data.nivelLluvia >= THRESHOLDS.rain.detected) {
     recommendations.push({
       id: "rain_active",
       type: "warning",
-      title: "Suspender riego automático",
-      message: `Precipitación detectada (${data.nivelLluvia.toFixed(0)}%). Se recomienda apagar sistemas de riego para evitar saturación.`
+      title: "Precipitación detectada",
+      message: `Se detecta precipitación activa (${data.nivelLluvia.toFixed(0)}%). Se recomienda revisar las condiciones del entorno y los sistemas dependientes del clima.`
     });
   }
 
-  // 2. Humedad y Hongos
+  // 2. Humedad
   if (data.humedad > THRESHOLDS.humidity.max) {
     recommendations.push({
       id: "humidity_very_high",
       type: "warning",
-      title: "Riesgo de proliferación fúngica",
-      message: `Humedad relativa en ${data.humedad.toFixed(0)}%. Favorece la propagación de plagas/hongos. Ventilar o deshumidificar.`
+      title: "Humedad elevada",
+      message: `La humedad ambiental se encuentra en ${data.humedad.toFixed(0)}%, superando el umbral configurado. Se recomienda revisar las condiciones del entorno y verificar la causa del incremento.`
     });
   } else if (data.humedad < THRESHOLDS.humidity.min) {
     recommendations.push({
       id: "humidity_low",
       type: "info",
-      title: "Ambiente excesivamente seco",
-      message: `Humedad baja (${data.humedad.toFixed(0)}%). Considera aplicar riego ligero para regular la humedad ambiente.`
+      title: "Humedad por debajo del umbral",
+      message: `La humedad relativa registrada es ${data.humedad.toFixed(0)}%, por debajo del mínimo configurado. Se recomienda revisar las condiciones ambientales del entorno monitoreado.`
     });
   }
 
-  // 3. Calidad del aire y Ventilación
+  // 3. Calidad del aire
   if (data.calidadAire >= THRESHOLDS.airQuality.bad) {
     recommendations.push({
       id: "air_critical",
       type: "warning",
-      title: "Calidad de aire crítica",
-      message: `Nivel de gases MQ135: ${data.calidadAire.toFixed(0)} ppm. Evita la exposición física y activa extractores de aire.`
+      title: "Calidad del aire crítica",
+      message: `El sensor MQ135 registra ${data.calidadAire.toFixed(0)} ppm, superando el umbral crítico configurado. Se recomienda verificar el entorno y garantizar la ventilación adecuada.`
     });
   } else if (data.calidadAire >= THRESHOLDS.airQuality.regular) {
     recommendations.push({
       id: "air_regular",
       type: "info",
-      title: "Calidad de aire regular",
-      message: "Gases ligeramente elevados. Aumenta la circulación de aire si estás en interiores."
+      title: "Calidad del aire regular",
+      message: "La concentración de gases se encuentra por encima del rango esperado. Se recomienda aumentar la circulación de aire si el entorno lo permite."
     });
   }
 
@@ -71,25 +71,25 @@ export function getRecommendations(data: WeatherData): Recommendation[] {
     recommendations.push({
       id: "temp_high",
       type: "warning",
-      title: "Estrés térmico por calor",
-      message: `Temperatura superior a ${THRESHOLDS.temperature.max}°C. Monitorea hidratación del cultivo y ventilación.`
+      title: "Temperatura elevada",
+      message: `La temperatura supera el rango recomendado (${data.temperatura.toFixed(1)}°C > ${THRESHOLDS.temperature.max}°C). Se recomienda verificar las condiciones del entorno y la ventilación disponible.`
     });
   } else if (data.temperatura < THRESHOLDS.temperature.min) {
     recommendations.push({
       id: "temp_low",
       type: "info",
       title: "Temperatura baja detectada",
-      message: `Nivel térmico inferior a ${THRESHOLDS.temperature.min}°C. Considera protección pasiva contra frío/heladas.`
+      message: `La temperatura se encuentra por debajo del rango configurado (${data.temperatura.toFixed(1)}°C < ${THRESHOLDS.temperature.min}°C). Se recomienda revisar las condiciones del entorno monitoreado.`
     });
   }
 
-  // 5. Caso todo normal
+  // 5. Todo dentro del rango
   if (recommendations.length === 0) {
     recommendations.push({
       id: "all_good",
       type: "success",
-      title: "Condiciones ideales",
-      message: "Todos los parámetros se encuentran dentro del rango de confort agronómico estable."
+      title: "Condiciones normales",
+      message: "Todos los parámetros monitoreados se encuentran dentro de los rangos configurados. El sistema opera con normalidad."
     });
   }
 
