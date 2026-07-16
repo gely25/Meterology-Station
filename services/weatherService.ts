@@ -9,6 +9,18 @@ function generateId() {
   return Math.random().toString(36).substring(2, 9);
 }
 
+function formatUptime(seconds: number): string {
+  if (typeof seconds !== 'number' || isNaN(seconds)) return 'N/D';
+  const d = Math.floor(seconds / (24 * 3600));
+  const h = Math.floor((seconds % (24 * 3600)) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m ${s}s`;
+}
+
 // Config interface
 export interface AppConfig {
   ip: string;
@@ -37,11 +49,17 @@ class WeatherService {
   private lastFetchTime: number = Date.now();
   private isFetching: boolean = false;
   private consecutiveFailures: number = 0;
+  private lastUptime: number = 0;
+  private simulatedUptime: number = 0;
 
   constructor() {
     this.config = this.loadConfig();
     this.currentData = this.getInitialData();
     if (typeof window !== 'undefined') {
+      const savedUptime = localStorage.getItem('last_esp32_uptime');
+      if (savedUptime) {
+        this.lastUptime = parseInt(savedUptime, 10) || 0;
+      }
       this.hydrateFromDatabase().then(() => {
         this.start();
       });
@@ -209,6 +227,7 @@ class WeatherService {
       ultimaActualizacion: time,
       uptime: '0h 0m',
       conexionESP32: 'desconectado',
+      modoRed: 'STA',
       estadoCalidadAire: 'Calculando...',
       wifiRSSI: -45,
       wifiCalidad: 'Excelente',
@@ -315,7 +334,26 @@ class WeatherService {
       const presion = typeof espData.presion === 'number' && !isNaN(espData.presion) ? espData.presion : 0.0;
       const calidadAire = typeof espData.calidadAire === 'number' && !isNaN(espData.calidadAire) ? espData.calidadAire : 0.0;
       const calidadAireBaseline = typeof espData.calidadAireBaseline === 'number' && !isNaN(espData.calidadAireBaseline) ? espData.calidadAireBaseline : 800;
+      const rawUptime = typeof espData.uptime === 'number' && !isNaN(espData.uptime) ? espData.uptime : 0;
       const wifiRSSI = typeof espData.wifiRSSI === 'number' && !isNaN(espData.wifiRSSI) ? espData.wifiRSSI : 0.0;
+
+      // Bitácora automática si detecta un reinicio del ESP32
+      if (this.lastUptime > 0 && rawUptime < this.lastUptime - 3) {
+        this.addEvent("El dispositivo ESP32 se ha reiniciado", "warning");
+      }
+      this.lastUptime = rawUptime;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('last_esp32_uptime', String(rawUptime));
+      }
+
+      const modoRed = espData.modoRed === 'AP' ? 'AP' : 'STA';
+      if (this.currentData.conexionESP32 === 'conectado' && this.currentData.modoRed !== modoRed) {
+        if (modoRed === 'AP') {
+          this.addEvent("El ESP32 ha cambiado a modo Punto de Acceso (AP) sin internet", "warning");
+        } else {
+          this.addEvent("El ESP32 se ha reconectado a la red WiFi (modo Estación)", "success");
+        }
+      }
 
       this.tick += 1;
       let history = this.currentData.history;
@@ -406,9 +444,8 @@ class WeatherService {
       }
 
       const wifiCalidad = this.deriveWiFiQuality(wifiRSSI);
-      const uptimeMins = Math.floor(this.tick / 60);
-      const uptime = `${Math.floor(uptimeMins / 60)}h ${uptimeMins % 60}m`;
-      if (this.tick > 0 && this.tick % 1800 === 0) {
+      const uptime = formatUptime(rawUptime);
+      if (rawUptime > 0 && rawUptime % 1800 === 0) {
         this.addEvent(`Uptime: ${uptime} — sistema operando sin interrupciones`, 'success');
       }
 
@@ -431,6 +468,7 @@ class WeatherService {
         uptime,
         latency,
         conexionESP32: 'conectado',
+        modoRed,
         estadoCalidadAire: espData.estadoCalidadAire || (calidadAire < 100 ? "BUENA" : calidadAire < 200 ? "MODERADA" : "MALA"),
         estadoAHT10: espData.estadoAHT10 || 'operativo',
         estadoBMP280: espData.estadoBMP280 || 'operativo',
@@ -542,9 +580,9 @@ class WeatherService {
     }
 
     const wifiCalidad = this.deriveWiFiQuality(wifiRSSI);
-    const uptimeMins = Math.floor(this.tick / 60);
-    const uptime = `${Math.floor(uptimeMins / 60)}h ${uptimeMins % 60}m`;
-    if (this.tick > 0 && this.tick % 1800 === 0) {
+    this.simulatedUptime += 1;
+    const uptime = formatUptime(this.simulatedUptime);
+    if (this.simulatedUptime > 0 && this.simulatedUptime % 1800 === 0) {
       this.addEvent(`Uptime: ${uptime} — sistema operando sin interrupciones`, 'success');
     }
     const latency = 12 + Math.floor(Math.random() * 8);

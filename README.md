@@ -20,6 +20,40 @@ El proyecto pone un fuerte énfasis en una interfaz de usuario (UI) limpia, comp
 
 ---
 
+## Nuevas Funcionalidades Implementadas (Última Actualización)
+
+Hemos robustecido el sistema con características profesionales inspiradas en sistemas industriales SCADA y Grafana:
+
+### 1. Conectividad Autónoma: Fallback a Modo Access Point (AP)
+Si el ESP32 no logra conectarse a la red WiFi local (por cortes de internet o por estar fuera de rango) durante 15 segundos, inicia automáticamente una **red WiFi propia sin internet**:
+* **SSID:** `Estacion_Meteorologica`
+* **Contraseña:** `meteorologica`
+* **IP del ESP32 (AP):** `192.168.4.1`
+* **Pantalla OLED:** Muestra en tiempo real la red y la IP al arrancar para facilitar la conexión.
+
+### 2. Calibración Dinámica de Calidad de Aire (Sensor MQ135)
+Para evitar lecturas falsas, el ESP32 transmite el **baseline calibrado** al arrancar (`calidadAireBaseline`). 
+* El Dashboard ahora calcula dinámicamente el nivel de contaminación mediante deltas: $\text{Delta} = \text{Valor actual} - \text{Baseline}$.
+* Los umbrales de excelente, aceptable, moderado y malo se definen de forma **relativa al baseline** (ej: `+200 ppm` sobre el baseline).
+
+### 3. Personalización de Umbrales en LocalStorage
+Los límites de alerta para todos los sensores (temperatura, humedad, presión, lluvia y calidad de aire) son **100% editables desde la pestaña Configuración** de la aplicación web:
+* Se guardan localmente en el navegador (`localStorage`).
+* Se propagan a todas las tarjetas y gráficos al instante mediante eventos reactivos (`thresholds-updated`).
+* Evitan tener que reprogramar el microcontrolador si cambias de entorno o cambian las estaciones de temperatura.
+
+### 4. Resumen Estadístico de Bitácora Estilo SCADA/Grafana
+Las tarjetas superiores del historial de eventos se rediseñaron para ser semánticamente correctas:
+* **Registros de Bitácora:** Muestra el conteo de logs reales (ej: inicializaciones, desconexiones, etc.) en lugar del término genérico "Total de eventos".
+* **Recálculo por Filtro:** Las 3 tarjetas de resumen (Críticos, Advertencias y Registros) se recalculan en tiempo real usando únicamente los registros que coincidan con los filtros aplicados (tiempo, severidad, tipo o búsqueda textual).
+* **Descripciones Detalladas:** Cada tarjeta incluye ahora descripciones contextuales discretas de su significado operativo.
+
+### 5. Indicadores Visuales y Anomalías Premium
+* **Alertas Personalizadas:** Si hay condiciones anómalas (fuera de los umbrales configurados), el dashboard muestra un contenedor de advertencia premium con iconos SVG específicos (`rojo.svg` para alertas calientes/lluvia, `azul.svg` para frío) y muestra de forma exacta la desviación del umbral (ej: `+2.1°C`, `-1.2 hPa`).
+* **Estado de LEDs:** Los periféricos LED del microcontrolador (Azul y Rojo) se muestran como "Operativo" en el panel de estado siempre que el microcontrolador esté conectado.
+
+---
+
 ## Tecnologías Utilizadas
 
 - **Framework:** Next.js (App Router, React)

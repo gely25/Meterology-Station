@@ -37,6 +37,7 @@ export interface WeatherData {
   latency?: number;
   
   conexionESP32: 'conectado' | 'desconectado';
+  modoRed?: 'AP' | 'STA';
   wifiRSSI: number;
   wifiCalidad: 'Excelente' | 'Muy buena' | 'Buena' | 'Débil' | 'Sin conexión';
   

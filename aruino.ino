@@ -78,6 +78,10 @@ float g_tempBMP = 0;
 float g_tempAHT = 0;
 float g_humidity = 0;
 
+bool modoAPActivo = false;
+unsigned long ultimoIntentoReconexion = 0;
+const unsigned long INTERVALO_RECONEXION = 30000; // 30 segundos
+
 // ---------- Helpers MQ135 ----------
 int readMQ135Smoothed() {
   int raw = analogRead(PIN_MQ135);
@@ -158,14 +162,10 @@ void enviarDatos() {
   // WiFi
   doc["wifiRSSI"]      = WiFi.RSSI();
   doc["conexionESP32"] = "conectado";
+  doc["modoRed"]       = modoAPActivo ? "AP" : "STA";
 
-  // Uptime
-  unsigned long totalSegundos = millis() / 1000;
-  unsigned long horas   = totalSegundos / 3600;
-  unsigned long minutos = (totalSegundos % 3600) / 60;
-  char uptimeStr[16];
-  snprintf(uptimeStr, sizeof(uptimeStr), "%luh %lum", horas, minutos);
-  doc["uptime"] = uptimeStr;
+  // Uptime as raw seconds
+  doc["uptime"] = millis() / 1000;
 
   // Estados de hardware
   doc["estadoAHT10"]       = ahtOK      ? "operativo" : "desconectado";
@@ -263,6 +263,10 @@ void setup() {
     Serial.print(".");
   }
 
+  // AP Config fallback values
+  const char* ap_ssid = "Estacion_Meteorologica";
+  const char* ap_password = "meteorologica";
+
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println();
     Serial.println("WiFi conectado con exito");
@@ -275,14 +279,64 @@ void setup() {
     Serial.println("Servidor HTTP iniciado para el dashboard");
   } else {
     Serial.println();
-    Serial.println("Fallo al conectar al WiFi. Iniciando en modo local...");
+    Serial.println("Fallo al conectar al WiFi. Iniciando en modo Access Point (AP)...");
+    WiFi.disconnect();
+    WiFi.mode(WIFI_AP_STA); // Modo dual AP + STA para permitir reconexión automática en loop
+    WiFi.softAP(ap_ssid, ap_password);
+    modoAPActivo = true;
+
+    IPAddress IP = WiFi.softAPIP();
+    Serial.print("Red WiFi propia creada. SSID: ");
+    Serial.println(ap_ssid);
+    Serial.print("IP del ESP32 (AP): ");
+    Serial.println(IP);
+
+    if (display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("Modo AP Activo");
+      display.print("SSID: ");
+      display.println(ap_ssid);
+      display.print("IP: ");
+      display.println(IP.toString());
+      display.display();
+      delay(3000);
+    }
+
+    server.on("/api/data", HTTP_GET, enviarDatos);
+    server.on("/api/data", HTTP_OPTIONS, manejarPreflight);
+    server.begin();
+    Serial.println("Servidor HTTP iniciado para el dashboard en modo AP");
   }
 }
 
 void loop() {
   // ---------- HTTP request handler ----------
-  if (WiFi.status() == WL_CONNECTED) {
-    server.handleClient();
+  server.handleClient();
+
+  // ---------- Control de Reconexión Automática si está en modo AP ----------
+  if (modoAPActivo) {
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("Reconexión de WiFi detectada! Desactivando modo AP.");
+      WiFi.mode(WIFI_STA); // Volvemos a modo estación puro
+      modoAPActivo = false;
+
+      IPAddress IP = WiFi.localIP();
+      Serial.print("IP asignada por router: ");
+      Serial.println(IP);
+
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("WiFi Reconectado");
+      display.print("IP: ");
+      display.println(IP.toString());
+      display.display();
+      delay(3000);
+    } else if (millis() - ultimoIntentoReconexion >= INTERVALO_RECONEXION) {
+      ultimoIntentoReconexion = millis();
+      Serial.println("Intentando buscar e iniciar conexión con red WiFi en segundo plano...");
+      WiFi.begin(ssid, password);
+    }
   }
 
   // ---------- Warm-up del MQ135 ----------

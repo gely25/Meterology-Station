@@ -59,129 +59,129 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
       <h2 className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground shrink-0">Estado del Sistema</h2>
 
       {/* Contenido scrolleable: si no cabe en la altura de la fila, se desplaza en vez de cortarse */}
-      <div className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto scrollbar-hide pr-0.5">
+      <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto scrollbar-hide pr-0.5">
 
-      {/* Grupos de hardware clasificados */}
-      <div className="flex flex-col gap-1.5 shrink-0">
-        {/* Grupo 1: Microcontrolador */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/60 px-0.5">Microcontrolador</span>
-          <div className="grid grid-cols-1 gap-1">
-            <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-0.5">
-              <span className="flex items-center gap-1.5 min-w-0">
-                <Cpu className="size-3.5 text-muted-foreground shrink-0" />
-                <span className="text-[10px] font-semibold text-foreground truncate">ESP32</span>
-              </span>
-              <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", esp32Connected ? 'text-success' : 'text-alert')}>
-                {esp32Connected ? 'Conectado' : 'Sin conexión'}
-                <span className={cn("size-1.5 rounded-full shrink-0", esp32Connected ? 'bg-success shadow-[0_0_5px] shadow-success/40 animate-pulse' : 'bg-alert shadow-[0_0_5px] shadow-alert')} />
-              </span>
+        {/* Grupos de hardware clasificados */}
+        <div className="flex flex-col gap-1 shrink-0">
+          {/* Grupo 1: Microcontrolador */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/60 px-0.5">Microcontrolador</span>
+            <div className="grid grid-cols-1 gap-1">
+              <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-[1px]">
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <Cpu className="size-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-[10px] font-semibold text-foreground truncate">ESP32</span>
+                </span>
+                <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", esp32Connected ? 'text-success' : 'text-alert')}>
+                  {esp32Connected ? 'Conectado' : 'Sin conexión'}
+                  <span className={cn("size-1.5 rounded-full shrink-0", esp32Connected ? 'bg-success shadow-[0_0_5px] shadow-success/40 animate-pulse' : 'bg-alert shadow-[0_0_5px] shadow-alert')} />
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Grupo 2: Sensores */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/60 px-0.5">Sensores</span>
+            <div className="grid grid-cols-2 gap-1">
+              {[
+                { icon: Thermometer, name: "AHT10", statusInfo: getStatusInfo(data.estadoAHT10) },
+                { icon: Gauge, name: "BMP280", statusInfo: getStatusInfo(data.estadoBMP280) },
+                { icon: Wind, name: "MQ135", statusInfo: getStatusInfo(data.estadoMQ135) },
+                { icon: CloudRain, name: "Sensor Lluvia", statusInfo: getStatusInfo(data.estadoSensorLluvia) },
+              ].map((row) => {
+                const Icon = row.icon
+                return (
+                  <div key={row.name} className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-[1px]">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <Icon className="size-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-[10px] font-semibold text-foreground truncate">{row.name}</span>
+                    </span>
+                    <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", row.statusInfo.textClass)}>
+                      {row.statusInfo.label}
+                      <span className={cn("size-1.5 rounded-full shrink-0", row.statusInfo.dotClass)} />
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Grupo 3: Periféricos y Actuadores */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/60 px-0.5">Periféricos / Actuadores</span>
+            <div className="grid grid-cols-2 gap-1">
+              {[
+                { icon: MonitorSmartphone, name: "Pantalla OLED", statusInfo: getStatusInfo(data.estadoOLED) },
+                { icon: Lightbulb, name: "LED Azul (Aire)", statusInfo: getStatusInfo(ledAzulStatus) },
+                { icon: Lightbulb, name: "LED Rojo (Alerta)", statusInfo: getStatusInfo(ledRojoStatus) },
+                { icon: BellRing, name: "Buzzer", statusInfo: getStatusInfo(data.estadoBuzzer) },
+              ].map((row) => {
+                const Icon = row.icon
+                return (
+                  <div key={row.name} className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-[1px]">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <Icon className="size-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-[10px] font-semibold text-foreground truncate">{row.name}</span>
+                    </span>
+                    <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", row.statusInfo.textClass)}>
+                      {row.statusInfo.label}
+                      <span className={cn("size-1.5 rounded-full shrink-0", row.statusInfo.dotClass)} />
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
 
-        {/* Grupo 2: Sensores */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/60 px-0.5">Sensores</span>
-          <div className="grid grid-cols-2 gap-1">
-            {[
-              { icon: Thermometer, name: "AHT10", statusInfo: getStatusInfo(data.estadoAHT10) },
-              { icon: Gauge, name: "BMP280", statusInfo: getStatusInfo(data.estadoBMP280) },
-              { icon: Wind, name: "MQ135", statusInfo: getStatusInfo(data.estadoMQ135) },
-              { icon: CloudRain, name: "Sensor Lluvia", statusInfo: getStatusInfo(data.estadoSensorLluvia) },
-            ].map((row) => {
-              const Icon = row.icon
-              return (
-                <div key={row.name} className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-0.5">
-                  <span className="flex items-center gap-1.5 min-w-0">
-                    <Icon className="size-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-[10px] font-semibold text-foreground truncate">{row.name}</span>
-                  </span>
-                  <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", row.statusInfo.textClass)}>
-                    {row.statusInfo.label}
-                    <span className={cn("size-1.5 rounded-full shrink-0", row.statusInfo.dotClass)} />
-                  </span>
-                </div>
-              )
-            })}
+        {/* Connectivity metrics */}
+        <div className="mt-0.5 pt-0.5 border-t border-border grid grid-cols-3 gap-1.5 shrink-0">
+          <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-[1px]">
+            <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0 flex items-center gap-1">
+              <Wifi className="size-3" /> WiFi RSSI
+            </span>
+            <div className="flex items-center gap-2">
+              <WifiSignalBar rssi={data.wifiRSSI || -90} />
+              <span className="text-[10px] font-bold text-foreground">{data.wifiRSSI ? `${data.wifiRSSI} dBm` : 'N/D'}</span>
+            </div>
+            <span className="text-[8px] text-muted-foreground mt-0.5">{rssiLabel}</span>
+          </div>
+
+          <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-[1px]">
+            <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0 flex items-center gap-1">
+              <Clock className="size-3" /> Uptime ESP32
+            </span>
+            <span className="text-[11px] font-bold text-foreground font-digital">{data.uptime || 'N/D'}</span>
+            <span className="text-[8px] text-muted-foreground mt-0.5">{esp32Connected ? 'Desde ' + data.hora : 'Sin conexión'}</span>
+          </div>
+
+          <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-[1px]">
+            <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0 flex items-center gap-1">
+              <Activity className="size-3" /> Latencia
+            </span>
+            <span className="text-[11px] font-bold text-foreground">
+              {esp32Connected && data.latency ? `${data.latency} ms` : 'N/D'}
+            </span>
+            <span className="text-[8px] text-muted-foreground mt-0.5">Tiempo respuesta</span>
           </div>
         </div>
 
-        {/* Grupo 3: Periféricos y Actuadores */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[8px] font-extrabold uppercase tracking-widest text-muted-foreground/60 px-0.5">Periféricos / Actuadores</span>
-          <div className="grid grid-cols-2 gap-1">
-            {[
-              { icon: MonitorSmartphone, name: "Pantalla OLED", statusInfo: getStatusInfo(data.estadoOLED) },
-              { icon: Lightbulb, name: "LED Azul (Aire)", statusInfo: getStatusInfo(ledAzulStatus) },
-              { icon: Lightbulb, name: "LED Rojo (Alerta)", statusInfo: getStatusInfo(ledRojoStatus) },
-              { icon: BellRing, name: "Buzzer", statusInfo: getStatusInfo(data.estadoBuzzer) },
-            ].map((row) => {
-              const Icon = row.icon
-              return (
-                <div key={row.name} className="flex items-center justify-between rounded-lg border border-border/50 bg-card px-2 py-0.5">
-                  <span className="flex items-center gap-1.5 min-w-0">
-                    <Icon className="size-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-[10px] font-semibold text-foreground truncate">{row.name}</span>
-                  </span>
-                  <span className={cn("flex items-center gap-1 text-[9px] font-bold shrink-0", row.statusInfo.textClass)}>
-                    {row.statusInfo.label}
-                    <span className={cn("size-1.5 rounded-full shrink-0", row.statusInfo.dotClass)} />
-                  </span>
-                </div>
-              )
-            })}
-          </div>
+        {/* ── Visual status legend ── */}
+        <div className="mt-0.5 pt-0.5 border-t border-border/40 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 shrink-0">
+          <span className="text-[7px] font-extrabold uppercase tracking-wider text-muted-foreground/50 mr-0.5">Estado:</span>
+          {[
+            { label: 'Operativo', dot: 'bg-success shadow-[0_0_4px] shadow-success/40' },
+            { label: 'Esperando lectura', dot: 'bg-sky-400 shadow-[0_0_4px] shadow-sky-400' },
+            { label: 'Error', dot: 'bg-warning shadow-[0_0_4px] shadow-warning' },
+            { label: 'Sin conexión', dot: 'bg-alert shadow-[0_0_4px] shadow-alert' },
+          ].map(s => (
+            <span key={s.label} className="flex items-center gap-1">
+              <span className={cn("size-1.5 rounded-full shrink-0", s.dot)} />
+              <span className="text-[7px] font-semibold text-muted-foreground/60">{s.label}</span>
+            </span>
+          ))}
         </div>
-      </div>
-
-      {/* Connectivity metrics */}
-      <div className="mt-1 pt-1 border-t border-border grid grid-cols-3 gap-1.5 shrink-0">
-        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-0.5">
-          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
-            <Wifi className="size-3" /> WiFi RSSI
-          </span>
-          <div className="flex items-center gap-2">
-            <WifiSignalBar rssi={data.wifiRSSI || -90} />
-            <span className="text-[10px] font-bold text-foreground">{data.wifiRSSI ? `${data.wifiRSSI} dBm` : 'N/D'}</span>
-          </div>
-          <span className="text-[8px] text-muted-foreground mt-0.5">{rssiLabel}</span>
-        </div>
-
-        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-0.5">
-          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
-            <Clock className="size-3" /> Uptime ESP32
-          </span>
-          <span className="text-[11px] font-bold text-foreground font-digital">{data.uptime || 'N/D'}</span>
-          <span className="text-[8px] text-muted-foreground mt-0.5">{esp32Connected ? 'Desde ' + data.hora : 'Sin conexión'}</span>
-        </div>
-
-        <div className="flex flex-col rounded-lg border border-border/50 bg-card px-2 py-0.5">
-          <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5 flex items-center gap-1">
-            <Activity className="size-3" /> Latencia
-          </span>
-          <span className="text-[11px] font-bold text-foreground">
-            {esp32Connected && data.latency ? `${data.latency} ms` : 'N/D'}
-          </span>
-          <span className="text-[8px] text-muted-foreground mt-0.5">Tiempo respuesta</span>
-        </div>
-      </div>
-
-      {/* ── Visual status legend ── */}
-      <div className="mt-1 pt-1 border-t border-border/40 flex flex-wrap items-center gap-x-2.5 gap-y-1 shrink-0">
-        <span className="text-[7px] font-extrabold uppercase tracking-wider text-muted-foreground/50 mr-0.5">Estado:</span>
-        {[
-          { label: 'Operativo',         dot: 'bg-success shadow-[0_0_4px] shadow-success/40' },
-          { label: 'Esperando lectura', dot: 'bg-sky-400 shadow-[0_0_4px] shadow-sky-400' },
-          { label: 'Error',             dot: 'bg-warning shadow-[0_0_4px] shadow-warning' },
-          { label: 'Sin conexión',      dot: 'bg-alert shadow-[0_0_4px] shadow-alert' },
-        ].map(s => (
-          <span key={s.label} className="flex items-center gap-1">
-            <span className={cn("size-1.5 rounded-full shrink-0", s.dot)} />
-            <span className="text-[7px] font-semibold text-muted-foreground/60">{s.label}</span>
-          </span>
-        ))}
-      </div>
 
       </div>
     </Panel>

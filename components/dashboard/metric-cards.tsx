@@ -604,8 +604,8 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
       anomalies.push({
         label: `Presión baja (-${diff.toFixed(1)} hPa)`,
         icon: "/svg/presión atmosferica.svg",
-        filter: TINT.pressure,
-        color: "text-orange-400"
+        filter: "brightness(0) saturate(100%) invert(75%) sepia(40%) saturate(400%) hue-rotate(230deg) brightness(110%)", // Moradito pastel
+        color: "text-purple-300"
       })
     } else if (data.presion > THRESHOLDS.pressure.max) {
       const diff = data.presion - THRESHOLDS.pressure.max

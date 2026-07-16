@@ -112,7 +112,6 @@ function MiniTooltip({ active, payload, label, color, unit }: any) {
 }
 
 function MiniArea({ data, dataKey, color, height = 80, unit = '', smoothing = true }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint; color: string; height?: number; unit?: string; smoothing?: boolean }) {
-  const id = `mini-${String(dataKey)}-${color.replace(/[^a-z0-9]/gi, "")}`
   let displayData = data.slice(-20)
   const count = displayData.length
 
@@ -142,12 +141,6 @@ function MiniArea({ data, dataKey, color, height = 80, unit = '', smoothing = tr
     <div className="relative w-full flex flex-col justify-end" style={{ height }}>
       <ResponsiveContainer width="100%" height={height}>
         <AreaChart data={displayData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.6} />
-              <stop offset="100%" stopColor={color} stopOpacity={0} />
-            </linearGradient>
-          </defs>
           <XAxis dataKey="time" hide />
           <YAxis hide domain={domain} />
           <Tooltip content={<MiniTooltip color={color} unit={unit} />} cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: '3 3' }} />
@@ -156,7 +149,8 @@ function MiniArea({ data, dataKey, color, height = 80, unit = '', smoothing = tr
             dataKey={dataKey as string}
             stroke={color}
             strokeWidth={2}
-            fill={`url(#${id})`}
+            fill={color}
+            fillOpacity={0.45}
             isAnimationActive={false}
             dot={false}
           />
@@ -335,7 +329,7 @@ export function PressureCard({ data, className }: { data: WeatherData; className
 
       <div className="mt-1 flex items-center justify-end gap-2 relative z-10">
         <TrendBadge trend={trendDir} color="var(--color-pressure)" />
-        <span className="flex items-center gap-1 rounded-md border border-pressure/40 bg-pressure/15 px-1.5 py-0.5 text-xs font-bold text-pressure">
+        <span className="flex items-center gap-1 rounded-md border border-pressure/40 bg-pressure-soft px-1.5 py-0.5 text-xs font-bold text-pressure">
           {trendDir.direction === 'up' ? <TrendingUp className="size-3" /> : trendDir.direction === 'down' ? <TrendingDown className="size-3" /> : <Minus className="size-3" />}
           {trend > 0 ? "+" : ""}{trend.toFixed(1)} hPa
         </span>
