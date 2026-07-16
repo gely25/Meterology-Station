@@ -8,17 +8,9 @@
 #include <WebServer.h>
 #include <ArduinoJson.h>
 
-// ---------- WiFi credentials (router) ----------
-#include "config.h"
-const char* ssid     = WIFI_SSID;
-const char* password = WIFI_PASSWORD;
-
-// ---------- Access Point fallback ----------
-const char* ap_ssid     = "EstacionMeteo";
-const char* ap_password = "sensor123";    // minimo 8 caracteres
-
-// ---------- Modo de red activo ----------
-bool modoAP = false;  // false = conectado al router, true = modo AP
+// ---------- WiFi credentials ----------
+const char* ssid = "assch";
+const char* password = "samira25#";
 
 WebServer server(80);
 
@@ -26,8 +18,8 @@ WebServer server(80);
 #define PIN_RAIN     4      // Rain sensor (digital) - HL-83 + HL-01 comparator
 #define PIN_MQ135    34     // MQ-135 gas sensor (analog, ADC1)
 #define PIN_BUZZER   25
-#define PIN_LED_RED  26
-#define PIN_LED_BLUE 2      // Cambiado de 27 a 2 (confirmado que este sí enciende en tu placa)
+#define PIN_LED_RED  27
+#define PIN_LED_BLUE 2      // LED Azul para calidad de aire
 
 // ---------- OLED display ----------
 #define SCREEN_WIDTH 128
@@ -37,19 +29,19 @@ WebServer server(80);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // ---------- MQ135 warm-up ----------
-const unsigned long MQ135_WARMUP_MS = 60000UL; // 60 s de precalentamiento (subir a 3-5 min para mayor precisión)
+const unsigned long MQ135_WARMUP_MS = 60000UL; // 60 s de precalentamiento
 unsigned long bootTime = 0;
 bool mq135Ready = false;
 
 // ---------- MQ135 calibration ----------
 int mq135Baseline = 0;          // valor de "aire limpio" medido al arrancar
 
-// ---------- Umbrales de clasificación (relativos al baseline calibrado) ----------
-const int MARGIN_MODERADO = 200;   // aire limpio hasta aquí
-const int MARGIN_MALO     = 500;   // moderado hasta aquí
-const int MARGIN_PELIGROSO = 900;  // malo hasta aquí, más de esto = peligroso
+// ---------- Umbrales de clasificacion (relativos al baseline calibrado) ----------
+const int MARGIN_MODERADO  = 200;
+const int MARGIN_MALO      = 500;
+const int MARGIN_PELIGROSO = 900;
 
-// ---------- Suavizado (media móvil) ----------
+// ---------- Suavizado (media movil) ----------
 const int MQ135_SAMPLES = 10;
 int mq135Buffer[MQ135_SAMPLES];
 int mq135Index = 0;
@@ -112,8 +104,7 @@ void calibrateMQ135Baseline() {
   Serial.println(mq135Baseline);
 }
 
-// Clasifica el valor del sensor en una categoría de calidad de aire,
-// según qué tan por encima del baseline calibrado esté
+// Clasifica el valor del sensor en una categoria de calidad de aire
 String clasificarAire(int valor) {
   int delta = valor - mq135Baseline;
   if (delta < MARGIN_MODERADO) return "Aire limpio";
@@ -122,12 +113,13 @@ String clasificarAire(int valor) {
   else return "Peligroso";
 }
 
-// Controla el LED según el nivel: apagado / parpadeo lento / parpadeo rapido / fijo
+// Controla el LED Azul segun el nivel de calidad de aire
 void controlarLEDAire(String nivel) {
   unsigned long now = millis();
 
   if (nivel == "Aire limpio") {
     digitalWrite(PIN_LED_BLUE, LOW);
+    ledState = false;
   }
   else if (nivel == "Calidad moderada") {
     if (now - lastBlinkTime >= 800) { // parpadeo lento
@@ -145,6 +137,7 @@ void controlarLEDAire(String nivel) {
   }
   else { // Peligroso
     digitalWrite(PIN_LED_BLUE, HIGH); // fijo encendido
+    ledState = true;
   }
 }
 
@@ -152,36 +145,45 @@ void controlarLEDAire(String nivel) {
 void enviarDatos() {
   StaticJsonDocument<768> doc;
 
-  // Selecciona la temperatura del AHT10 si está disponible, si no usa la del BMP280
+  // Selecciona la temperatura del AHT10 si esta disponible, si no usa la del BMP280
   double tempVal = ahtOK ? g_tempAHT : g_tempBMP;
 
   doc["temperatura"] = tempVal;
-  doc["humedad"] = ahtOK ? g_humidity : 0.0;
-  doc["presion"] = bmpOK ? g_pressure : 0.0;
+  doc["humedad"]     = ahtOK ? g_humidity : 0.0;
+  doc["presion"]     = bmpOK ? g_pressure : 0.0;
   doc["calidadAire"] = g_airValue;
+  doc["calidadAireBaseline"] = mq135Baseline;
   doc["nivelLluvia"] = g_isRaining ? 100 : 0;
 
   // WiFi
-  doc["wifiRSSI"] = WiFi.RSSI();
+  doc["wifiRSSI"]      = WiFi.RSSI();
   doc["conexionESP32"] = "conectado";
 
   // Uptime
   unsigned long totalSegundos = millis() / 1000;
-  unsigned long horas = totalSegundos / 3600;
+  unsigned long horas   = totalSegundos / 3600;
   unsigned long minutos = (totalSegundos % 3600) / 60;
   char uptimeStr[16];
   snprintf(uptimeStr, sizeof(uptimeStr), "%luh %lum", horas, minutos);
   doc["uptime"] = uptimeStr;
 
-  // Estados de hardware y actuadores
-  doc["estadoAHT10"] = ahtOK ? "operativo" : "desconectado";
-  doc["estadoBMP280"] = bmpOK ? "operativo" : "desconectado";
-  doc["estadoMQ135"] = mq135Ready ? "operativo" : "desconectado";
+  // Estados de hardware
+  doc["estadoAHT10"]       = ahtOK      ? "operativo" : "desconectado";
+  doc["estadoBMP280"]      = bmpOK      ? "operativo" : "desconectado";
+  doc["estadoMQ135"]       = mq135Ready ? "operativo" : "desconectado";
   doc["estadoSensorLluvia"] = "operativo";
-  doc["estadoOLED"] = "operativo";
-  doc["estadoLedVerde"] = "desconectado"; // ya no se usa en esta placa/lógica
-  doc["estadoLedRojo"] = "operativo";
-  doc["estadoBuzzer"] = "operativo";
+  doc["estadoOLED"]        = "operativo";
+
+  // LED Azul (Aire): activo cuando la calidad de aire NO es "Aire limpio"
+  // (parpadea en calidad moderada/mala, fijo en peligroso)
+  doc["estadoLedVerde"] = (g_airLevel != "Aire limpio") ? "operativo" : "desconectado";
+
+  // LED Rojo (Lluvia): activo cuando llueve
+  doc["estadoLedRojo"] = g_isRaining ? "operativo" : "desconectado";
+
+  // Buzzer: activo durante los 4 segundos tras detectar lluvia
+  doc["estadoBuzzer"] = buzzerActive ? "operativo" : "desconectado";
+
   doc["estadoCalidadAire"] = g_airLevel;
 
   String json;
@@ -209,7 +211,7 @@ void setup() {
   pinMode(PIN_LED_RED, OUTPUT);
   pinMode(PIN_LED_BLUE, OUTPUT);
 
-  digitalWrite(PIN_BUZZER, HIGH); // arreglo momento
+  digitalWrite(PIN_BUZZER, HIGH); // buzzer apagado al inicio
   digitalWrite(PIN_LED_RED, LOW);
   digitalWrite(PIN_LED_BLUE, LOW);
 
@@ -249,11 +251,10 @@ void setup() {
     delay(20);
   }
 
-  // ================= WiFi Híbrido: Router → AP Fallback =================
+  // ================= WiFi Connection =================
   Serial.println();
-  Serial.println("Intentando conectar al router WiFi...");
-  WiFi.mode(WIFI_STA);
-  WiFi.setSleep(false);
+  Serial.println("Conectando al WiFi...");
+  WiFi.setSleep(false); // Desactivar modo sleep para evitar desconexiones y timeouts
   WiFi.begin(ssid, password);
 
   unsigned long inicio = millis();
@@ -263,55 +264,24 @@ void setup() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    // ── Modo cliente: conectado al router ──────────────────────────────
-    modoAP = false;
     Serial.println();
-    Serial.println("WiFi conectado con exito (modo cliente)");
+    Serial.println("WiFi conectado con exito");
     Serial.print("IP del ESP32: ");
     Serial.println(WiFi.localIP());
 
-    // Mostrar IP en OLED
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("WiFi OK (Router)");
-    display.print("IP: ");
-    display.println(WiFi.localIP());
-    display.display();
-    delay(3000);
-
+    server.on("/api/data", HTTP_GET, enviarDatos);
+    server.on("/api/data", HTTP_OPTIONS, manejarPreflight);
+    server.begin();
+    Serial.println("Servidor HTTP iniciado para el dashboard");
   } else {
-    // ── Fallback: el ESP32 crea su propia red WiFi ─────────────────────
-    modoAP = true;
     Serial.println();
-    Serial.println("Router no disponible. Iniciando modo Access Point...");
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(ap_ssid, ap_password);
-    IPAddress apIP = WiFi.softAPIP();
-    Serial.print("Red AP creada: "); Serial.println(ap_ssid);
-    Serial.print("IP del ESP32 en modo AP: "); Serial.println(apIP);
-
-    // Mostrar modo AP en OLED
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("Modo Access Point");
-    display.print("Red: "); display.println(ap_ssid);
-    display.print("IP:  "); display.println(apIP);
-    display.println("Pass: sensor123");
-    display.display();
-    delay(5000);
+    Serial.println("Fallo al conectar al WiFi. Iniciando en modo local...");
   }
-
-  // ── El servidor HTTP funciona igual en ambos modos ─────────────────
-  server.on("/api/data", HTTP_GET,     enviarDatos);
-  server.on("/api/data", HTTP_OPTIONS, manejarPreflight);
-  server.begin();
-  Serial.println("Servidor HTTP iniciado para el dashboard");
 }
 
 void loop() {
   // ---------- HTTP request handler ----------
-  // Funciona en modo router (STA) y en modo AP
-  if (WiFi.status() == WL_CONNECTED || modoAP) {
+  if (WiFi.status() == WL_CONNECTED) {
     server.handleClient();
   }
 
@@ -347,43 +317,43 @@ void loop() {
     if (!buzzerActive) {
       buzzerActive = true;
       buzzerStartTime = millis();
-      digitalWrite(PIN_BUZZER, LOW);   // <-- antes decía HIGH
-    } 
-    else if (millis() - buzzerStartTime >= BUZZER_DURATION) {
-      digitalWrite(PIN_BUZZER, HIGH);  // <-- antes decía LOW
+      digitalWrite(PIN_BUZZER, LOW);
     }
-  } 
+    else if (millis() - buzzerStartTime >= BUZZER_DURATION) {
+      digitalWrite(PIN_BUZZER, HIGH);
+    }
+  }
   else {
-    digitalWrite(PIN_BUZZER, HIGH);    // <-- antes decía LOW
+    digitalWrite(PIN_BUZZER, HIGH);
     buzzerActive = false;
   }
 
-  // ---------- MQ-135 reading con suavizado + clasificación por niveles ----------
+  // ---------- MQ-135 reading con suavizado + clasificacion por niveles ----------
   int airValue = readMQ135Smoothed();
   String airLevel = clasificarAire(airValue);
   controlarLEDAire(airLevel);
 
   // ---------- BMP280 and AHT10 reading ----------
   float pressure = bmpOK ? bmp.readPressure() / 100.0F : 0; // hPa
-  float tempBMP = bmpOK ? bmp.readTemperature() : 0;
+  float tempBMP  = bmpOK ? bmp.readTemperature() : 0;
 
-  float tempAHT = 0;
+  float tempAHT     = 0;
   float humidityVal = 0;
   if (ahtOK) {
     sensors_event_t humidity, temp;
     aht.getEvent(&humidity, &temp);
-    tempAHT = temp.temperature;
-    humidityVal = humidity.relative_humidity;
+    tempAHT      = temp.temperature;
+    humidityVal  = humidity.relative_humidity;
   }
 
-  // ---------- Update global values for OLED ----------
+  // ---------- Update global values ----------
   g_isRaining = isRaining;
-  g_airValue = airValue;
-  g_airLevel = airLevel;
-  g_pressure = pressure;
-  g_tempBMP = tempBMP;
-  g_tempAHT = tempAHT;
-  g_humidity = humidityVal;
+  g_airValue  = airValue;
+  g_airLevel  = airLevel;
+  g_pressure  = pressure;
+  g_tempBMP   = tempBMP;
+  g_tempAHT   = tempAHT;
+  g_humidity  = humidityVal;
 
   // ---------- Serial monitor ----------
   Serial.print("Rain: "); Serial.print(isRaining ? "YES" : "NO");

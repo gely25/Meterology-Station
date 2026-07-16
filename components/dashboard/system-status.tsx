@@ -47,6 +47,11 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
     }
   }
 
+  // LED Azul (Aire) y LED Rojo (Alerta): al ser actuadores pasivos conectados a pines GPIO,
+  // se muestran como "Operativo" siempre que el ESP32 esté conectado y respondiendo.
+  const ledAzulStatus = esp32Connected ? 'operativo' : 'desconectado' as const
+  const ledRojoStatus = esp32Connected ? 'operativo' : 'desconectado' as const
+
   const rssiLabel = data.wifiCalidad || 'Sin conexión'
 
   return (
@@ -108,8 +113,8 @@ export function SystemStatus({ data, className }: { data: WeatherData; className
           <div className="grid grid-cols-2 gap-1">
             {[
               { icon: MonitorSmartphone, name: "Pantalla OLED", statusInfo: getStatusInfo(data.estadoOLED) },
-              { icon: Lightbulb, name: "LED Azul (Aire)", statusInfo: getStatusInfo(data.estadoLedVerde) },
-              { icon: Lightbulb, name: "LED Rojo (Alerta)", statusInfo: getStatusInfo(data.estadoLedRojo) },
+              { icon: Lightbulb, name: "LED Azul (Aire)", statusInfo: getStatusInfo(ledAzulStatus) },
+              { icon: Lightbulb, name: "LED Rojo (Alerta)", statusInfo: getStatusInfo(ledRojoStatus) },
               { icon: BellRing, name: "Buzzer", statusInfo: getStatusInfo(data.estadoBuzzer) },
             ].map((row) => {
               const Icon = row.icon

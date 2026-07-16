@@ -581,12 +581,12 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
               {/* Tarjeta completa: Calidad del Aire */}
               <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-background/30 p-4 md:col-span-2">
                 <div className="flex items-center justify-between border-b border-border/30 pb-2">
-                  <span className="text-xs font-extrabold uppercase tracking-widest text-foreground">Calidad del Aire (Niveles del Sensor MQ135)</span>
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-foreground">Calidad del Aire (Límites relativos a baseline calibrado)</span>
                   <span className="text-[9px] font-semibold text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border border-border/20">Sensor MQ135</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-semibold text-emerald-400 dark:text-emerald-300">Excelente (ppm)</span>
+                    <span className="text-[10px] font-semibold text-emerald-400 dark:text-emerald-300">Excelente (+ delta ppm)</span>
                     <input
                       type="number" min="0"
                       value={localThresholds.airQuality.excellent}
@@ -595,7 +595,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-semibold text-sky-400 dark:text-sky-200">Buena (ppm)</span>
+                    <span className="text-[10px] font-semibold text-sky-400 dark:text-sky-200">Buena (+ delta ppm)</span>
                     <input
                       type="number" min="0"
                       value={localThresholds.airQuality.acceptable}
@@ -604,7 +604,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-semibold text-amber-400 dark:text-amber-200">Moderada (ppm)</span>
+                    <span className="text-[10px] font-semibold text-amber-400 dark:text-amber-200">Moderada (+ delta ppm)</span>
                     <input
                       type="number" min="0"
                       value={localThresholds.airQuality.regular}
@@ -613,7 +613,7 @@ export function ConfigPage({ accentTheme, onAccentThemeChange }: { accentTheme: 
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[10px] font-semibold text-rose-400 dark:text-rose-300">Crítica (ppm)</span>
+                    <span className="text-[10px] font-semibold text-rose-400 dark:text-rose-300">Crítica (+ delta ppm)</span>
                     <input
                       type="number" min="0"
                       value={localThresholds.airQuality.bad}

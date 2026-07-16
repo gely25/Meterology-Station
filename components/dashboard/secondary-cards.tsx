@@ -348,65 +348,69 @@ export function PressureCard({ data, className }: { data: WeatherData; className
 
 type AQLevel = { label: string; desc: string; action: string; color: string; bg: string; border: string; glow: string }
 
-function getAQLevel(value: number): AQLevel {
-  if (value < THRESHOLDS.airQuality.excellent) {
-    return {
-      label: 'EXCELENTE',
-      desc: 'Aire limpio',
-      action: 'Respirar es seguro',
-      color: '#2dd4bf',
-      bg: 'rgba(45,212,191,0.06)',
-      border: 'rgba(45,212,191,0.25)',
-      glow: 'shadow-[0_0_15px_rgba(45,212,191,0.15)] border-[#2dd4bf]/40'
-    }
-  }
-  if (value < THRESHOLDS.airQuality.acceptable) {
-    return {
-      label: 'ACEPTABLE',
-      desc: 'Calidad aceptable',
-      action: 'Normal para personas sanas',
-      color: '#facc15',
-      bg: 'rgba(250,204,21,0.06)',
-      border: 'rgba(250,204,21,0.25)',
-      glow: 'shadow-[0_0_15px_rgba(250,204,21,0.12)] border-[#facc15]/30'
-    }
-  }
-  if (value < THRESHOLDS.airQuality.regular) {
-    return {
-      label: 'REGULAR',
-      desc: 'Calidad regular',
-      action: 'Sensibles pueden sentir molestias',
-      color: '#f97316',
-      bg: 'rgba(249,115,22,0.06)',
-      border: 'rgba(249,115,22,0.25)',
-      glow: 'shadow-[0_0_15px_rgba(249,115,22,0.12)] border-[#f97316]/30'
-    }
-  }
-  if (value < THRESHOLDS.airQuality.bad) {
-    return {
-      label: 'MALA',
-      desc: 'Poco recomendable',
-      action: 'Evite exposición prolongada',
-      color: '#fb923c',
-      bg: 'rgba(251,146,60,0.06)',
-      border: 'rgba(251,146,60,0.25)',
-      glow: 'shadow-[0_0_15px_rgba(251,146,60,0.15)] border-[#fb923c]/40'
-    }
-  }
-  return {
-    label: 'CRÍTICA',
-    desc: 'Aire contaminado',
-    action: 'Utilice protección respiratoria',
-    color: '#f87171',
-    bg: 'rgba(248,113,113,0.1)',
-    border: 'rgba(248,113,113,0.4)',
-    glow: 'shadow-[0_0_20px_rgba(248,113,113,0.35)] border-[#f87171]/60 animate-pulse'
+// Mapea la clasificaci\u00f3n del Arduino (estadoCalidadAire) al estilo visual del dashboard.
+// As\u00ed OLED y dashboard usan exactamente el mismo sistema de niveles,
+// basado en el baseline calibrado del MQ135 \u2014 no en umbrales absolutos arbitrarios.
+function getAQLevel(arduinoLevel: string): AQLevel {
+  switch (arduinoLevel) {
+    case 'Aire limpio':
+      return {
+        label: 'LIMPIO',
+        desc: 'Aire limpio',
+        action: 'Respirar es seguro',
+        color: '#2dd4bf',
+        bg: 'rgba(45,212,191,0.06)',
+        border: 'rgba(45,212,191,0.25)',
+        glow: 'shadow-[0_0_15px_rgba(45,212,191,0.15)] border-[#2dd4bf]/40'
+      }
+    case 'Calidad moderada':
+      return {
+        label: 'MODERADA',
+        desc: 'Calidad moderada',
+        action: 'Normal para personas sanas',
+        color: '#facc15',
+        bg: 'rgba(250,204,21,0.06)',
+        border: 'rgba(250,204,21,0.25)',
+        glow: 'shadow-[0_0_15px_rgba(250,204,21,0.12)] border-[#facc15]/30'
+      }
+    case 'Calidad mala':
+      return {
+        label: 'MALA',
+        desc: 'Calidad mala',
+        action: 'Evite exposici\u00f3n prolongada',
+        color: '#fb923c',
+        bg: 'rgba(251,146,60,0.06)',
+        border: 'rgba(251,146,60,0.25)',
+        glow: 'shadow-[0_0_15px_rgba(251,146,60,0.15)] border-[#fb923c]/40'
+      }
+    case 'Peligroso':
+      return {
+        label: 'PELIGROSO',
+        desc: 'Aire contaminado',
+        action: 'Utilice protecci\u00f3n respiratoria',
+        color: '#f87171',
+        bg: 'rgba(248,113,113,0.1)',
+        border: 'rgba(248,113,113,0.4)',
+        glow: 'shadow-[0_0_20px_rgba(248,113,113,0.35)] border-[#f87171]/60 animate-pulse'
+      }
+    default:
+      // Precalentando o sin dato a\u00fan
+      return {
+        label: 'ESPERANDO',
+        desc: 'Calentando sensor...',
+        action: 'Espera ~60s para resultado',
+        color: '#6b7280',
+        bg: 'rgba(107,114,128,0.06)',
+        border: 'rgba(107,114,128,0.25)',
+        glow: 'border-muted/40'
+      }
   }
 }
 
 export function AirQualityCard({ data, className }: { data: WeatherData; className?: string }) {
-  const { calidadAire: value, history, estadoMQ135, conexionESP32 } = data
+  const { calidadAire: value, calidadAireBaseline, history, estadoMQ135, conexionESP32 } = data
   const isConnected = conexionESP32 === 'conectado' && estadoMQ135 === 'operativo'
+
 
   if (!isConnected) {
     return (
@@ -443,7 +447,22 @@ export function AirQualityCard({ data, className }: { data: WeatherData; classNa
     )
   }
 
-  const level = getAQLevel(value)
+  // Clasificación dinámica basada en el baseline del ESP32 y los umbrales modificables (offsets) del dashboard
+  const baseline = calidadAireBaseline || 800;
+  const delta = value - baseline;
+  
+  let computedLevel = 'Aire limpio';
+  if (delta < THRESHOLDS.airQuality.excellent) {
+    computedLevel = 'Aire limpio';
+  } else if (delta < THRESHOLDS.airQuality.acceptable) {
+    computedLevel = 'Calidad moderada';
+  } else if (delta < THRESHOLDS.airQuality.regular) {
+    computedLevel = 'Calidad mala';
+  } else {
+    computedLevel = 'Peligroso';
+  }
+
+  const level = getAQLevel(computedLevel)
   const trendDir = calcTrend(history, 'airQuality', 20)
 
   return (

@@ -1,7 +1,7 @@
 "use client"
 
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
-import { TriangleAlert } from "lucide-react"
+import { TriangleAlert, Wind } from "lucide-react"
 import { Panel } from "./panel"
 import { cn, calcTrend } from "@/lib/utils"
 import type { TrendInfo } from "@/lib/utils"
@@ -495,10 +495,29 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
   // Lógica de Estado dinámico general
   const isRaining = data.nivelLluvia >= THRESHOLDS.rain.detected
   const isRainHeavy = data.nivelLluvia >= THRESHOLDS.rain.heavy
-  const isAirBad = data.calidadAire >= THRESHOLDS.airQuality.regular
-  const isAirDangerous = data.calidadAire >= THRESHOLDS.airQuality.bad
+
+  // Calidad de aire: se usa el baseline calibrado del ESP32 y los umbrales configurados
+  // como offsets en el dashboard. Esto permite al usuario modificar los límites.
+  const baseline = data.calidadAireBaseline || 800
+  const airDelta = data.calidadAire - baseline
+  
+  let computedAirLevel = 'Aire limpio'
+  if (airDelta < THRESHOLDS.airQuality.excellent) {
+    computedAirLevel = 'Aire limpio'
+  } else if (airDelta < THRESHOLDS.airQuality.acceptable) {
+    computedAirLevel = 'Calidad moderada'
+  } else if (airDelta < THRESHOLDS.airQuality.regular) {
+    computedAirLevel = 'Calidad mala'
+  } else {
+    computedAirLevel = 'Peligroso'
+  }
+
+  const isAirBad      = ['Calidad moderada', 'Calidad mala', 'Peligroso'].includes(computedAirLevel)
+  const isAirDangerous = ['Calidad mala', 'Peligroso'].includes(computedAirLevel)
+
   const isTempExtreme = data.temperatura > THRESHOLDS.temperature.max || data.temperatura < THRESHOLDS.temperature.min
   const isHumExtreme = data.humedad > THRESHOLDS.humidity.comfortMax || data.humedad < THRESHOLDS.humidity.min
+  const isPressureExtreme = data.presion > THRESHOLDS.pressure.max || data.presion < THRESHOLDS.pressure.min
 
   let stateLabel = "SISTEMA ESTABLE"
   let stateSubtitle = "Condiciones normales de operación"
@@ -532,17 +551,82 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
     svgSrc = "/svg/Ambiente húmedo.svg"
     accentHex = "#f59e0b"
     badgeClasses = "border-amber-500/40 bg-amber-500/15 text-amber-400"
-  } else if (isTempExtreme || isHumExtreme) {
-    const outOfRange: string[] = []
-    if (isTempExtreme) outOfRange.push("temperatura")
-    if (isHumExtreme) outOfRange.push("humedad")
+  } else if (isTempExtreme || isHumExtreme || isPressureExtreme) {
     stateLabel = "CONDICIÓN ANÓMALA"
-    stateSubtitle = `Fuera de rango: ${outOfRange.join(" y ")}`
+    stateSubtitle = "Parámetros fuera de rango"
     labelColor = "text-orange-400"
     bgGradient = "from-orange-500/10 via-transparent to-transparent"
     svgSrc = "/svg/Ambiente húmedo.svg"
     accentHex = "#fb923c"
     badgeClasses = "border-orange-500/40 bg-orange-500/15 text-orange-400"
+  }
+
+  // Colección de anomalías activas para visualización en CONDICIÓN ANÓMALA
+  const anomalies: { label: string; icon: string; isLucide?: boolean; lucideIcon?: any; filter?: string; color: string }[] = []
+
+  if (stateLabel === "CONDICIÓN ANÓMALA") {
+    if (data.temperatura < THRESHOLDS.temperature.min) {
+      const diff = THRESHOLDS.temperature.min - data.temperatura
+      anomalies.push({
+        label: `Temperatura baja (-${diff.toFixed(1)}°C)`,
+        icon: "/svg/azul.svg",
+        color: "text-sky-400"
+      })
+    } else if (data.temperatura > THRESHOLDS.temperature.max) {
+      const diff = data.temperatura - THRESHOLDS.temperature.max
+      anomalies.push({
+        label: `Temperatura alta (+${diff.toFixed(1)}°C)`,
+        icon: "/svg/rojo.svg",
+        color: "text-red-400"
+      })
+    }
+
+    if (data.humedad < THRESHOLDS.humidity.min) {
+      const diff = THRESHOLDS.humidity.min - data.humedad
+      anomalies.push({
+        label: `Humedad baja (-${diff.toFixed(0)}%)`,
+        icon: "/svg/humedad.svg",
+        filter: TINT.humidity,
+        color: "text-sky-400"
+      })
+    } else if (data.humedad > THRESHOLDS.humidity.comfortMax) {
+      const diff = data.humedad - THRESHOLDS.humidity.comfortMax
+      anomalies.push({
+        label: `Humedad alta (+${diff.toFixed(0)}%)`,
+        icon: "/svg/humedad.svg",
+        filter: TINT.humidity,
+        color: "text-blue-400"
+      })
+    }
+
+    if (data.presion < THRESHOLDS.pressure.min) {
+      const diff = THRESHOLDS.pressure.min - data.presion
+      anomalies.push({
+        label: `Presión baja (-${diff.toFixed(1)} hPa)`,
+        icon: "/svg/presión atmosferica.svg",
+        filter: TINT.pressure,
+        color: "text-orange-400"
+      })
+    } else if (data.presion > THRESHOLDS.pressure.max) {
+      const diff = data.presion - THRESHOLDS.pressure.max
+      anomalies.push({
+        label: `Presión alta (+${diff.toFixed(1)} hPa)`,
+        icon: "/svg/presión atmosferica.svg",
+        filter: "brightness(0) saturate(100%) invert(75%) sepia(40%) saturate(400%) hue-rotate(230deg) brightness(110%)", // Moradito pastel
+        color: "text-purple-300"
+      })
+    }
+
+    if (isAirBad) {
+      // Mostramos directamente la categoría calculada con el baseline
+      anomalies.push({
+        label: `Calidad de aire: ${computedAirLevel}`,
+        icon: "",
+        isLucide: true,
+        lucideIcon: Wind,
+        color: "text-amber-400"
+      })
+    }
   }
 
   const recs = getRecommendations(data)
@@ -558,8 +642,12 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
       style={{ borderLeftColor: accentHex, backgroundColor: `${accentHex}0A` }}
     >
       {/* Background watermark */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none overflow-hidden w-[300px] h-[300px] flex items-center justify-center">
-        <img src={svgSrc} alt="" width={300} height={300} className="object-contain w-full h-full" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none overflow-hidden w-[300px] h-[300px] flex items-center justify-center">
+        {stateLabel === "CONDICIÓN ANÓMALA" ? (
+          <TriangleAlert className="w-full h-full text-foreground" />
+        ) : (
+          <img src={svgSrc} alt="" width={300} height={300} className="object-contain w-full h-full" />
+        )}
       </div>
 
       {/* Header */}
@@ -587,13 +675,17 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
             className="relative flex items-center justify-center rounded-2xl p-3 overflow-hidden"
             style={{ backgroundColor: `${accentHex}1a`, boxShadow: `0 0 0 1px ${accentHex}40, 0 0 24px -6px ${accentHex}50` }}
           >
-            <img
-              src={svgSrc}
-              alt={stateLabel}
-              width={104}
-              height={104}
-              className="object-contain select-none drop-shadow-[0_4px_10px_rgba(255,255,255,0.05)] transition-all duration-500 w-[104px] h-[104px] max-w-[104px] max-h-[104px]"
-            />
+            {stateLabel === "CONDICIÓN ANÓMALA" ? (
+              <TriangleAlert className="w-[70px] h-[70px] animate-pulse" style={{ color: accentHex }} />
+            ) : (
+              <img
+                src={svgSrc}
+                alt={stateLabel}
+                width={104}
+                height={104}
+                className="object-contain select-none drop-shadow-[0_4px_10px_rgba(255,255,255,0.05)] transition-all duration-500 w-[104px] h-[104px] max-w-[104px] max-h-[104px]"
+              />
+            )}
           </div>
           <div className="text-center mt-3">
             <p
@@ -602,7 +694,31 @@ export function ConditionCard({ data, className }: { data: WeatherData; classNam
             >
               {stateLabel}
             </p>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-1.5">{stateSubtitle}</p>
+            {stateLabel === "CONDICIÓN ANÓMALA" ? (
+              <div className="flex flex-col items-center gap-1.5 mt-3">
+                {anomalies.map((anom, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 px-3 py-1 rounded-full border bg-background/40 backdrop-blur-sm text-[10px] font-bold uppercase tracking-wider transition-all duration-300 hover:bg-background/60"
+                    style={{ borderColor: `${accentHex}30` }}
+                  >
+                    {anom.isLucide && anom.lucideIcon ? (
+                      <anom.lucideIcon className={cn("size-3.5", anom.color)} />
+                    ) : (
+                      <img 
+                        src={anom.icon} 
+                        alt="" 
+                        className="size-3.5 object-contain" 
+                        style={anom.filter ? { filter: anom.filter } : undefined} 
+                      />
+                    )}
+                    <span className={anom.color}>{anom.label}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[10px] font-semibold text-muted-foreground mt-1.5">{stateSubtitle}</p>
+            )}
           </div>
         </div>
 

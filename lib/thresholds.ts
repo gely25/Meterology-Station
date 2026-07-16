@@ -17,10 +17,10 @@ export const DEFAULT_THRESHOLDS = {
     heavy: 70,
   },
   airQuality: {
-    excellent: 600,
-    acceptable: 1000,
-    regular: 1400,
-    bad: 1800,
+    excellent: 200,     // Margen Moderado (Aire limpio si delta < 200)
+    acceptable: 500,    // Margen Malo (Calidad moderada si delta < 500)
+    regular: 900,       // Margen Peligroso (Calidad mala si delta < 900)
+    bad: 900,           // Peligroso si delta >= 900
   }
 } as const;
 

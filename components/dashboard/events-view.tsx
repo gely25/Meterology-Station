@@ -308,8 +308,8 @@ export function EventsView({ data }: { data: WeatherData }) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
   const startIndex = (currentPage - 1) * pageSize
 
-  const criticalCount = events.filter(e => e.type === "alert").length
-  const warningCount  = events.filter(e => e.type === "warning").length
+  const criticalCount = filteredEvents.filter(e => e.type === "alert").length
+  const warningCount  = filteredEvents.filter(e => e.type === "warning").length
 
   // ── Filas compartidas para ambos formatos de exportación (respeta filtros activos) ──
   const buildExportRows = useCallback(() => {
@@ -499,41 +499,72 @@ export function EventsView({ data }: { data: WeatherData }) {
         </div>
 
         {/* ── SUMMARY CARDS ──────────────────────────────────────────────── */}
-        <div className="px-4 pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 flex-shrink-0">
-          {/* Críticos — pastel rose */}
-          <div className="relative overflow-hidden rounded-xl border border-l-4 border-l-rose-300 dark:border-l-rose-300/70 border-rose-200/60 dark:border-rose-300/25 bg-rose-50/60 dark:bg-rose-400/[0.06] pl-5 pr-4 py-3.5 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center justify-center size-9 rounded-lg bg-rose-100 dark:bg-rose-300/15 border border-rose-200 dark:border-rose-300/30">
-                <TriangleAlert className="size-4.5 text-rose-400 dark:text-rose-300" />
-              </span>
-              <span className="text-3xl font-extrabold font-mono text-rose-400 dark:text-rose-300 leading-none tabular-nums">{criticalCount}</span>
-            </div>
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-rose-400/80 dark:text-rose-300/60">Críticos</span>
+        <div className="px-4 pt-3 flex flex-col gap-2 flex-shrink-0">
+          {/* Contexto del resumen */}
+          <div className="flex flex-col gap-0.5 px-1">
+            <span className="text-[8px] font-extrabold tracking-[0.15em] uppercase text-muted-foreground/60">Resumen del filtro activo</span>
+            <span className="text-[11px] font-bold text-foreground">
+              {quickDate === "todos" && "Todos los registros"}
+              {quickDate === "hoy" && "Última hora"}
+              {quickDate === "24h" && "Últimas 24 horas"}
+              {quickDate === "7d" && "Últimos 7 días"}
+              {quickDate === "custom" && "Rango personalizado"}
+            </span>
           </div>
 
-          {/* Advertencias — pastel amber */}
-          <div className="relative overflow-hidden rounded-xl border border-l-4 border-l-amber-200 dark:border-l-amber-200/70 border-amber-200/60 dark:border-amber-200/25 bg-amber-50/60 dark:bg-amber-200/[0.06] pl-5 pr-4 py-3.5 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center justify-center size-9 rounded-lg bg-amber-100 dark:bg-amber-200/15 border border-amber-200 dark:border-amber-200/30 flex-shrink-0">
-                <BellRing className="size-4.5 text-amber-400 dark:text-amber-200" />
-              </span>
-              <span className="text-3xl font-extrabold font-mono text-amber-400 dark:text-amber-200 leading-none tabular-nums">{warningCount}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Críticos — pastel rose */}
+            <div className="relative overflow-hidden rounded-xl border border-l-4 border-l-rose-300 dark:border-l-rose-300/70 border-rose-200/60 dark:border-rose-300/25 bg-rose-50/60 dark:bg-rose-400/[0.06] pl-5 pr-4 py-3 flex flex-col justify-between min-h-[96px]">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center justify-center size-9 rounded-lg bg-rose-100 dark:bg-rose-300/15 border border-rose-200 dark:border-rose-300/30">
+                  <TriangleAlert className="size-4.5 text-rose-400 dark:text-rose-300" />
+                </span>
+                <span className="text-3xl font-extrabold font-mono text-rose-400 dark:text-rose-300 leading-none tabular-nums">{criticalCount}</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-rose-400/80 dark:text-rose-300/60">Críticos</span>
+                <p className="text-[9px] leading-tight text-rose-400/70 dark:text-rose-300/50">
+                  {criticalCount === 0 
+                    ? "No se registraron eventos críticos durante este período." 
+                    : "Eventos críticos detectados que requieren atención."}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400/80 dark:text-amber-200/60">Advertencias</span>
-              <WarningSparkline events={events} />
-            </div>
-          </div>
 
-          {/* Total — pastel sky */}
-          <div className="relative overflow-hidden rounded-xl border border-l-4 border-l-sky-200 dark:border-l-sky-200/70 border-sky-200/60 dark:border-sky-200/25 bg-sky-50/60 dark:bg-sky-200/[0.06] pl-5 pr-4 py-3.5 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center justify-center size-9 rounded-lg bg-sky-100 dark:bg-sky-200/15 border border-sky-200 dark:border-sky-200/30">
-                <Activity className="size-4.5 text-sky-400 dark:text-sky-200" />
-              </span>
-              <span className="text-3xl font-extrabold font-mono text-foreground leading-none tabular-nums">{events.length}</span>
+            {/* Advertencias — pastel amber */}
+            <div className="relative overflow-hidden rounded-xl border border-l-4 border-l-amber-200 dark:border-l-amber-200/70 border-amber-200/60 dark:border-amber-200/25 bg-amber-50/60 dark:bg-amber-200/[0.06] pl-5 pr-4 py-3 flex flex-col justify-between min-h-[96px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex items-center justify-center size-9 rounded-lg bg-amber-100 dark:bg-amber-200/15 border border-amber-200 dark:border-amber-200/30 flex-shrink-0">
+                  <BellRing className="size-4.5 text-amber-400 dark:text-amber-200" />
+                </span>
+                <span className="text-3xl font-extrabold font-mono text-amber-400 dark:text-amber-200 leading-none tabular-nums">{warningCount}</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400/80 dark:text-amber-200/60">Advertencias</span>
+                  <WarningSparkline events={filteredEvents} />
+                </div>
+                <p className="text-[9px] leading-tight text-amber-400/70 dark:text-amber-200/50">
+                  Eventos que superaron algún umbral configurado.
+                </p>
+              </div>
             </div>
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-400/80 dark:text-sky-200/60">Total de eventos</span>
+
+            {/* Total — pastel sky */}
+            <div className="relative overflow-hidden rounded-xl border border-l-4 border-l-sky-200 dark:border-l-sky-200/70 border-sky-200/60 dark:border-sky-200/25 bg-sky-50/60 dark:bg-sky-200/[0.06] pl-5 pr-4 py-3 flex flex-col justify-between min-h-[96px]">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center justify-center size-9 rounded-lg bg-sky-100 dark:bg-sky-200/15 border border-sky-200 dark:border-sky-200/30">
+                  <Activity className="size-4.5 text-sky-400 dark:text-sky-200" />
+                </span>
+                <span className="text-3xl font-extrabold font-mono text-foreground leading-none tabular-nums">{filteredEvents.length}</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-400/80 dark:text-sky-200/60">Registros de bitácora</span>
+                <p className="text-[9px] leading-tight text-sky-400/70 dark:text-sky-200/50">
+                  Entradas almacenadas en el historial del sistema.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

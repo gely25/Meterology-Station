@@ -107,6 +107,7 @@ class WeatherService {
             estadoClima,
             estadoCalidadAire,
             calidadAire: latest.airQuality,
+            calidadAireBaseline: 800, // Default baseline for offline hydration
             hora,
             fecha,
             ultimaActualizacion: hora,
@@ -199,6 +200,7 @@ class WeatherService {
       humedad: 65,
       presion: 1012.7,
       calidadAire: 65,
+      calidadAireBaseline: 800,
       nivelLluvia: 0,
       estadoLluvia: 'Seco',
       estadoClima: 'Ambiente despejado',
@@ -312,6 +314,7 @@ class WeatherService {
       const nivelLluvia = typeof espData.nivelLluvia === 'number' && !isNaN(espData.nivelLluvia) ? espData.nivelLluvia : 0.0;
       const presion = typeof espData.presion === 'number' && !isNaN(espData.presion) ? espData.presion : 0.0;
       const calidadAire = typeof espData.calidadAire === 'number' && !isNaN(espData.calidadAire) ? espData.calidadAire : 0.0;
+      const calidadAireBaseline = typeof espData.calidadAireBaseline === 'number' && !isNaN(espData.calidadAireBaseline) ? espData.calidadAireBaseline : 800;
       const wifiRSSI = typeof espData.wifiRSSI === 'number' && !isNaN(espData.wifiRSSI) ? espData.wifiRSSI : 0.0;
 
       this.tick += 1;
@@ -416,6 +419,7 @@ class WeatherService {
         nivelLluvia,
         presion,
         calidadAire,
+        calidadAireBaseline,
         hora,
         history,
         estadoLluvia,
